@@ -181,6 +181,26 @@ void Executor::rewriteConstants(uint64_t base, size_t size) {
   }
 }
 
+
+void Executor::model_putchar() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  if  ((isa<ConstantExpr>(arg1Expr)) ) {
+    //Just pass the call through and print to stdout.
+    union BITS {
+      uint64_t asuint64_t;
+      char  aschar;
+    } b;
+    b.asuint64_t = target_ctx_gregs[GREG_RDI].u64;
+
+    printf("TASE: The following char was passed to putchar: %c \n", b.aschar);
+    do_ret();
+
+  } else {
+    concretizeGPRArgs(1, "model_putchar");
+    model_putchar();
+  }
+}
+
 //Todo -- figure out the endianness issue with
 //copying 2 bytes at a time in the slow unaligned path
 void Executor::model_memcpy_tase() {

@@ -4234,6 +4234,7 @@ void Executor::loadFnModelMap() {
   MFE(memcpy, model_memcpy_tase);
   MFE(memcpy_tase, model_memcpy_tase);
   MFE(posix_fadvise, model_posix_fadvise);
+  MFE(putchar, model_putchar);
   MFE(printf, model_printf);
   MFE(__printf_chk, model___printf_chk); 
   MFE(puts, model_printf);  //fixme?

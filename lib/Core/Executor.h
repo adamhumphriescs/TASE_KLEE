@@ -459,7 +459,8 @@ private:
   void model___ctype_b_loc();
   void model___ctype_tolower_loc();
   void model___isoc99_sscanf();
-
+  void model_putchar();
+  
   //Printf modeling and helpers:
   enum print_specifier  {d_s, f_s, lf_s, s_s, c_s, lu_s, bad_s};
   print_specifier parse_specifier(char * input, int * offset);
