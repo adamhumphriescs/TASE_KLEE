@@ -108,6 +108,7 @@ using namespace klee;
 #include <netdb.h>
 #include <fcntl.h>
 #include "../../../test/tase/include/tase/tase_interp.h"
+#include "../../../test/tase/include/tase/tase_shims.h"
 #include "../../../test/proj_defs.h"
 #include "tase/TASEControl.h"
 #include "../Tase/TASESoftFloatEmulation.h"
@@ -120,17 +121,6 @@ using namespace klee;
 extern "C"  void ( *signal(int signum, void (*handler)(int)) ) (int){
   return NULL;
   }
-
-extern "C" {
-  void * tase_make_symbolic(void * addr, unsigned long size, const char * name); 
-  void * calloc_tase (unsigned long num, unsigned long size);
-  void * realloc_tase (void * ptr, unsigned long new_size);
-  void * malloc_tase(unsigned long s);
-  void   free_tase(void * ptr);
-  void * memcpy_tase(void * dest, const void * src, unsigned long n);
-  int    getc_unlocked_tase(FILE * f);
-  } 
-
 
 //Symbols we need to map in for TASE
 extern char edata;
@@ -4180,7 +4170,7 @@ static int model_malloc_calls = 0;
 
 std::map<uint64_t , void (Executor::*) (void) > fnModelMap;
 
-
+//Macro for (M)odeled (F)unction (E)ntries
 #define MFE(x, y) fnModelMap.insert(std::make_pair( (uint64_t)   &x , &klee::Executor::y )); \
   fnModelMap.insert(std::make_pair( (uint64_t)   &x  + trap_off, &klee::Executor::y ))
 
@@ -4235,24 +4225,49 @@ void Executor::loadFnModelMap() {
   MFE(memcpy_tase, model_memcpy_tase);
   MFE(posix_fadvise, model_posix_fadvise);
   MFE(putchar, model_putchar);
-  MFE(printf, model_printf);
+  MFE(printf_tase, model_printf);
   MFE(__printf_chk, model___printf_chk); 
-  MFE(puts, model_printf);  //fixme?
+  MFE(puts_tase, model_puts); 
   //MFE(read, model_read); //Model doesn't exist yet.  fixme.
   MFE(realloc, model_realloc);
   MFE(realloc_tase, model_realloc);
   MFE(rewind, model_rewind);
   MFE(sb_disabled, model_sb_disabled); 
   MFE(sb_reopen, model_sb_reopen); 
-  MFE(sprintf, model_sprintf);
+  MFE(sprintf_tase, model_sprintf);
   MFE(sscanf, model___isoc99_sscanf);//Check to make sure it's OK to model with C99
   MFE(stat, model_stat);
   //MFE(target_exit, model_target_exit); //Special case. fixme. //Doesn't look like we call target_exit anymore.
   MFE(time, model_time);
   MFE(vfprintf, model_vfprintf);
   MFE(write, model_write);
+
+  MFE(strtof_tase, model_strtof);
+  MFE(strtod_tase, model_strtod);
+  MFE(strtold_tase, model_strtold);
+  MFE(strtol_tase, model_strtol);
+  MFE(strtoll_tase, model_strtoll);
+  MFE(strtoul_tase, model_strtoul);
+  MFE(strtoull_tase, model_strtoull);
+  MFE(strtoimax_tase, model_strtoimax);
+  MFE(strtoumax_tase, model_strtoumax);
+
+  MFE(wcstof_tase, model_wcstof);
+  MFE(wcstod_tase, model_wcstod);
+  MFE(wcstold_tase, model_wcstold);
+  MFE(wcstol_tase, model_wcstol);
+  MFE(wcstoll_tase, model_wcstoll);
+  MFE(wcstoul_tase, model_wcstoul);
+  MFE(wcstoull_tase, model_wcstoull);
+  MFE(wcstoumax_tase, model_wcstoumax);
+  MFE(wcstoimax_tase, model_wcstoimax);
+
+  MFE(a_ctz_64_tase, model_a_ctz_64);
+  MFE(a_clz_64_tase, model_a_clz_64);
   
   MFE(tase_make_symbolic, model_tase_make_symbolic);
+
+  MFE(__pthread_self_tase, model___pthread_self);
   
   #ifdef TASE_OPENSSL
   MFE(AES_encrypt, model_AES_encrypt);
@@ -4561,7 +4576,9 @@ void Executor::klee_interp_internal () {
 bool Executor::skipInstrumentationInstruction (tase_greg_t * gregs) {  
   uint64_t rip = gregs[GREG_RIP].u64;
 
-  //opt to skip LEAs
+  //Opt to skip LEAs.  Specifically, we're looking to skip instructions like
+  // 4c 8d 3d 05 00 00 00    lea    0x5(%rip),%r15
+  //and its following 5-byte jmp instruction.
   uint64_t tmp =  *((uint64_t *) rip) ; //get 8 bytes of next instructions
   uint64_t maskedVal = tmp & 0x00ffffffffffffff; //grab first 7 bytes
   if (maskedVal == 0x00000000053d8d4c ) {

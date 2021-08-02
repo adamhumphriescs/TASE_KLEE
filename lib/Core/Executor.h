@@ -466,6 +466,10 @@ private:
   print_specifier parse_specifier(char * input, int * offset);
   bool addPrintfArgNo(std::stringstream * output ,print_specifier type, unsigned int argNo);
   void model_printf();
+  void model_puts();
+  void model___pthread_self();
+  void model_a_ctz_64();
+  void model_a_clz_64();
   
   //AH: Modeling specific to tls---------------------------
   #ifdef TASE_OPENSSL
@@ -489,7 +493,6 @@ private:
   void model_sha1_block_data_order(); //Internal function in sha
   void model_sha256_block_data_order(); //Internal function in sha
   
-  
   uint64_t tls_predict_stdin_size (int fd, uint64_t maxLen);
   BIGNUM * BN_new_tase();
   EC_POINT * EC_POINT_new_tase(EC_GROUP * group);
@@ -504,6 +507,29 @@ private:
   void model_RAND_poll();
 
   #endif
+
+  void model_strtof();
+  void model_strtod();
+  void model_strtold();
+
+  void model_strtol();
+  void model_strtoll();
+  void model_strtoul();
+  void model_strtoull();
+  void model_strtoimax();
+  void model_strtoumax();
+
+  
+  void model_wcstof();
+  void model_wcstod();
+  void model_wcstold();
+
+  void model_wcstol();
+  void model_wcstoll();
+  void model_wcstoul();
+  void model_wcstoull();
+  void model_wcstoumax();
+  void model_wcstoimax();
   
   //Load map of fn addresses and the corresponding model in TASE
   void loadFnModelMap();

@@ -84,6 +84,8 @@ using namespace klee;
 #include <fcntl.h>
 #include <fstream>
 #include <byteswap.h>
+//#include "../../../musl/arch/x86_64/pthread_arch.h"
+//#include "../../../musl/src/internal/pthread_impl.h"
 
 extern uint64_t interpCtr;
 extern uint64_t rodata_size;
@@ -306,20 +308,6 @@ void Executor::do_ret() {
   target_ctx_gregs[GREG_RSP].u64 += 8;
 }
 
-//Todo: don't just skip, even though this is only for printing, change ret size
-void Executor::model_sprintf() {
-  if (modelDebug && !noLog) {
-    printf("Calling model_sprintf on string %s at interpCtr %lu \n", (char *) target_ctx_gregs[GREG_RDI].u64, interpCtr);
-    fflush(stdout);
-  }
-  int res = 1;
-  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-  do_ret();//fake a ret
-}
-
-//Todo: don't just skip, even though this is only for printing, change ret size
 void Executor::model_vfprintf(){
   if (modelDebug && !noLog) {
     printf("Entering model_vfprintf at RIP 0x%lx \n", target_ctx_gregs[GREG_RIP].u64);
@@ -1881,4 +1869,600 @@ void Executor::model_printf() {
   printf("Final result of model_printf----------: \n %s \n", output.str().c_str());
   do_ret();
 
+}
+
+//Modeles for strtod, strtol, etc. and wcstod, wcstol, etc.  These should just
+//be user-level code in principal for which we don't need models, but because the musl
+//stdlib implmentation reuses some file-based utilities from stdio to handle the string
+//manipulation, we're just trapping on these for now to avoid linking in all of stdio.
+
+
+//Models for strtoX
+
+void Executor::model_strtof() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr))
+       ){
+    union BITS {
+      float asFloat;
+      double asDouble;
+      uint64_t asUint64_t;
+    } b;
+
+    const char * nptr = (char *) target_ctx_gregs[GREG_RDI].u64;
+    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
+    b.asFloat = strtof(nptr,endptr);
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+    
+  } else {
+    concretizeGPRArgs(2, "model_strtof");
+    model_strtof();
+  }
+}
+void Executor::model_strtod() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr))
+       ){
+    union BITS {
+      float asFloat;
+      double asDouble;
+      uint64_t asUint64_t;
+    } b;
+
+    const char * nptr = (char *) target_ctx_gregs[GREG_RDI].u64;
+    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
+    b.asDouble = strtod(nptr,endptr);
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+
+  } else {
+    concretizeGPRArgs(2, "model_strtod");
+    model_strtod();
+  }
+}
+void Executor::model_strtold() {
+  printf("TASE INFO: Calling strtold and returning 64 bits for long double \n");
+  model_strtod();
+}
+
+
+void Executor::model_strtoull() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr)) &&
+       (isa<ConstantExpr>(arg3Expr))
+       ){
+
+    union BITS {
+      unsigned long long asULL;
+      long long asLL;
+      unsigned long asUL;
+      long asLong;
+      uint64_t asUint64_t;
+    } b;
+    const char * str = (char *) target_ctx_gregs[GREG_RDI].u64;
+    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
+    int base = (int) target_ctx_gregs[GREG_RDX].u64;
+
+    b.asULL = strtoull(str, endptr, base);
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+    
+  } else {
+    concretizeGPRArgs(3, "model_strtoull");
+    model_strtoull();
+  }
+    
+}
+void Executor::model_strtoll() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr)) &&
+       (isa<ConstantExpr>(arg3Expr))
+       ){
+
+    union BITS {
+      unsigned long long asULL;
+      long long asLL;
+      unsigned long asUL;
+      long asLong;
+      uint64_t asUint64_t;
+    } b;
+    const char * str = (char *) target_ctx_gregs[GREG_RDI].u64;
+    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
+    int base = (int) target_ctx_gregs[GREG_RDX].u64;
+
+    b.asLL = strtoll(str, endptr, base);
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+
+  } else {
+    concretizeGPRArgs(3, "model_strtoll");
+    model_strtoll();
+  }
+}
+void Executor::model_strtoul() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr)) &&
+       (isa<ConstantExpr>(arg3Expr))
+       ){
+
+    union BITS {
+      unsigned long long asULL;
+      long long asLL;
+      unsigned long asUL;
+      long asLong;
+      uint64_t asUint64_t;
+    } b;
+    const char * str = (char *) target_ctx_gregs[GREG_RDI].u64;
+    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
+    int base = (int) target_ctx_gregs[GREG_RDX].u64;
+
+    b.asUL = strtoul(str, endptr, base);
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+
+  } else {
+    concretizeGPRArgs(3, "model_strtoul");
+    model_strtoul();
+  }
+}
+void Executor::model_strtol() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr)) &&
+       (isa<ConstantExpr>(arg3Expr))
+       ){
+
+    union BITS {
+      unsigned long long asULL;
+      long long asLL;
+      unsigned long asUL;
+      long asLong;
+      uint64_t asUint64_t;
+    } b;
+    const char * str = (char *) target_ctx_gregs[GREG_RDI].u64;
+    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
+    int base = (int) target_ctx_gregs[GREG_RDX].u64;
+
+    b.asLong = strtol(str, endptr, base);
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+
+  } else {
+    concretizeGPRArgs(3, "model_strtol");
+    model_strtol();
+  }
+}
+void Executor::model_strtoimax() {
+  printf("TASE INFO: Modeling strtoimax as strtoll \n");
+  model_strtoll();
+}
+void Executor::model_strtoumax() {
+  printf("TASE INFO: Modeling strtoumax as strtoull \n");
+  model_strtoull();
+}
+
+//Models for wcstoX
+
+void Executor::model_wcstof() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr)) 
+       ){
+    union BITS {
+      float asFloat;
+      uint64_t asUint64_t;
+    } b;
+    
+    const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64; 
+    wchar_t **  endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
+    b.asFloat = wcstof(nptr, endptr);
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+    
+    do_ret();
+    
+  } else {
+    concretizeGPRArgs(2, "model_wcstof");
+    model_wcstof();
+  }
+}
+void Executor::model_wcstod() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr))
+       ){
+    union BITS {
+      double asDouble;
+      uint64_t asUint64_t;
+    } b;
+
+    const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64;
+    wchar_t **  endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
+    b.asDouble = wcstod(nptr, endptr);
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+
+  } else {
+    concretizeGPRArgs(2, "model_wcstod");
+    model_wcstod();
+  }
+}
+void Executor::model_wcstold() {
+  printf("TASE INFO: Calling model_wctold and returning 64 bits for long double \n");
+  model_wcstod();   
+}
+
+//wcstol models
+
+void Executor::model_wcstoull() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr)) &&
+       (isa<ConstantExpr>(arg3Expr))
+       ){
+
+    union BITS {
+      unsigned long long asULL;
+      uint64_t asUint64_t;
+    } b;
+
+    const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64;
+    wchar_t ** endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
+    int base = (int) target_ctx_gregs[GREG_RDX].u64;
+
+    b.asULL = wcstoull(nptr, endptr, base);
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+
+  } else {
+    concretizeGPRArgs(3, "model_wcstoull");
+    model_wcstoull();
+  }
+}
+void Executor::model_wcstoll() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr)) &&
+       (isa<ConstantExpr>(arg3Expr))
+       ){
+
+    union BITS {
+      long long asLL;
+      uint64_t asUint64_t;
+    } b;
+
+    const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64;
+    wchar_t ** endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
+    int base = (int) target_ctx_gregs[GREG_RDX].u64;
+
+    b.asLL = wcstoll(nptr, endptr, base);
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+
+  } else {
+    concretizeGPRArgs(3, "model_wcstoll");
+    model_wcstoll();
+  }
+}
+void Executor::model_wcstoul() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr)) &&
+       (isa<ConstantExpr>(arg3Expr))
+       ){
+
+    union BITS {
+      unsigned long asUL;
+      uint64_t asUint64_t;
+    } b;
+
+    const wchar_t * nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64;
+    wchar_t ** endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
+    int base = (int) target_ctx_gregs[GREG_RDX].u64;
+
+    b.asUL = wcstoul(nptr, endptr, base);
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+
+  } else {
+    concretizeGPRArgs(3, "model_wcstoul");
+    model_wcstoul();
+  }
+
+}
+void Executor::model_wcstol() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) &&
+       (isa<ConstantExpr>(arg2Expr)) &&
+       (isa<ConstantExpr>(arg3Expr))
+       ){
+
+    union BITS {
+      long asLong;
+      uint64_t asUint64_t;
+    } b;
+
+    const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64;
+    wchar_t ** endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
+    int base = (int) target_ctx_gregs[GREG_RDX].u64;
+
+    b.asLong = wcstol(nptr, endptr, base);
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+
+  } else {
+    concretizeGPRArgs(3, "model_wcstol");
+    model_wcstol();
+  }
+}
+void Executor::model_wcstoimax() {
+  printf("TASE INFO: Modeling wcstoimax as wcstoll \n");
+  model_wcstoll();
+}
+void Executor::model_wcstoumax() {
+  printf("TASE INFO: Modeling wcstoumax as wcstoull \n");
+  model_wcstoull();
+}
+
+void Executor::model_puts() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+
+  if  (
+       (isa<ConstantExpr>(arg1Expr))       
+       ){
+
+    printf("Passing puts call through: \n");
+    puts((char *) target_ctx_gregs[GREG_RDI].u64);
+
+    //Always model the call as succeeding.  In the future, for bugfinding it
+    //would be interesting to make the return value symbolic to model failure.
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) 0, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+    do_ret();
+    
+  } else {
+    concretizeGPRArgs(1, "model_puts");
+    model_puts();
+  }
+}
+
+//We're not fully modeling sprintf just yet because of varargs.  However, some sub-libraries
+// we do support in musl (e.g., stdlib, ctype, string) have dependencies on sprintf.
+//So as a workaround, we cherry-pick those specific calls for now and otherwise
+//return an error noting that the function isn't modeled yet.
+
+//The specific calls we're cherry-picking now are ecvt, fcvt, and gcvt in stdlib.
+//Todo: Be careful when using this for SSL verification.
+
+void Executor::model_sprintf() {
+
+  char * str = (char *) target_ctx_gregs[GREG_RDI].u64;
+  char * fmt = (char *) target_ctx_gregs[GREG_RSI].u64;
+
+  union BITS {
+    uint64_t asuint64_t;
+    double asdouble;
+  } arg4;
+  arg4.asuint64_t = target_ctx_gregs[GREG_RCX].u64;
+  
+  if        (strcmp(fmt, "%.*e") == 0 ) { 
+    sprintf(str, fmt, target_ctx_gregs[GREG_RDX].i32, arg4.asdouble);
+  } else if (strcmp(fmt, "%.*f") == 0 ) {
+    sprintf(str, fmt, target_ctx_gregs[GREG_RDX].i32, arg4.asdouble);
+  } else if (strcmp(fmt, "%.*g") == 0 ) {
+    sprintf(str, fmt, target_ctx_gregs[GREG_RDX].i32, arg4.asdouble);
+  } else {
+    printf("ERROR: Unmodeled sprintf call in TASE \n");
+    worker_exit();
+  }
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) strlen(str), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  
+  do_ret();
+  
+}
+
+//This struct comes from pthread_impl.h in musl.
+struct pthread {
+  /* Part 1 -- these fields may be external or
+   * internal (accessed via asm) ABI. Do not change. */
+  struct pthread *self;
+  uintptr_t *dtv;
+  struct pthread *prev, *next; /* non-ABI */
+  uintptr_t sysinfo;
+  uintptr_t canary, canary2;
+
+  /* Part 2 -- implementation details, non-ABI. */
+  int tid;
+  int errno_val;
+  volatile int detach_state;
+  volatile int cancel;
+  volatile unsigned char canceldisable, cancelasync;
+  unsigned char tsd_used:1;
+  unsigned char dlerror_flag:1;
+  unsigned char *map_base;
+  size_t map_size;
+  void *stack;
+  size_t stack_size;
+  size_t guard_size;
+  void *result;
+  void *cancelbuf;
+  void **tsd;
+  struct {
+    volatile void *volatile head;
+    long off;
+    volatile void *volatile pending;
+  } robust_list;
+  volatile int timer_id;
+  void * locale;
+  volatile int killlock[1];
+  char *dlerror_buf;
+  void *stdio_locks;
+
+  /* Part 3 -- the positions of these fields relative to
+   * the end of the structure is external and internal ABI. */
+  uintptr_t canary_at_end;
+  uintptr_t *dtv_copy;
+};
+
+//Handle calls to __pthread_self from our subset of musl libc.  We just
+//set up a dummy pthread struct with the entire thing (including the
+//errno field) set to 0.
+
+//This is something we'd flesh out if we want to
+//do more environment modeling; should be OK for now as-is because
+//our subset of libc only uses this pthread struct for accessing errno.
+struct pthread * dummy_pthread_struct;
+void Executor::model___pthread_self() {
+  static int pthread_self_calls = 0;
+  if (pthread_self_calls == 0) {
+    dummy_pthread_struct = (struct pthread *) calloc(sizeof( struct pthread), 1);
+    tase_map_buf( (uint64_t) dummy_pthread_struct, sizeof( struct pthread));
+    printf("TASE INFO: Initializing dummy pthread struct for target \n");
+  } else {
+    printf("TASE INFO: Returning dummy pthread struct in call to __pthread_self \n");    
+  }
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) dummy_pthread_struct, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();
+  
+}
+
+//Implementation for a_ctz_64 and a_clz_64 comes directly from internal/atomic.h in musl.
+//We're just trapping on these for now because the emitted code for them
+//use bsr and bsl instructions, which aren't implemented in TASE yet.
+
+void Executor::model_a_ctz_64() {
+  static const char debruijn64[64] = {
+				      0, 1, 2, 53, 3, 7, 54, 27, 4, 38, 41, 8, 34, 55, 48, 28,
+				      62, 5, 39, 46, 44, 42, 22, 9, 24, 35, 59, 56, 49, 18, 29, 11,
+				      63, 52, 6, 26, 37, 40, 33, 47, 61, 45, 43, 21, 23, 58, 17, 10,
+				      51, 25, 36, 32, 60, 20, 57, 16, 50, 31, 19, 15, 30, 14, 13, 12
+  };
+
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  if  (
+       (isa<ConstantExpr>(arg1Expr))
+       ){
+    
+    uint64_t x = target_ctx_gregs[GREG_RDI].u64;
+    
+    int res =  debruijn64[(x&-x)*0x022fdd63cc95386dull >> 58];
+    
+    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+    
+    do_ret();
+    
+  } else {
+    concretizeGPRArgs(1, "model_a_ctz_64");
+    model_a_ctz_64();
+  }
+}
+
+
+void Executor::model_a_clz_64() {
+  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
+  if  (
+       (isa<ConstantExpr>(arg1Expr)) 
+       ){
+
+    uint64_t x = target_ctx_gregs[GREG_RDI].u64;
+    
+    uint32_t y;
+    int r;
+    if (x>>32) y=x>>32, r=0; else y=x, r=32;
+    if (y>>16) y>>=16; else r |= 16;
+    if (y>>8) y>>=8; else r |= 8;
+    if (y>>4) y>>=4; else r |= 4;
+    if (y>>2) y>>=2; else r |= 2;
+    int res =  r | !(y>>1);
+
+    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
+    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+    do_ret();
+
+  } else {
+    concretizeGPRArgs(1, "model_a_clz_64");
+    model_a_clz_64();
+  }
 }
