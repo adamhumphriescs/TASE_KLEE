@@ -16,4 +16,9 @@ extern int * ms_QR_size_ptr;
 extern int * ms_QA_base;
 extern int * ms_QA_size_ptr;
 
+#ifndef TASE_OPENSSL
+void DFS_push (int pid);
+void BFS_enqueue (int pid);
+#endif
+
 #endif

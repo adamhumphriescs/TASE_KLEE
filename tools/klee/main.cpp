@@ -226,7 +226,7 @@ namespace klee {
   disableSpringboard("disableSpringboard", cl::desc("Enable or noop the springboard"), cl::init(false));
 
   cl::opt<int>
-  retryMax("retryMax", cl::desc("Number of times to try and bounceback to native execution if abort status allows it "), cl::init(2));
+  retryMax("retryMax", cl::desc("Number of times to try and bounceback to native execution if abort status allows it "), cl::init(1));
 
   cl::opt<int>
   QRMaxWorkers("QRMaxWorkers", cl::desc("Maximum number of workers in TASE "), cl::init(8));
@@ -1469,7 +1469,25 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    bufferGuard = bufferGuardArg;
    dropS2C = dropS2CArg;
    enableTimeSeries = enableTimeSeriesArg;
+
+   //If we don't explicitly give the project name, use some defaults.
+   //This is particularly useful when running TASE from the projects directory because
+   //it removes the number of args needed to launch TASE.
+   if (strcmp(project.c_str(), "-") == 0) {
+     char pathBuf [512];
+     getcwd(pathBuf, 512);
+     std::string path (pathBuf);
+     size_t idx = path.find_last_of('/');
+     std::string currDir = path.substr(idx + 1, std::string::npos);
+
+     project=currDir;
+
+     //Also, load the bitcode from ./build/bitcode
+     InputFile = path + "/build/bitcode/" + project + ".interp.bc";     
+   }
    
+   
+     
    QR_MAX_WORKERS = QRMaxWorkers;
    tran_max = (uint64_t) tranMaxArg;
 
@@ -1695,6 +1713,13 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
        *(ms_QR_base + offset) = getpid(); //Add self to QR
        offset++;
        *ms_QR_size_ptr = offset;
+
+       #ifndef TASE_OPENSSL
+       DFS_push(getpid());
+
+       BFS_enqueue(getpid());
+       #endif
+       
        release_sem_lock();
      }
 

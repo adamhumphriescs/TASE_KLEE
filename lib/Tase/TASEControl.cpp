@@ -116,6 +116,31 @@ struct sembuf sem_lock = {0, -1, 0 | SEM_UNDO}; // {sem index, inc/dec, flags}
 struct sembuf sem_unlock = {0, 1, 0 | SEM_UNDO};// SEM_UNDO added to release
 //lock if process dies.
 
+enum exploration_types {DFS, BFS};
+
+enum exploration_types exp_type = BFS;
+
+#ifndef TASE_OPENSSL
+int * total_workers;
+int * total_branches;
+int * explorer_get_next_pid;    //Should be 1 or 0 to indicate if it's time to get the next PID
+void * explorer_pid_stack_base; //For DFS
+void * explorer_pid_queue_base; //For BFS
+int * BFS_Front_Ptr;
+int * BFS_Back_Ptr;
+int * DFS_Stack_Ptr;
+const int EXP_WORKER_QUEUE_OFF = 20000;
+const int EXP_WORKER_STACK_OFF = 30000;
+
+int BFS_enqueue();
+int DFS_pop();
+void BFS_enqueue(int pid);
+void DFS_push(int pid);
+
+void manage_exploration_workers();
+int tase_explorer_fork(int parentPID, uint64_t rip);
+#endif
+
 void get_sem_lock () {
   int res =  semop(semID, &sem_lock, 1);
   if (res == 0) {
@@ -486,6 +511,10 @@ void print_eval_record(FILE * f, RoundRecord r) {
 }
 
 void manage_workers () {
+
+#ifndef TASE_OPENSSL
+  manage_exploration_workers();
+#else
   get_sem_lock();
   
   //Check to see if analysis completed
@@ -560,16 +589,18 @@ void manage_workers () {
   if (sawNewRound && !noLog) {
     fprintf(stderr,"Manager sees new round %d starting at time %lf \n", managerRoundCtr, diff);
   }
-  
+  #endif
 }
 
 //Todo -- Any more cleanup needed?
 void worker_exit() {
+ #ifdef TASE_OPENSSL
+
   if (taseManager != true) {
     printf("WARNING: worker_exit called without taseManager \n");
     std::cout.flush();
     std::exit(EXIT_SUCCESS);
-  } else {    
+  } else {
     int p = getpid();
     get_sem_lock();
     removeFromQR(PidInQR(p));
@@ -578,6 +609,24 @@ void worker_exit() {
     std::cout.flush();
     std::exit(EXIT_SUCCESS);
   }
+    #else
+
+  get_sem_lock();
+  *total_workers = *total_workers -1 ;
+  release_sem_lock();
+
+  if (taseManager != true) {
+    printf("WARNING: worker_exit called without taseManager \n");
+    std::cout.flush();
+    std::exit(EXIT_SUCCESS);
+  } else {
+    int p = getpid();
+    printf("Worker pid %d attempting to exit \n", getpid());
+    std::cout.flush();
+    std::exit(EXIT_SUCCESS);
+  }
+
+#endif
 }
 
 void worker_self_term() {
@@ -593,9 +642,103 @@ void worker_self_term() {
   std::exit(EXIT_SUCCESS);
 }
 
+int tase_explorer_fork(int parentPID, uint64_t rip) {
+  get_sem_lock(); //System V semaphore adjustments aren't inherited across fork call
 
+  *total_branches = *total_branches + 1;
+  *total_workers = *total_workers + 1;
+
+  //Fork off a child process for the "TRUE" branch, and add it to the queue/stack. ----------
+
+  int trueChildPID = ::fork();
+
+  if (trueChildPID == -1) {
+    printf("FATAL ERROR during forking \n");
+    fflush(stdout);
+    fprintf(stderr, "ERROR during fork; pid is %d \n", getpid());
+    fflush(stderr);
+    perror("Fork error \n");
+  }
+
+  if (trueChildPID != 0) {  //PARENT
+    if (!noLog) {
+      printf("Parent PID %d forked off child %d at rip 0x%lx for TRUE branch \n", parentPID, trueChildPID, rip);
+      fflush(stdout);
+    }
+
+    //Block until child has sigstop'd.
+    while (true) {
+      int status;
+      int res = waitpid(trueChildPID, &status, WUNTRACED);
+      if (WIFSTOPPED(status))
+	break;
+    }
+    if (exp_type == BFS) {
+      BFS_enqueue(trueChildPID);
+    } else if (exp_type == DFS) {
+      DFS_push(trueChildPID);
+    } else {
+      printf("Error: no exploration type defined \n");
+      return -1;
+    }
+  } else  {                //CHILD
+    raise(SIGSTOP);
+    cycleTASELogs(false);
+    return 1; // Defaults to 0 // Go back to path exploration
+  }
+  //End true process setup-------------------------------------------------------------------
+
+
+  //Fork off a child process for the "FALSE" branch, and add it to the queue/stack.----------
+  int falseChildPID = ::fork();
+
+  if (falseChildPID != 0) {  //PARENT
+    if (!noLog) {
+      printf("Parent PID %d forked off child %d at rip 0x%lx for FALSE branch \n", parentPID, falseChildPID, rip);
+      fflush(stdout);
+    }
+
+    //Block until child has sigstop'd.
+    while (true) {
+      int status;
+      int res = waitpid(falseChildPID, &status, WUNTRACED);
+      if (WIFSTOPPED(status))
+	break;
+    }
+
+    if (exp_type == BFS) {
+      BFS_enqueue(trueChildPID);
+    } else if (exp_type == DFS) {
+      DFS_push(trueChildPID);
+    } else {
+      printf("Error: no exploration type defined \n");
+      return -1;
+    }
+
+  } else  {                //CHILD
+    raise(SIGSTOP);
+    cycleTASELogs(false);
+    return 0;
+  }
+  //End False process setup-------------------------------------------------------
+
+
+  *explorer_get_next_pid = 1;
+
+  release_sem_lock();
+
+  std::exit(EXIT_SUCCESS);
+
+}
+
+
+  
 
 int tase_fork(int parentPID, uint64_t rip) {
+#ifndef TASE_OPENSSL
+  return tase_explorer_fork(parentPID, rip);
+#else
+
   tase_branches++;
   double curr_time = util::getWallTime();
   if (!noLog) {
@@ -699,6 +842,7 @@ int tase_fork(int parentPID, uint64_t rip) {
     int pid = ::fork();
     return pid;
   }
+#endif
 }
 
 void tase_exit() {
@@ -751,6 +895,22 @@ void initManagerStructures() {
    ms_Records_base = (ms_base) + RECORD_OFF;
    ms_Records_count_ptr = (int *) (ms_Records_base -4);
    *ms_Records_count_ptr = 0;
+
+   #ifndef TASE_OPENSSL
+   total_workers = (int*) ( (ms_base) + EXP_WORKER_STACK_OFF - 192);
+   *total_workers = 1;
+   total_branches = (int*) ( (ms_base) + EXP_WORKER_STACK_OFF - 128);
+   *total_branches = 1;
+   explorer_get_next_pid   = (int*) ( (ms_base) + EXP_WORKER_STACK_OFF - 64);
+   *explorer_get_next_pid = 0;
+   explorer_pid_stack_base =  (ms_base) + EXP_WORKER_STACK_OFF;
+   explorer_pid_queue_base =  (ms_base) + EXP_WORKER_QUEUE_OFF;
+
+   BFS_Front_Ptr = (int *) explorer_pid_queue_base;
+   BFS_Back_Ptr  = (int *) explorer_pid_queue_base;
+   DFS_Stack_Ptr = (int *) explorer_pid_stack_base;
+
+   #endif
 
    //-------------------------------------------
    //Boundary checks----------------------------
@@ -1159,3 +1319,61 @@ void guessParentPath (int * childNum, int * parentNum) {
   }
 }
 
+
+int BFS_dequeue() {
+  int tmp  = *BFS_Front_Ptr;
+  BFS_Front_Ptr++;
+  return tmp;
+}
+
+void BFS_enqueue(int pid) {
+  *BFS_Back_Ptr = pid;
+  BFS_Back_Ptr++;
+}
+
+int DFS_pop() {
+  DFS_Stack_Ptr--;
+  return *DFS_Stack_Ptr;
+}
+
+void DFS_push(int pid) {
+  *DFS_Stack_Ptr= pid;
+  DFS_Stack_Ptr++;
+}
+
+//Only call this fn when holding the lock!
+int get_next_explorer_pid () {
+  if (exp_type == BFS) {
+    return BFS_dequeue();
+  } else if (exp_type == DFS) {
+    return DFS_pop();
+  } else {
+    printf("Error: no exploration type defined \n");
+    return 0;
+  }
+}
+
+void manage_exploration_workers() {
+  get_sem_lock();
+
+  if (*explorer_get_next_pid == 1) {
+    int PID = get_next_explorer_pid();//Get next pid and remove it from either the queue or stack
+    int res = kill(PID, SIGCONT);
+    if (res == -1){
+      perror("Error during kill sigcont \n");
+      printf("Error during kill sigcont \n");
+      fflush(stdout);
+    }
+
+    *explorer_get_next_pid = 0;
+  }
+
+  if (*total_workers == 0 ) {
+    release_sem_lock();
+    printf("Successfully exiting with %d paths explored \n", *total_branches);
+    std::exit(EXIT_SUCCESS);
+  } else {
+
+    release_sem_lock();
+  }
+}
