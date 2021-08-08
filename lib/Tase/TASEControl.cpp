@@ -14,6 +14,7 @@
 
 #include "../Core/Executor.h"
 #include "klee/Internal/System/Time.h"
+#include "klee/CommandLine.h"
 
 using namespace llvm;
 using namespace klee;
@@ -116,19 +117,17 @@ struct sembuf sem_lock = {0, -1, 0 | SEM_UNDO}; // {sem index, inc/dec, flags}
 struct sembuf sem_unlock = {0, 1, 0 | SEM_UNDO};// SEM_UNDO added to release
 //lock if process dies.
 
-enum exploration_types {DFS, BFS};
-
-enum exploration_types exp_type = BFS;
-
 #ifndef TASE_OPENSSL
 int * total_workers;
 int * total_branches;
 int * explorer_get_next_pid;    //Should be 1 or 0 to indicate if it's time to get the next PID
 void * explorer_pid_stack_base; //For DFS
 void * explorer_pid_queue_base; //For BFS
-int * BFS_Front_Ptr;
+int * BFS_Front_Ptr;  //Todo -- Need to shift the entire queue down periodically, or use another data structure.
 int * BFS_Back_Ptr;
+uint64_t MAX_QUEUE_SIZE = 4000;
 int * DFS_Stack_Ptr;
+uint64_t MAX_STACK_SIZE = 4000;
 const int EXP_WORKER_QUEUE_OFF = 20000;
 const int EXP_WORKER_STACK_OFF = 30000;
 
@@ -140,6 +139,8 @@ void DFS_push(int pid);
 void manage_exploration_workers();
 int tase_explorer_fork(int parentPID, uint64_t rip);
 #endif
+
+extern int orig_stdout_fd;
 
 void get_sem_lock () {
   int res =  semop(semID, &sem_lock, 1);
@@ -673,9 +674,9 @@ int tase_explorer_fork(int parentPID, uint64_t rip) {
       if (WIFSTOPPED(status))
 	break;
     }
-    if (exp_type == BFS) {
+    if (explorationType == BFS) {
       BFS_enqueue(trueChildPID);
-    } else if (exp_type == DFS) {
+    } else if (explorationType == DFS) {
       DFS_push(trueChildPID);
     } else {
       printf("Error: no exploration type defined \n");
@@ -706,9 +707,9 @@ int tase_explorer_fork(int parentPID, uint64_t rip) {
 	break;
     }
 
-    if (exp_type == BFS) {
+    if (explorationType == BFS) {
       BFS_enqueue(trueChildPID);
-    } else if (exp_type == DFS) {
+    } else if (explorationType == DFS) {
       DFS_push(trueChildPID);
     } else {
       printf("Error: no exploration type defined \n");
@@ -1327,8 +1328,16 @@ int BFS_dequeue() {
 }
 
 void BFS_enqueue(int pid) {
+
+  if ((uint64_t) BFS_Back_Ptr - (uint64_t) explorer_pid_queue_base > MAX_QUEUE_SIZE) {
+    release_sem_lock();
+    printf("BFS Queue too large.  Exiting. \n");
+    worker_exit();
+  }
+
   *BFS_Back_Ptr = pid;
   BFS_Back_Ptr++;
+  
 }
 
 int DFS_pop() {
@@ -1337,15 +1346,21 @@ int DFS_pop() {
 }
 
 void DFS_push(int pid) {
+  if ((uint64_t) DFS_Stack_Ptr - (uint64_t) explorer_pid_stack_base > MAX_STACK_SIZE) {
+    release_sem_lock();
+    printf("DFS stack too large.  Exiting. \n");
+    worker_exit();
+  }
+  
   *DFS_Stack_Ptr= pid;
   DFS_Stack_Ptr++;
 }
 
 //Only call this fn when holding the lock!
 int get_next_explorer_pid () {
-  if (exp_type == BFS) {
+  if (explorationType == BFS) {
     return BFS_dequeue();
-  } else if (exp_type == DFS) {
+  } else if (explorationType == DFS) {
     return DFS_pop();
   } else {
     printf("Error: no exploration type defined \n");
@@ -1370,7 +1385,11 @@ void manage_exploration_workers() {
 
   if (*total_workers == 0 ) {
     release_sem_lock();
-    printf("Successfully exiting with %d paths explored \n", *total_branches);
+
+    stdout = fdopen(STDOUT_FILENO, "w");
+    stdout = fdopen(orig_stdout_fd, "w") ;
+    
+    printf("\nTASE: Successfully exiting with %d paths explored \n", *total_branches);
     std::exit(EXIT_SUCCESS);
   } else {
 

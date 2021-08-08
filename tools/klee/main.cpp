@@ -124,6 +124,7 @@ bool taseDebug;
 bool dropS2C;
 bool enableTimeSeries;
 bool bufferGuard;
+int orig_stdout_fd;
 
 #ifdef TASE_BIGNUM
 extern int symIndex;
@@ -157,6 +158,13 @@ namespace klee {
 	      cl::init(EXPLORATION));
 
   
+  cl::opt<TASEExplorationType>
+  explorationType("explorationType", cl::desc("BFS or DFS"),
+		  cl::values(clEnumValN(DFS, "DFS", "Depth-first search"),
+			     clEnumValN(BFS, "BFS", "Breadth-first search" )
+			     KLEE_LLVM_CL_VAL_END),
+
+		  cl::init(BFS));
   
   cl::opt<std::string> verificationLog("verificationLog", cl::desc("ktest file to verify against for OpenSSL "), cl::init("./ssl.ktest"));
 
@@ -1522,6 +1530,8 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    //Later, calls to unix fork in executor create new filenames
    //after each fork.
 
+   orig_stdout_fd=dup(STDOUT_FILENO); //Backup stdout fd so that we can grab control later.
+   
    if (!noLog) {
    
      worker_ID_stream << "Monitor";
