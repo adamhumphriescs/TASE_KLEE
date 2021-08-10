@@ -1242,8 +1242,8 @@ void Executor::model_getc_unlocked() {
 
   //TODO: Generalize this fast path for all the other models to avoid unnecessary obj
   //creation.
-  if (isBufferEntirelyConcrete((uint64_t) target_ctx_gregs[GREG_RDI].u64, 8)
-      && isBufferEntirelyConcrete((uint64_t) target_ctx_gregs[GREG_RAX].u64, 8)) {
+  if (isBufferEntirelyConcrete((uint64_t) &target_ctx_gregs[GREG_RDI].u64, 8)
+      && isBufferEntirelyConcrete((uint64_t) &target_ctx_gregs[GREG_RAX].u64, 8)) {
   
     int res = getc_unlocked((FILE *) target_ctx_gregs[GREG_RDI].u64);
     target_ctx_gregs[GREG_RAX].u64 = (uint64_t) res;
