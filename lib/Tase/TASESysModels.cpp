@@ -1525,13 +1525,18 @@ void Executor::model_gethostbyname() {
       newOS->concreteStore = (uint8_t *) res;
 
       //Also map in h_addr_list elements for now until we get a better way of mapping in env vars and their associated data
-      //Todo -get rid of this hack 
+      //Todo -get rid of this hack.  For robust environment modeling, we need to find all the pointers-to-pointers and
+      //back them with buffers.  We don't currently need that level of modeling just for behavioral verification.
       
       uint64_t  baseAddr = (uint64_t) &(res->h_addr_list[0]);
-      uint64_t  endAddr  = (uint64_t) &(res->h_addr_list[0][3]);
-      size_t size = endAddr - baseAddr + 1;
-      // 0xcfd232a0 with size 5
-      
+      size_t size = 0;
+      for (char ** itrPtr = res->h_addr_list; *itrPtr != 0; itrPtr++) {
+	printf("Iterating on h_addr_list \n");
+	size++;
+	fflush(stdout);
+      }
+      printf("h_addr_list has %lu entries \n", size);
+      fflush(stdout);
       
       printf("Mapping in buf at 0x%lx with size 0x%lx for h_addr_list", baseAddr, size);
       MemoryObject * listMO = addExternalObject(*GlobalExecutionStatePtr, (void *) baseAddr, size, false);

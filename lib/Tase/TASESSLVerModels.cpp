@@ -108,6 +108,7 @@ extern uint64_t interpCtr;
 extern void printCtx(tase_greg_t *);
 extern void * rodata_base_ptr;
 extern uint64_t rodata_size;
+extern int orig_stdout_fd;
 
 //Multipass
 extern double solver_start_time;
@@ -511,6 +512,7 @@ void Executor::model_ktest_writesocket() {
 	//Create write condition
 	double WC0 = util::getWallTime();
 	klee::ref<klee::Expr> write_condition = klee::ConstantExpr::alloc(1, klee::Expr::Bool);
+	int falseByteIndex = -1;
 	for (int i = 0; i < o->numBytes; i++) {
 	  klee::ref<klee::Expr> condition;
 	  //printf("i is %d \n", i);;
@@ -555,6 +557,9 @@ void Executor::model_ktest_writesocket() {
 	    outs().flush();
 	  }
 
+	  if (falseByteIndex == -1 && condition->isFalse() ) {
+	    falseByteIndex = i;
+	  }
 	  write_condition = klee::AndExpr::create(write_condition, condition);
 	}
 
@@ -576,6 +581,23 @@ void Executor::model_ktest_writesocket() {
 	  if (CE->isFalse()) {
 	    printf("IMPORTANT: VERIFICATION ERROR: false write condition. Worker exiting from terminal path in round %d pass %d \n", round_count, pass_count);
 	    std::cout.flush();
+
+	    stdout = fdopen(STDOUT_FILENO, "w");
+	    stdout = fdopen(orig_stdout_fd, "w") ;
+	    
+	    fprintf(stderr, "Verification ERROR: Worker encountered a contradiction on the write condition for client-to-server message %d  \n", round_count);
+	    fprintf(stdout, "Verification ERROR: Worker encountered a mismatch for client-to-server message %d  \n", round_count);
+	    
+	    if (falseByteIndex != -1 ) {
+	      fprintf(stdout, "Raw message to be verified in hex is the following: \n");
+	      printBuf (stdout,(void *) o->bytes, o->numBytes);
+	      fprintf(stdout, "Message in buffer produced by verification, and possibly including symbolic bytes as 0xdead: \n");
+	      printBuf (stdout,(void *) buf, count);
+	      fprintf(stdout, "First byte for contradiction is located at index %d of the message \n", falseByteIndex);
+	      fflush(stdout);
+	    }
+	    fflush(stdout);
+	    
 	    worker_exit();
 	  }
 	} else {

@@ -588,11 +588,11 @@ void manage_verification_workers() {
   if (*ms_QA_size_ptr == 0 && *ms_QR_size_ptr == 0 && *target_started_ptr == 1) {
 
     if (testType == VERIFICATION) {
-      fprintf(stderr,"Manager found empty QA and QR.  Latest round reached was %d \n", managerRoundCtr);
+      fprintf(stderr,"Manager sees no more paths to explore.  Last client-to-server message examined was number %d \n", managerRoundCtr);
       if (*target_ended_ptr != 1) {
-	fprintf(stderr,"Verification failed at time %lf. \n", util::getWallTime() - target_start_time);
+	fprintf(stderr,"\n\nVerification FAILED at time %lf. \n", util::getWallTime() - target_start_time);
       } else {
-	fprintf(stderr,"All messages verified. \n");
+	fprintf(stderr,"\n\nAll messages verified. \n");
       }
     } else {
       fprintf(stderr, "Manager found emptied QA and QR.\n");
