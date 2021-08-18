@@ -11,6 +11,7 @@ klee_add_component(kleeTase
   TASEControl.cpp
   TASESysModels.cpp
   TASEFloatModels.cpp
+  TASESSLVerModels.cpp
 )
 
 target_link_libraries(kleeTase PRIVATE ${ZLIB_LIBRARIES})

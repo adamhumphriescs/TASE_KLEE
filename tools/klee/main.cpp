@@ -94,6 +94,10 @@ extern "C" void klee_interp();
 std::unordered_set<uint64_t> cartridge_entry_points;
 std::unordered_set<uint64_t> cartridges_with_flags_live;
 
+#ifdef TASE_OPENSSL
+extern "C" void s_client_main(int argc, char ** argv);
+#endif
+
 //This struct is to help the solver for basic blocks with only
 //two possible successors (e.g., blocks ending in "jb", "je", etc).
 
@@ -1656,7 +1660,9 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    memset(ktestPath, 0, sizeof(ktestPath));
 
    if (enableTimeSeries) {
-     spawnTimeSeriesWorkers();
+     printf("ERROR: Need to reintegrate code for time series \n");
+     std::exit(EXIT_FAILURE);
+     //spawnTimeSeriesWorkers();
    } else {
      
      const char *  ktestPathName = verificationLog.c_str();

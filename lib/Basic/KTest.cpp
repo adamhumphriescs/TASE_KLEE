@@ -8,10 +8,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "klee/Internal/ADT/KTest.h"
+#include "../../../test/proj_defs.h"
+
 #ifdef TASE_OPENSSL
 #include "../../../openssl/e_os.h"
 #endif
-#include "../../../test/proj_defs.h"
 
 #include <stdlib.h>
 #include <string.h>

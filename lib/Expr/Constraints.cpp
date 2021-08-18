@@ -124,6 +124,7 @@ public:
       }
       return Action::doChildren();
     }
+    return Action::doChildren();
   }
 };
 
@@ -250,6 +251,7 @@ ref<Expr> ConstraintManager::simplifyWithXorOptimization(ref<Expr> e) const {
   ExtractExprVisitor v;
   XorLiftVisitor xl;
   XorPropagateVisitor xp;
+
   e = v.visit(e);
   e = xl.visit(e);
   e = xp.visit(e);

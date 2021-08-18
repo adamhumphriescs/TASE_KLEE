@@ -211,6 +211,10 @@ extern "C" {
   void gcm_gmult_4bit(u64 Xi[2],const u128 Htable[16]);
   void gcm_ghash_4bit(u64 Xi[2],const u128 Htable[16],const u8 *inp,size_t len);
 }
+
+extern void multipass_reset_round(bool isFirstCall);
+extern void multipass_start_round (klee::Executor * theExecutor, bool isReplay);
+
 #endif
 //Distinction between prohib_fns and modeled_fns is that we sometimes may want to "jump back" into native execution
 //for prohib_fns.  Modeled fns are always skipped and emulated with a return.
@@ -537,7 +541,7 @@ void print_run_timers() {
 
     double totalRunTime =  util::getWallTime() - run_start_time;
     run_interp_time += (util::getWallTime() - interp_enter_time);
-
+    printf("Total basic blocks %d \n", run_interp_insts );
     printf("Total run time    : %lf \n",  totalRunTime);
     printf(" - Interp time    : %lf \n", run_interp_time);
     printf("       -Core      : %lf \n", run_core_interp_time);
@@ -1245,6 +1249,8 @@ void Executor::bindArgument(KFunction *kf, unsigned index,
 
 ref<Expr> Executor::toUnique(const ExecutionState &state, 
                              ref<Expr> &e) {
+
+  //e->dump();
   ref<Expr> result = e;
 
   if (!isa<ConstantExpr>(e)) {
@@ -3664,6 +3670,21 @@ void Executor::executeMakeSymbolic(ExecutionState &state,
   static int executeMakeSymbolicCalls = 0;  
   executeMakeSymbolicCalls++;
 
+#ifdef TASE_OPENSSL
+  if (executeMakeSymbolicCalls ==1 ) {
+    //Bootstrap multipass here for the very first round
+    //before we hit a concretized writesocket call
+    if (modelDebug) {
+      printf("Calling multipass_reset_round and multipass_start_round for first time \n");
+      fflush(stdout);
+    }
+
+    
+    multipass_reset_round(true);
+    multipass_start_round(this, false);
+  }
+#endif
+  
   if(modelDebug) {
     printf("Calling executeMakeSymbolic on name %s \n", name.c_str());
     std::cout.flush();
@@ -4278,11 +4299,6 @@ void Executor::loadFnModelMap() {
   MFE(gcm_ghash_4bit, model_gcm_ghash_4bit);
   MFE(gcm_gmult_4bit, model_gcm_gmult_4bit);
   MFE(ktest_connect, model_ktest_connect);
-  MFE(ktest_finish, model_ktest_finish);
-  //MFE(kTest_free, model_kTest_free); Not actually used?
-  //  MFE(kTest_fromfile, model_kTest_fromfile);// Not actually used?
-  MFE(ktest_getCurrentVersion, model_ktest_getCurrentVersion);
-  MFE(kTest_isKTestFile, model_kTest_isKtestFile);
   MFE(ktest_master_secret, model_ktest_master_secret);
   MFE(ktest_RAND_bytes, model_ktest_RAND_bytes);
   MFE(ktest_RAND_pseudo_bytes, model_ktest_RAND_pseudo_bytes);
@@ -4290,8 +4306,6 @@ void Executor::loadFnModelMap() {
   MFE(ktest_readsocket, model_ktest_readsocket);
   MFE(ktest_select, model_ktest_select);
   MFE(ktest_start, model_ktest_start);
-  MFE(ktest_time, model_ktest_time);
-  MFE(kTest_toFile, model_kTest_toFile);
   MFE(ktest_writesocket, model_ktest_writesocket);
   MFE(OpenSSLDie, model_OpenSSLDie);
   MFE(RAND_add, model_RAND_add);
@@ -4299,12 +4313,14 @@ void Executor::loadFnModelMap() {
   MFE(RAND_poll, model_RAND_poll);
   MFE(SHA1_Final, model_SHA1_Final);
   MFE(SHA1_Update, model_SHA1_Update);
+  MFE(SHA256_Final, model_SHA256_Final);
+  MFE(SHA256_Update, model_SHA256_Update);
   MFE(select, model_select); //Maybe move to generic section?
   MFE(setsockopt, model_setsockopt);
   MFE(shutdown, model_shutdown);
   MFE(signal, model_signal);
   MFE(socket, model_socket);
-  MFE(tls1_generate_master_secret);
+  MFE(tls1_generate_master_secret, model_tls1_generate_master_secret);
   #endif 
 
   printf("Loading float emulation models \n");
@@ -4512,7 +4528,7 @@ void Executor::klee_interp_internal () {
         runCoreInterpreter(target_ctx_gregs);
       }
     }
-    
+
     if(tase_buf_has_taint((void *) &(target_ctx_gregs[GREG_RIP].u64), 8) ) {
       ref<Expr> RIPExpr = tase_helper_read((uint64_t) &(target_ctx_gregs[GREG_RIP].u64), 8);
       if (!(isa<ConstantExpr>(RIPExpr))) {
@@ -4527,7 +4543,6 @@ void Executor::klee_interp_internal () {
 	}        
       }
     }
-
     //Kludge to get us back to native execution for prohib fns with concrete input
     
     if (forceNativeRet) {
@@ -4616,7 +4631,7 @@ void Executor::runCoreInterpreter(tase_greg_t * gregs) {
     T0 = util::getWallTime();
   }
   KFunction * interpFn = findInterpFunction (gregs, kmodule);
-  
+
   //We have to manually push a frame on for the function we'll be
   //interpreting through.  At this point, no other frames should exist
   // on klee's interpretation "stack".
@@ -4632,9 +4647,10 @@ void Executor::runCoreInterpreter(tase_greg_t * gregs) {
     run_tmp_1_time += (util::getWallTime() - T0);
   }
   //bindArgument(interpFn, 0, *GlobalExecutionStatePtr, arguments[0]);
- 
-  run(*GlobalExecutionStatePtr);
 
+  
+  run(*GlobalExecutionStatePtr);
+  
   if (measureTime) {
     run_core_interp_time += (util::getWallTime() - T0);
   }
@@ -4663,9 +4679,10 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
 
   //Fast Path -- Only two possible destinations when exiting basic block;
   std::map<uint64_t, cartridgeSuccessorInfo>::iterator it;
+ 
   it = knownCartridgeDests.find(initRIP);
   if (it != knownCartridgeDests.end()) {
-    
+
     uint64_t d1 = it->second.dest1;
     uint64_t d2 = it->second.dest2;
 
@@ -4712,11 +4729,13 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
       } 
     }
   } else {
-
+    
     solver_start_time = util::getWallTime();
+    
     ref <Expr> uniqueRIPExpr  = toUnique(*GlobalExecutionStatePtr,inputExpr);
     solver_end_time = util::getWallTime();
     solver_diff_time = solver_end_time - solver_start_time;
+
     if (!noLog) {
       printf("Elapsed solver time (RIP toUnique) is %lf at interpCtr %lu \n", solver_diff_time, interpCtr);
     }

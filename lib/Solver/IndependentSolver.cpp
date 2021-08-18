@@ -23,6 +23,7 @@
 #include <vector>
 #include <ostream>
 #include <list>
+#include <unordered_set>
 
 #include "klee/Internal/System/Time.h"
 
@@ -368,173 +369,97 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
 //for symbolic address accesses.
 static std::list<IndependentElementSet>*
 getAllIndependentConstraintSetsUF(const Query &query) {
-  //printf("Attempting to call getAllIndependentConstraintSetsUF \n");
-  //fflush(stdout);
 
   //Todo -- Add query.expr like in the vanilla implementation
   
   typedef std::map<const Array*, ::DenseSet<unsigned> > elements_ty;
-  
-  
   std::list<IndependentElementSet> * factors = new std::list<IndependentElementSet>();
   std::vector<UFElement2 *> independentGroups;
-
-
   std::map<std::string, UFElement2 *> allElements;
-
   double IES_Creation_Time = 0.0;
   double UFE_Creation_Time = 0.0;
-
   std::list<UFElement2 *> uniqueSetReps;
+  std::unordered_set<UFElement2 *> uniqueSReps;
   
-  //  printf("UF DBG 1 \n");
-  //fflush(stdout);
   //Create UF elements for each array access
   for (ConstraintManager::const_iterator it = query.constraints.begin(),
 	 ie = query.constraints.end();
        it != ie; ++it) {
-    //printf("UF DBG: iterating on constraint \n");
-    //fflush(stdout);
-    
+      
     //Constructor populates info on concrete and symbolic array accesses
-    //double T0 = util::getWallTime();
-    //IndependentElementSet * ies = new IndependentElementSet(*it);
     IndependentElementSet * ies = new IndependentElementSet(*it);
-    //IES_Creation_Time += util::getWallTime() - T0;
     std::list<UFElement2 *> constraintAccesses;
+
     //Iterate through each element access
     for (elements_ty::iterator e_it = ies->elements.begin(), e_ie = ies->elements.end();
 	 e_it != e_ie; ++e_it) {
 
-      //printf("UF DBG: iterating on element \n");
-      //fflush(stdout);
-      
       
       const Array *array = e_it->first;
       ::DenseSet<unsigned> ds = e_it->second;
       //If the element access represents multiple concrete offsets, check them here.
       for (std::set<unsigned>::iterator s_it = ds.begin(), s_ie = ds.end();
 	   s_it != s_ie; ++s_it) {
-
-	//printf("UF DBG: iterating on element offset \n");
-	//fflush(stdout);
 	
 	
 	unsigned u = *s_it;
-	//printf("array name is %s, offset is %u \n", array->name.c_str(), u);
-	//fflush(stdout);
 	std::string accessString = array->name + "__" +  std::to_string(u);
-	//printf("accessString is %s \n", accessString.c_str());
 	
 	if (allElements.find(accessString) == allElements.end()) {
-	  //printf("New element access detected \n");
-	  //fflush(stdout);
-	  //Make set on element_ty e_it
-	  //T0 = util::getWallTime();
+
 	  UFElement2 * ufe = new UFElement2(accessString);
-	  //printf("Called new \n");
-	  //fflush(stdout);
 	  UF_MakeSet2(ufe);
 	  
-	  //UFE_Creation_Time += util::getWallTime() - T0;
-	  //printf("DBG 2\n");
-	  //fflush(stdout);
 	  allElements.insert(std::make_pair(accessString, ufe));
-	  uniqueSetReps.push_back(ufe);
-	  std::list<UFElement2 *>::iterator last = uniqueSetReps.end();
-	  last--;
-	  ufe->uniqueItr = last;
-	  //printf("DBG 3\n");
-	  //fflush(stdout);
+	  uniqueSReps.insert(ufe);
 	  constraintAccesses.push_back(ufe);
-	  //printf("Pushed back constraint access \n");
-	  //fflush(stdout);
+	  
 	} else {
-	  //printf("Reused element detected \n");
-	  //fflush(stdout);
+
 	  UFElement2 * ufe = ((allElements.find(accessString))->second);
 	  constraintAccesses.push_back(ufe);
-	  //printf("Pushed back constraint access \n");
-	  //fflush(stdout);
-	}
 
-	//printf("Finished dealing with element offset \n");
-	//fflush(stdout);
-	
+	}	
       }
-      //printf("Finished dealing with element \n");
-      //fflush(stdout);
     }
-
-    //printf("Finished dealing with all elements \n");
-    //fflush(stdout);
     
     //Run union find pairwise on all constraint accesses
     std::list<UFElement2 *>::iterator i = constraintAccesses.begin();
     
     UFElement2 * final = UF_Find2(*i);
-    //printf("Called UF_Find2 \n");
-    //fflush(stdout);
     
     while (true) {
-      //printf("Iterating through constraint accesses and calling Union2 \n");
-      //fflush(stdout);
       UFElement2 * curr = *i;
-     
       i++;
       if (i == constraintAccesses.end()) {
 	break;
       } else {
 	UFElement2 * next = *i;
-	uniqueSetReps.erase(curr->uniqueItr);
-	uniqueSetReps.erase(next->uniqueItr);
+	if (UF_Find2(curr) == UF_Find2(next)) {
+	  uniqueSReps.erase(UF_Find2(curr));
+	} else {
+	  uniqueSReps.erase(UF_Find2(next));
+	  uniqueSReps.erase(UF_Find2(curr));
+	}
+	  
 	final = UF_Union2(curr,next);
-	uniqueSetReps.push_back(final);
-
-	std::list<UFElement2 *>::iterator last = uniqueSetReps.end();
-	last--;
-	final->uniqueItr = last;
+	uniqueSReps.insert(final);
       }
-      
     }
-
-    //printf("Calling add on IES \n");
-    //fflush(stdout);
     
     if (final->IES != NULL) {
-      //printf("Calling IES add for existing IES \n");
-      //fflush(stdout);
-      
       final->IES->add(*ies);
     } else {
-      //printf("Assigning ies \n" );
-      //fflush(stdout);
       final->IES = ies;
     }
-    
-    //printf("Finished iteration on constraint \n");
-    //fflush(stdout);
-    //UF_Union2(*i, *(i+1));
-
-    
-    //Copy current constraint into constraint list of UFE rep.
-    //UFE_Rep->IES.add(ies);
-
-
-    
   }
-
-  //printf(" %d total items in UFE rep list \n", uniqueSetReps.size());
 
   std::list<IndependentElementSet> * factorList = new std::list<IndependentElementSet>;
   
-  for (std::list<UFElement2 *>::iterator i = uniqueSetReps.begin(); i != uniqueSetReps.end(); i++) {
+  for (std::unordered_set<UFElement2 *>::iterator i = uniqueSReps.begin(); i != uniqueSReps.end(); i++) {
     UFElement2 * curr = *i;
     factorList->push_back(*(curr->IES));
   }
-  
-  //printf(" %lf seconds on creating IES objects \n", IES_Creation_Time);
-  //printf(" %lf seconds on creating UFE objects \n", UFE_Creation_Time);
   
   return factorList;
   
@@ -718,108 +643,12 @@ bool IndependentSolver::computeValidity(const Query& query,
       required.insert(required.end(), rep->constraints.begin(), rep->constraints.end());
       
     }
-    //required.push_back(query.expr);
-    //int tmp1 = required.size();
-    //std::vector< ref<Expr> > backup;
-    //backup = required;
-    /*
-    int size1 = required.size();
-    ConstraintManager tmpCM(required);
-    
-    std::vector<ref<Expr> > tmp1;
-    IndependentElementSet tmpSet = getIndependentConstraints(Query(tmpCM,query.expr), tmp1);
-    required = tmp1;
-    int size2 = tmp1.size();
-    if (size2 - size1 > 0)
-      printf("Extra solver check reduced size of query by %d \n", size2-size1);
-    */
     
   }else{    
     //required.clear();
     IndependentElementSet eltsClosure =
       getIndependentConstraints(query, required);
   }
-  //int tmp2 = required.size();
-  /*
-    if (true) {
-    if (tmp1 != tmp2) {
-      outs() <<"ABH DBG 123; " << tmp1 << " cons in UF and " << tmp2 << " cons in old logic ";
-      outs() <<"\n\n\n" ;
-      outs() <<"query in question is  \n\n\n" ;
-      query.expr->print(outs());
-      outs() <<"\n\n\n";
-      for (auto it = backup.begin(); it  != backup.end(); it++) {
-	ref<Expr> cons = *it;
-	outs() << "\n";
-	outs() <<"Printing  constraint in NEW UF independent solver logic -------- \n";
-	outs() << "\n";
-	cons->print(outs());
-	outs() << "\n";
-	outs().flush();
-      }
-      
-      
-      for (auto it = required.begin(); it  != required.end(); it++) {
-	ref<Expr> cons = *it;
-	outs() << "\n";
-	outs() <<"Printing  constraint in OLD independent solver logic -------- \n";
-	outs() << "\n";
-	cons->print(outs());
-	outs() << "\n";
-	outs().flush();
-      }
-    }
-  }
-  */
-  /*
-    
-  ConstraintManager CMtmp1(required);
-  ConstraintManager CMtmp2(backup);
-
-  Solver::Validity result1;
-  Solver::Validity result2;
-  solver->impl->computeValidity(Query(CMtmp1,query.expr),result1);
-  solver->impl->computeValidity(Query(CMtmp2,query.expr),result2);
-
-  if (result1 != result2) {
-    printf("ABH DBG 321 : Mismatch in validity query \n");
-
-    if (true) {
-
-
-	outs() <<"\n\n\n" ;
-	outs() <<"query in question is  \n\n\n" ;
-	query.expr->print(outs());
-	outs() <<"\n\n\n";
-	for (auto it = backup.begin(); it  != backup.end(); it++) {
-	  ref<Expr> cons = *it;
-	  outs() << "\n";
-	  outs() <<"Printing  constraint in NEW UF independent solver logic -------- \n";
-	  outs() << "\n";
-	  cons->print(outs());
-	  outs() << "\n";
-	  outs().flush();
-	}
-
-
-	for (auto it = required.begin(); it  != required.end(); it++) {
-	  ref<Expr> cons = *it;
-	  outs() << "\n";
-	  outs() <<"Printing  constraint in OLD independent solver logic -------- \n";
-	  outs() << "\n";
-	  cons->print(outs());
-	  outs() << "\n";
-	  outs().flush();
-	}
-
-    } 
-
-    
-    fflush(stdout);
-    worker_exit();
-  }
-  */
-  
   ConstraintManager tmp(required);
   return solver->impl->computeValidity(Query(tmp, query.expr), 
 				       result);
@@ -969,6 +798,7 @@ bool IndependentSolver::computeInitialValues(const Query& query,
   T0 = util::getWallTime();
   std::list<IndependentElementSet> * factors = getAllIndependentConstraintSetsUF(query);
   printf("DBG UF: Spent %lf seconds running new UF code \n", util::getWallTime() - T0);
+
   //std::list<IndependentElementSet> *factors = getAllIndependentConstraintsSets(query);
   //printf("UF DBG: Vanilla got %d constraints \n", factors->size());
   //printf("Solver DBG1: %lf seconds in getAllIndependentConstraintsSets \n", util::getWallTime() - T0);
@@ -986,8 +816,7 @@ bool IndependentSolver::computeInitialValues(const Query& query,
     }
     ConstraintManager tmp(it->exprs);
     std::vector<std::vector<unsigned char> > tempValues;
-    //printf("Solver DBG2: %lf seconds setting up for call to computeInitialValues \n", util::getWallTime() - T0);
-    
+    //printf("Solver DBG: %lf seconds setting up for call to computeInitialValues \n", util::getWallTime() - T0);
     if (false) {
       printf("--Printing Query: \n");
       outs() << "Constraints: \n";
@@ -1012,11 +841,8 @@ bool IndependentSolver::computeInitialValues(const Query& query,
       //outs().flush();
     }
     
-    
-    
     bool cheapTrySuccess = getTrivialSolution(Query(tmp, ConstantExpr::alloc(0, Expr::Bool)),
 		       arraysInFactor, tempValues, hasSolution);
-    
     //---------
     bool solverRes;
     if (!cheapTrySuccess || !hasSolution) 
@@ -1024,8 +850,6 @@ bool IndependentSolver::computeInitialValues(const Query& query,
 						       arraysInFactor, tempValues, hasSolution));
     else
       solverRes = cheapTrySuccess;
-       
-    
 	
 	
     //if (!solver->impl->computeInitialValues(Query(tmp, ConstantExpr::alloc(0, Expr::Bool)),
@@ -1075,7 +899,6 @@ bool IndependentSolver::computeInitialValues(const Query& query,
       //printf("Solver DBG3: %lf seconds cleaning up after getInitialValues call \n", util::getWallTime() - T0);
     }
   }
-
   
   T0 = util::getWallTime();
   for (std::vector<const Array *>::const_iterator it = objects.begin();
@@ -1093,7 +916,7 @@ bool IndependentSolver::computeInitialValues(const Query& query,
   }
   assert(assertCreatedPointEvaluatesToTrue(query, objects, values, retMap) && "should satisfy the equation");
   delete factors;
-  printf("Solver DBG4: Final cleanup in IndependentSolver took %lf seconds \n", util::getWallTime() - T0);
+  printf("Solver DBG: Final cleanup in IndependentSolver took %lf seconds \n", util::getWallTime() - T0);
   return true;
 }
 

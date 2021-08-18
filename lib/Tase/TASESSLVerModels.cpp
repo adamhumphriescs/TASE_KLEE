@@ -147,6 +147,31 @@ extern void multipass_reset_round(bool isFirstCall);
 extern void multipass_start_round(Executor * theExecutor, bool isReplay);
 extern void multipass_replay_round(void * assignmentBufferPtr, CVAssignment * mpa);
 extern void worker_exit();
+extern void printBuf(FILE * f,void * buf, size_t count);
+extern void rewriteConstants(uint64_t base, size_t size);
+
+int ktest_connect_tase(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+int ktest_select_tase(int nfds, fd_set *readfds, fd_set *writefds,
+		      fd_set *exceptfds, struct timeval *timeout);
+ssize_t ktest_writesocket_tase(int fd, const void *buf, size_t count);
+ssize_t ktest_readsocket_tase(int fd, void *buf, size_t count);
+
+// stdin capture for Cliver
+int ktest_raw_read_stdin_tase(void *buf, int siz);
+
+// Random number generator capture for Cliver
+int ktest_RAND_bytes_tase(unsigned char *buf, int num);
+int ktest_RAND_pseudo_bytes_tase(unsigned char *buf, int num);
+
+// Time capture for Cliver (actually unnecessary!)
+time_t ktest_time_tase(time_t *t);
+
+// TLS Master Secret capture for Cliver
+void ktest_master_secret_tase(unsigned char *ms, int len);
+
+void ktest_start_tase(const char *filename, enum kTestMode mode);
+void ktest_finish_tase();               // write capture to file
+
 extern char* ktest_object_names[];
 enum { CLIENT_TO_SERVER=0, SERVER_TO_CLIENT, RNG, PRNG, TIME, STDIN, SELECT,
        MASTER_SECRET };
@@ -265,73 +290,6 @@ void printProhibCounters() {
   fflush(stdout);
   //#endif
 }
-
-
-void printBuf(FILE * f,void * buf, size_t count)
-{
-  fprintf(f,"Calling printBuf with count %d \n", count);
-  fflush(f);
-  for (size_t i = 0; i < count; i++) {
-    fprintf(f,"%02x", *((uint8_t *) buf + i));
-    fflush(f);
-  }
-  fprintf(f,"\n\n");
-  fflush(f);
-}
-
-//Used to restore concrete values for buffers that are
-//entirely made up of constant expressions
-void Executor::rewriteConstants(uint64_t base, size_t size) {
-  if (modelDebug) {
-    printf("Rewriting constant array \n");
-    fflush(stdout);
-  }
-
-  //Fast path -- if no taint in buffer, can't have exprs
-  if (!tase_buf_has_taint((void *) base, size)) {
-    return;
-  }
-  
-  if (!(
-	base > ((uint64_t) rodata_base_ptr)
-	 &&
-	base < (((uint64_t) rodata_base_ptr) + rodata_size)
-	)
-      ) {
-    if (modelDebug) {
-      printf("Base does not appear to be in rodata \n");
-      fflush(stdout);
-    }
-  } else {
-    if (modelDebug) {
-      printf("Found base in rodata.  Returning from rewriteConstants without doing anything \n");
-      fflush(stdout);
-    }
-    return;
-  }
-  
-  for (size_t i = 0; i < size; i++) {
-
-    //We're assuming
-    //1. Every byte's 2-byte aligned buffer containing it has been mapped with a MO/OS at some point.
-    //2. It's OK to duplicate some of these read/write ops
-    uint64_t writeAddr;
-    if( (base + i) %2 != 0)
-      writeAddr = base + i -1;
-    else
-      writeAddr = base + i;
-    
-    ref<Expr> val = tase_helper_read(writeAddr, 2);
-    tase_helper_write(writeAddr, val);
-
-  }
-  if (modelDebug) {
-    printf("End result: \n");
-    printBuf(stdout,(void *) base, size);
-  }
-}
-
-
 
 extern bool forceNativeRet;
 
@@ -548,6 +506,7 @@ void Executor::model_ktest_writesocket() {
       }      
       
       if (!concreteMatch) {
+
 	
 	//Create write condition
 	double WC0 = util::getWallTime();
@@ -570,8 +529,9 @@ void Executor::model_ktest_writesocket() {
 					     klee::ConstantExpr::alloc(o->bytes[i], klee::Expr::Int8));
 	  }
 
+
 	  
-	   if (modelDebug) {
+	  if (modelDebug) {
 	    fflush(stdout);
 	    outs().flush();
 	    outs() << "Printing byte write condition before XOR Opt:  " << i << "\n";	  
@@ -580,12 +540,11 @@ void Executor::model_ktest_writesocket() {
 	    fflush(stdout);
 	    outs().flush();
 	  }
-	  
-	  if (useXOROpt) {
+
+	  if (useXOROpt ) {
 	    condition = GlobalExecutionStatePtr->constraints.simplifyWithXorOptimization(condition);
 	  }
 
-	  
 	  if (modelDebug) {
 	    fflush(stdout);
 	    outs().flush();
@@ -595,6 +554,7 @@ void Executor::model_ktest_writesocket() {
 	    fflush(stdout);
 	    outs().flush();
 	  }
+
 	  write_condition = klee::AndExpr::create(write_condition, condition);
 	}
 
@@ -608,6 +568,7 @@ void Executor::model_ktest_writesocket() {
 	*/
 	if (!noLog) {
 	  printf("Spent %lf seconds on making write condition \n", util::getWallTime() - WC0);
+	  fflush(stdout);
 	}
 	
 	//Check validity of write condition
@@ -634,11 +595,9 @@ void Executor::model_ktest_writesocket() {
 	}
       
       
-
 	//Solve for multipass assignments
 	CVAssignment currMPA;
 	currMPA.clear();
-	
 	if (!isa<ConstantExpr>(write_condition)) {
 	  solver_start_time = util::getWallTime();
 	  currMPA.solveForBindings(solver->solver, write_condition,GlobalExecutionStatePtr);
@@ -646,6 +605,7 @@ void Executor::model_ktest_writesocket() {
 	  solver_diff_time = solver_end_time - solver_start_time;
 	  if (!noLog) {
 	    printf("Elapsed solver time (solveForBindings) is %lf at interpCtr %lu \n", solver_diff_time, interpCtr);
+	    fflush(stdout);
 	  }
 	  run_solver_time += solver_diff_time;
 	  
@@ -657,6 +617,7 @@ void Executor::model_ktest_writesocket() {
 	  std::cout.flush();	
 	  currMPA.printAllAssignments(NULL);
 	}
+
 	//REPLAY ROUND
 	//------------------------
 	// NOT(isInQA(*replayPidPtr)) => isDead(MPAPtr);
@@ -674,6 +635,7 @@ void Executor::model_ktest_writesocket() {
 	if (!noLog) {
 	  printf("Total time since analysis began: %lf \n", curr_time - target_start_time  );
 	  printf("Spent %lf seconds in writesock model before multipass_reset_round \n", curr_time - T0);
+	  fflush(stdout);
 	}
 	
 	
@@ -682,8 +644,8 @@ void Executor::model_ktest_writesocket() {
 	    if  (prevMPA.bindings != currMPA.bindings ) {
 	      if (!noLog) {
 		printf("IMPORTANT: prevMPA and currMPA bindings differ. Replaying round from round %d pass %d \n", round_count, pass_count);
-	      }
 	      
+	      }
 	      multipass_replay_round(MPAPtr, &currMPA); //Sets up child to run from prev "NEW ROUND" point
 	    } else {
 	      if (!noLog) {
@@ -2159,6 +2121,7 @@ void Executor::model_gcm_gmult_4bit () {
 	printf("MULTIPASS DEBUG: Did not find symbolic input to gcm_gmult \n");
 	fflush(stdout);
       }
+      
        if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
 	 forceNativeRet = true;
 	 target_ctx_gregs[GREG_RIP].u64 += native_ret_off;

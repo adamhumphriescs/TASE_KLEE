@@ -15,6 +15,7 @@
 #include "../Core/Executor.h"
 #include "klee/Internal/System/Time.h"
 #include "klee/CommandLine.h"
+#include "../../../test/proj_defs.h"
 
 using namespace llvm;
 using namespace klee;
@@ -117,7 +118,7 @@ struct sembuf sem_lock = {0, -1, 0 | SEM_UNDO}; // {sem index, inc/dec, flags}
 struct sembuf sem_unlock = {0, 1, 0 | SEM_UNDO};// SEM_UNDO added to release
 //lock if process dies.
 
-#ifndef TASE_OPENSSL
+
 int * total_workers;
 int * total_branches;
 int * explorer_get_next_pid;    //Should be 1 or 0 to indicate if it's time to get the next PID
@@ -135,10 +136,10 @@ int BFS_enqueue();
 int DFS_pop();
 void BFS_enqueue(int pid);
 void DFS_push(int pid);
-
+void manage_verification_workers();
 void manage_exploration_workers();
 int tase_explorer_fork(int parentPID, uint64_t rip);
-#endif
+
 
 extern int orig_stdout_fd;
 
@@ -283,6 +284,13 @@ WorkerInfo * getLatestWorker(void * basePtr, int Qsize) {
 	*/
     }
   }
+  if (taseDebug) {
+    printf("Returning from getLatestWorker \n");
+    fflush(stdout);
+    printf("LatestWorker has pid %d \n", latest->pid);
+    fflush(stdout);
+  }
+  
   return latest;
 }
 
@@ -426,7 +434,7 @@ void addRoundRecord(RoundRecord r) {
   }
 }
   
-void select_workers () {
+void select_verification_workers () {
 
   if (*ms_QR_size_ptr == QR_MAX_WORKERS) {
 
@@ -437,7 +445,7 @@ void select_workers () {
     if (earliestWorkerQR->round < managerRoundCtr ) {
       int res = kill(earliestWorkerQR->pid, SIGSTOP);
       if (res == -1) {
-	perror("Error sigstopping in select_workers \n");
+	perror("Error sigstopping in select_verification_workers \n");
 	fprintf(stderr, "Issue delivering SIGSTOP to pid %d \n", earliestWorkerQR->pid);
       } else {
 	printf("Manager kicking pid from QR %d; pid is in round %d when latest round is %d \n", earliestWorkerQR->pid, earliestWorkerQR->round, managerRoundCtr);
@@ -459,6 +467,7 @@ void select_workers () {
     if (latestWorker->round < managerRoundCtr && *ms_QR_size_ptr > 0) {
       if (taseDebug) {
 	printf("No workers in QA in latest round %d.  Not moving to QR. \n", managerRoundCtr);
+	fflush(stdout);
       }
     } else {
       int res = kill(latestWorker->pid, SIGCONT);
@@ -466,10 +475,16 @@ void select_workers () {
 	perror("Error during kill sigcont \n");
 	printf("Error during kill sigcont \n");
 	fflush(stdout);
-      } 
-
+      }
+      if (taseDebug) {
+	printf("Calling QA to QR \n");
+	fflush(stdout);
+      }
       QAtoQR(latestWorker);
-
+      if (taseDebug) {
+	printf("Called QA to QR \n");
+	fflush(stdout);
+      }
     }
   }
 }
@@ -512,10 +527,16 @@ void print_eval_record(FILE * f, RoundRecord r) {
 }
 
 void manage_workers () {
-
-#ifndef TASE_OPENSSL
-  manage_exploration_workers();
+#ifdef TASE_OPENSSL
+  manage_verification_workers();
 #else
+  manage_exploration_workers();
+#endif
+
+}
+
+void manage_verification_workers() {
+
   get_sem_lock();
   
   //Check to see if analysis completed
@@ -585,12 +606,12 @@ void manage_workers () {
     std::exit(EXIT_FAILURE);
   }
 
-  select_workers();
+  select_verification_workers();
   release_sem_lock();
   if (sawNewRound && !noLog) {
     fprintf(stderr,"Manager sees new round %d starting at time %lf \n", managerRoundCtr, diff);
   }
-  #endif
+
 }
 
 //Todo -- Any more cleanup needed?
@@ -732,13 +753,7 @@ int tase_explorer_fork(int parentPID, uint64_t rip) {
 
 }
 
-
-  
-
-int tase_fork(int parentPID, uint64_t rip) {
-#ifndef TASE_OPENSSL
-  return tase_explorer_fork(parentPID, rip);
-#else
+int tase_verification_fork(int parentPID, uint64_t rip) {
 
   tase_branches++;
   double curr_time = util::getWallTime();
@@ -843,7 +858,15 @@ int tase_fork(int parentPID, uint64_t rip) {
     int pid = ::fork();
     return pid;
   }
-#endif
+
+}
+
+int tase_fork(int parentPID, uint64_t rip) {
+  #ifdef TASE_OPENSSL
+  return tase_verification_fork(parentPID, rip);
+  #else
+  return tase_explorer_fork(parentPID, rip);
+  #endif
 }
 
 void tase_exit() {
@@ -897,21 +920,25 @@ void initManagerStructures() {
    ms_Records_count_ptr = (int *) (ms_Records_base -4);
    *ms_Records_count_ptr = 0;
 
-   #ifndef TASE_OPENSSL
+
    total_workers = (int*) ( (ms_base) + EXP_WORKER_STACK_OFF - 192);
-   *total_workers = 1;
    total_branches = (int*) ( (ms_base) + EXP_WORKER_STACK_OFF - 128);
-   *total_branches = 1;
    explorer_get_next_pid   = (int*) ( (ms_base) + EXP_WORKER_STACK_OFF - 64);
-   *explorer_get_next_pid = 0;
+
    explorer_pid_stack_base =  (ms_base) + EXP_WORKER_STACK_OFF;
    explorer_pid_queue_base =  (ms_base) + EXP_WORKER_QUEUE_OFF;
 
    BFS_Front_Ptr = (int *) explorer_pid_queue_base;
    BFS_Back_Ptr  = (int *) explorer_pid_queue_base;
    DFS_Stack_Ptr = (int *) explorer_pid_stack_base;
+   #ifdef TASE_OPENSSL
 
+   #else
+   *total_workers = 1;
+   *total_branches = 1;
+   *explorer_get_next_pid = 0;
    #endif
+   
 
    //-------------------------------------------
    //Boundary checks----------------------------
@@ -1171,13 +1198,15 @@ void multipass_start_round (klee::Executor * theExecutor, bool isReplay) {
 }
 
 void multipass_replay_round (void * assignmentBufferPtr, CVAssignment * mpa)  {
-  //printf("Entering multipass_replay_round \n");
-  print_run_timers();
   
+  print_run_timers();
+
   while(true) {//Is this actually needed?  get_sem_lock() should block until semaphore is available
- 
+
     get_sem_lock();
+    
     if ((round_count < *latestRoundPtr && workerSelfTerminate) || *replayPIDPtr == -1)  {
+
       if (*replayPIDPtr == -1) {
 	printf("replayPIDPtr is -1 \n");
       }
@@ -1190,7 +1219,6 @@ void multipass_replay_round (void * assignmentBufferPtr, CVAssignment * mpa)  {
       std::exit(EXIT_SUCCESS);
     }
 
-    
     if (*replayLock != 1  || (PidInQA(*replayPIDPtr) != NULL) || (PidInQR(*replayPIDPtr) != NULL) ||  *((uint8_t *) assignmentBufferPtr) != 0)  {
       release_sem_lock();  //Spin and try again after pending replay fully executes
 
@@ -1198,12 +1226,14 @@ void multipass_replay_round (void * assignmentBufferPtr, CVAssignment * mpa)  {
       
       if (*replayLock != 1) {
 	printf("IMPORTANT: control debug: Error - replayLock has unexpected value %d \n", *replayLock);
+	fflush(stdout);
       } else {
 	*replayLock = 0;
-	if (PidInQA(*replayPIDPtr) != NULL)
-	  printf("ERROR: control debug: replay pid is somehow already in QA \n");	
+	if (PidInQA(*replayPIDPtr) != NULL){
+	  printf("ERROR: control debug: replay pid is somehow already in QA \n");
+	  fflush(stdout);
+	}
       }
-
 
       //Kills worker if latest round is further than the worker's.  This is because
       //we only set up one replay PID, and when the replay for the worker's round happens,
