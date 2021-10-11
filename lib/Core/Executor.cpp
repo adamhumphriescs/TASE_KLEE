@@ -107,9 +107,9 @@ using namespace klee;
 #include <sys/stat.h>
 #include <netdb.h>
 #include <fcntl.h>
-#include "../../../test/tase/include/tase/tase_interp.h"
-#include "../../../test/tase/include/tase/tase_shims.h"
-#include "../../../test/proj_defs.h"
+#include "tase_interp.h"
+#include "tase_shims.h"
+//#include "../../../test/proj_defs.h"
 #include "tase/TASEControl.h"
 #include "../Tase/TASESoftFloatEmulation.h"
 #include <sys/times.h>
@@ -4283,8 +4283,8 @@ void Executor::loadFnModelMap() {
   MFE(wcstoumax_tase, model_wcstoumax);
   MFE(wcstoimax_tase, model_wcstoimax);
 
-  MFE(a_ctz_64_tase, model_a_ctz_64);
-  MFE(a_clz_64_tase, model_a_clz_64);
+  //  MFE(a_ctz_64_tase, model_a_ctz_64);
+  //  MFE(a_clz_64_tase, model_a_clz_64);
   
   MFE(tase_make_symbolic, model_tase_make_symbolic);
 
