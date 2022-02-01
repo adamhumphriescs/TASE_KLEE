@@ -536,7 +536,7 @@ private:
   
   //Float modeling-----------------------------------------
   
-  void loadFloatModelMap();
+  //  void loadFloatModelMap();
   
   //Arithmetic fns
   void model__addsf3();

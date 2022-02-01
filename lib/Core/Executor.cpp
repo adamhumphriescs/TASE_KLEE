@@ -1,4 +1,5 @@
 
+
 //===-- Executor.cpp ------------------------------------------------------===//
 //
 //                     The KLEE Symbolic Virtual Machine
@@ -4189,149 +4190,214 @@ void Executor::model_tase_make_symbolic() {
 
 static int model_malloc_calls = 0;
 
-std::map<uint64_t , void (Executor::*) (void) > fnModelMap;
+
 
 //Macro for (M)odeled (F)unction (E)ntries
-#define MFE(x, y) fnModelMap.insert(std::make_pair( (uint64_t)   &x , &klee::Executor::y )); \
-  fnModelMap.insert(std::make_pair( (uint64_t)   &x  + trap_off, &klee::Executor::y ))
+//#define MFE(x, y) fnModelMap.insert(std::make_pair( (uint64_t)   &x , &klee::Executor::y )); \
+//  fnModelMap.insert(std::make_pair( (uint64_t)   &x  + trap_off, &klee::Executor::y ))
 
 /* Example for MFE(calloc_tase, model_calloc):
 fnModelMap.insert(std::make_pair( (uint64_t) &calloc_tase , &klee::Executor::model_calloc ));
 fnModelMap.insert(std::make_pair( (uint64_t) &calloc_tase + trap_off, &klee::Executor::model_calloc ));
 */
 
+std::map<uint64_t , void (Executor::*) (void) > fnModelMap = {
+  {&calloc_tase_shim, &klee::Executor::model_calloc},
+  {&calloc_tase,  &klee::Executor::model_calloc},
+  {&__ctype_b_loc,  &klee::Executor::model___ctype_b_loc},
+  {&__ctype_tolower_loc,  &klee::Executor::model___ctype_tolower_loc},
+  {&__errno_location,  &klee::Executor::model___errno_location},
+  {&exit_tase_shim,  &klee::Executor::model_exit_tase}, //Probably redundant.
+  {&exit_tase,  &klee::Executor::model_exit_tase},
+  {&fclose,  &klee::Executor::model_fclose},
+  {&fcntl,  &klee::Executor::model_fcntl},
+  {&feof,  &klee::Executor::model_feof},
+  {&ferror,  &klee::Executor::model_ferror},
+  {&fflush,  &klee::Executor::model_fflush},
+  {&fgets,  &klee::Executor::model_fgets},
+  {&fileno,  &klee::Executor::model_fileno},
+  {&fopen,  &klee::Executor::model_fopen},
+  {&fopen64,  &klee::Executor::model_fopen64},
+  {&fread,  &klee::Executor::model_fread},
+  {&fread_unlocked,  &klee::Executor::model_fread}, //double check against model_fread
+  {&free,  &klee::Executor::model_free},
+  {&free_tase,  &klee::Executor::model_free},
+  {&free_tase_shim, &klee::Executor::model_free},
+  {&freopen,  &klee::Executor::model_freopen},
+  {&fseek,  &klee::Executor::model_fseek},
+  {&ftell,  &klee::Executor::model_ftell},
+  {&fwrite,  &klee::Executor::model_fwrite},
+  {&fwrite_unlocked,  &klee::Executor::model_fwrite}, //double check against model_fwrite
+  {&getc_unlocked,  &klee::Executor::model_getc_unlocked},
+  {&getc_unlocked_tase,  &klee::Executor::model_getc_unlocked},
+  {&getc_unlocked_tase_shim, &klee::Executor::model_getc_unlocked},
+  {&getegid,  &klee::Executor::model_getegid},
+  {&getenv,  &klee::Executor::model_getenv},
+  {&geteuid,  &klee::Executor::model_geteuid},
+  {&getgid,  &klee::Executor::model_getgid},
+  {&gethostbyname,  &klee::Executor::model_gethostbyname},
+  {&getpid,  &klee::Executor::model_getpid},
+  {&gettimeofday,  &klee::Executor::model_gettimeofday},
+  {&getuid,  &klee::Executor::model_getuid},
+  {&gmtime,  &klee::Executor::model_gmtime},
+  {&isatty,  &klee::Executor::model_isatty},
+  {&__isoc99_sscanf,  &klee::Executor::model___isoc99_sscanf},
+  {&make_byte_symbolic,  &klee::Executor::make_byte_symbolic_model},
+  {&malloc,  &klee::Executor::model_malloc},
+  {&malloc_tase,  &klee::Executor::model_malloc},
+  {&malloc_tase_shim, &klee::Executor::model_malloc},
+  {&memcpy,  &klee::Executor::model_memcpy_tase},
+  {&memcpy_tase,  &klee::Executor::model_memcpy_tase},
+  {&posix_fadvise,  &klee::Executor::model_posix_fadvise},
+  {&putchar,  &klee::Executor::model_putchar},
+  {&printf_tase,  &klee::Executor::model_printf},
+  {&__printf_chk,  &klee::Executor::model___printf_chk},
+  {&puts_tase,  &klee::Executor::model_puts},
+  {&puts_tase_shim, &klee::Executor::model_puts},
+  //{&read,  &klee::Executor::model_read}, //Model doesn't exist yet.  fixme.
+  {&realloc,  &klee::Executor::model_realloc},
+  {&realloc_tase,  &klee::Executor::model_realloc},
+  {&realloc_tase_shim, &klee::Executor::model_realloc},
+  {&rewind,  &klee::Executor::model_rewind},
+  {&sb_disabled,  &klee::Executor::model_sb_disabled},
+  {&sb_reopen,  &klee::Executor::model_sb_reopen},
+  {&sprintf_tase,  &klee::Executor::model_sprintf},
+  {&sscanf,  &klee::Executor::model___isoc99_sscanf},//Check to make sure it's OK to model with C99
+  {&stat,  &klee::Executor::model_stat},
+  //{&target_exit,  &klee::Executor::model_target_exit}, //Special case. fixme. //Doesn't look like we call target_exit anymore.
+  {&time,  &klee::Executor::model_time},
+  {&vfprintf,  &klee::Executor::model_vfprintf},
+  {&write,  &klee::Executor::model_write},
+
+  {&strtof_tase,  &klee::Executor::model_strtof},
+  {&strtod_tase,  &klee::Executor::model_strtod},
+  {&strtold_tase,  &klee::Executor::model_strtold},
+  {&strtol_tase,  &klee::Executor::model_strtol},
+  {&strtoll_tase,  &klee::Executor::model_strtoll},
+  {&strtoul_tase,  &klee::Executor::model_strtoul},
+  {&strtoull_tase,  &klee::Executor::model_strtoull},
+  {&strtoimax_tase,  &klee::Executor::model_strtoimax},
+  {&strtoumax_tase,  &klee::Executor::model_strtoumax},
+
+  {&wcstof_tase,  &klee::Executor::model_wcstof},
+  {&wcstod_tase,  &klee::Executor::model_wcstod},
+  {&wcstold_tase,  &klee::Executor::model_wcstold},
+  {&wcstol_tase,  &klee::Executor::model_wcstol},
+  {&wcstoll_tase,  &klee::Executor::model_wcstoll},
+  {&wcstoul_tase,  &klee::Executor::model_wcstoul},
+  {&wcstoull_tase,  &klee::Executor::model_wcstoull},
+  {&wcstoumax_tase,  &klee::Executor::model_wcstoumax},
+  {&wcstoimax_tase,  &klee::Executor::model_wcstoimax},
+
+  {&a_ctz_64_tase,  &klee::Executor::model_a_ctz_64},
+  {&a_clz_64_tase,  &klee::Executor::model_a_clz_64},
+
+  {&tase_make_symbolic,  &klee::Executor::model_tase_make_symbolic},
+
+  {&__pthread_self_tase,  &klee::Executor::model___pthread_self},
+
+#ifdef TASE_OPENSSL
+  {&AES_encrypt,  &klee::Executor::model_AES_encrypt},
+  {&BIO_printf,  &klee::Executor::model_BIO_printf},
+  {&ECDH_compute_key,  &klee::Executor::model_ECDH_compute_key},
+  {&EC_KEY_generate_key,  &klee::Executor::model_EC_KEY_generate_key},
+  {&EC_POINT_point2oct,  &klee::Executor::model_EC_POINT_point2oct},
+  {&gcm_ghash_4bit,  &klee::Executor::model_gcm_ghash_4bit},
+  {&gcm_gmult_4bit,  &klee::Executor::model_gcm_gmult_4bit},
+  {&ktest_connect,  &klee::Executor::model_ktest_connect},
+  {&ktest_master_secret,  &klee::Executor::model_ktest_master_secret},
+  {&ktest_RAND_bytes,  &klee::Executor::model_ktest_RAND_bytes},
+  {&ktest_RAND_pseudo_bytes,  &klee::Executor::model_ktest_RAND_pseudo_bytes},
+  {&ktest_raw_read_stdin,  &klee::Executor::model_ktest_raw_read_stdin},
+  {&ktest_readsocket,  &klee::Executor::model_ktest_readsocket},
+  {&ktest_select,  &klee::Executor::model_ktest_select},
+  {&ktest_start,  &klee::Executor::model_ktest_start},
+  {&ktest_writesocket,  &klee::Executor::model_ktest_writesocket},
+  {&OpenSSLDie,  &klee::Executor::model_OpenSSLDie},
+  {&RAND_add,  &klee::Executor::model_RAND_add},
+  {&RAND_load_file,  &klee::Executor::model_RAND_load_file},
+  {&RAND_poll,  &klee::Executor::model_RAND_poll},
+  {&SHA1_Final,  &klee::Executor::model_SHA1_Final},
+  {&SHA1_Update,  &klee::Executor::model_SHA1_Update},
+  {&SHA256_Final,  &klee::Executor::model_SHA256_Final},
+  {&SHA256_Update,  &klee::Executor::model_SHA256_Update},
+  {&select,  &klee::Executor::model_select}, //Maybe move to generic section?
+  {&setsockopt,  &klee::Executor::model_setsockopt},
+  {&shutdown,  &klee::Executor::model_shutdown},
+  {&signal,  &klee::Executor::model_signal},
+  {&socket,  &klee::Executor::model_socket},
+  {&tls1_generate_master_secret,  &klee::Executor::model_tls1_generate_master_secret},
+#endif
+
+  {&__addsf3_tase, &klee::Executor::model__addsf3},
+  {&__adddf3_tase, &klee::Executor::model__adddf3},
+  {&__subsf3_tase, &klee::Executor::model__subsf3},
+  {&__subdf3_tase, &klee::Executor::model__subdf3},
+  {&__mulsf3_tase, &klee::Executor::model__mulsf3},
+  {&__muldf3_tase, &klee::Executor::model__muldf3},
+  {&__divsf3_tase, &klee::Executor::model__divsf3},
+  {&__divdf3_tase, &klee::Executor::model__divdf3},
+  {&__negsf2_tase, &klee::Executor::model__negsf2},
+  {&__negdf2_tase, &klee::Executor::model__negdf2},
+  {&__extendsfdf2_tase, &klee::Executor::model__extendsfdf2},
+  {&__truncdfsf2_tase, &klee::Executor::model__truncdfsf2},
+  {&__fixsfsi_tase, &klee::Executor::model__fixsfsi},
+  {&__fixdfsi_tase, &klee::Executor::model__fixdfsi},
+  {&__fixsfdi_tase, &klee::Executor::model__fixsfdi},
+  {&__fixdfdi_tase, &klee::Executor::model__fixdfdi},
+  {&__fixsfti_tase, &klee::Executor::model__fixsfti},
+  {&__fixdfti_tase, &klee::Executor::model__fixdfti},
+  {&__fixunssfsi_tase, &klee::Executor::model__fixunssfsi},
+  {&__fixunsdfsi_tase, &klee::Executor::model__fixunsdfsi},
+  {&__fixunssfdi_tase, &klee::Executor::model__fixunssfdi},
+  {&__fixunsdfdi_tase, &klee::Executor::model__fixunsdfdi},
+  {&__fixunssfti_tase, &klee::Executor::model__fixunssfti},
+  {&__fixunsdfti_tase, &klee::Executor::model__fixunsdfti},
+  {&__floatsisf_tase, &klee::Executor::model__floatsisf},
+  {&__floatsidf_tase, &klee::Executor::model__floatsidf},
+  {&__floatdisf_tase, &klee::Executor::model__floatdisf},
+  {&__floatdidf_tase, &klee::Executor::model__floatdidf},
+  {&__floattisf_tase, &klee::Executor::model__floattisf},
+  {&__floattidf_tase, &klee::Executor::model__floattidf},
+  {&__floatunsisf_tase, &klee::Executor::model__floatunsisf},
+  {&__floatunsidf_tase, &klee::Executor::model__floatunsidf},
+  {&__floatundisf_tase, &klee::Executor::model__floatundisf},
+  {&__floatundidf_tase, &klee::Executor::model__floatundidf},
+  {&__floatuntisf_tase, &klee::Executor::model__floatuntisf},
+  {&__floatuntidf_tase, &klee::Executor::model__floatuntidf},
+  {&__cmpsf2_tase, &klee::Executor::model__cmpsf2},
+  {&__cmpdf2_tase, &klee::Executor::model__cmpdf2},
+  {&__unordsf2_tase, &klee::Executor::model__unordsf2},
+  {&__unorddf2_tase, &klee::Executor::model__unorddf2},
+  {&__eqsf2_tase, &klee::Executor::model__eqsf2},
+  {&__eqdf2_tase, &klee::Executor::model__eqdf2},
+  {&__nesf2_tase, &klee::Executor::model__nesf2},
+  {&__nedf2_tase, &klee::Executor::model__nedf2},
+  {&__gesf2_tase, &klee::Executor::model__gesf2},
+  {&__gedf2_tase, &klee::Executor::model__gedf2},
+  {&__ltsf2_tase, &klee::Executor::model__ltsf2},
+  {&__ltdf2_tase, &klee::Executor::model__ltdf2},
+  {&__lesf2_tase, &klee::Executor::model__lesf2},
+  {&__ledf2_tase, &klee::Executor::model__ledf2},
+  {&__gtsf2_tase, &klee::Executor::model__gtsf2},
+  {&__gtdf2_tase, &klee::Executor::model__gtdf2},
+  {&__powisf2_tase, &klee::Executor::model__powisf2},
+  {&__powidf2_tase, &klee::Executor::model__powidf2},
+};
 
 void Executor::loadFnModelMap() {
-  MFE(calloc_tase, model_calloc);
-  MFE(__ctype_b_loc, model___ctype_b_loc);
-  MFE(__ctype_tolower_loc, model___ctype_tolower_loc);
-  MFE(__errno_location, model___errno_location);
-  MFE(exit_tase_shim, model_exit_tase); //Probably redundant.
-  MFE(exit_tase, model_exit_tase);
-  MFE(fclose, model_fclose);
-  MFE(fcntl, model_fcntl);
-  MFE(feof, model_feof);
-  MFE(ferror, model_ferror);
-  MFE(fflush, model_fflush);
-  MFE(fgets, model_fgets);
-  MFE(fileno, model_fileno);
-  MFE(fopen, model_fopen);
-  MFE(fopen64, model_fopen64);
-  MFE(fread, model_fread);
-  MFE(fread_unlocked, model_fread); //double check against model_fread
-  MFE(free, model_free);
-  MFE(free_tase, model_free);
-  MFE(freopen, model_freopen);
-  MFE(fseek, model_fseek);
-  MFE(ftell, model_ftell);
-  MFE(fwrite, model_fwrite);
-  MFE(fwrite_unlocked, model_fwrite); //double check against model_fwrite
-  MFE(getc_unlocked, model_getc_unlocked);
-  MFE(getc_unlocked_tase, model_getc_unlocked);
-  MFE(getegid, model_getegid);
-  MFE(getenv, model_getenv);
-  MFE(geteuid, model_geteuid);
-  MFE(getgid, model_getgid);
-  MFE(gethostbyname, model_gethostbyname);
-  MFE(getpid, model_getpid);
-  MFE(gettimeofday, model_gettimeofday);
-  MFE(getuid, model_getuid);
-  MFE(gmtime, model_gmtime);
-  MFE(isatty, model_isatty);
-  MFE(__isoc99_sscanf, model___isoc99_sscanf);
-  MFE(make_byte_symbolic, make_byte_symbolic_model);
-  MFE(malloc, model_malloc);
-  MFE(malloc_tase, model_malloc);
-  MFE(memcpy, model_memcpy_tase);
-  MFE(memcpy_tase, model_memcpy_tase);
-  MFE(posix_fadvise, model_posix_fadvise);
-  MFE(putchar, model_putchar);
-  MFE(printf_tase, model_printf);
-  MFE(__printf_chk, model___printf_chk); 
-  MFE(puts_tase, model_puts); 
-  //MFE(read, model_read); //Model doesn't exist yet.  fixme.
-  MFE(realloc, model_realloc);
-  MFE(realloc_tase, model_realloc);
-  MFE(rewind, model_rewind);
-  MFE(sb_disabled, model_sb_disabled); 
-  MFE(sb_reopen, model_sb_reopen); 
-  MFE(sprintf_tase, model_sprintf);
-  MFE(sscanf, model___isoc99_sscanf);//Check to make sure it's OK to model with C99
-  MFE(stat, model_stat);
-  //MFE(target_exit, model_target_exit); //Special case. fixme. //Doesn't look like we call target_exit anymore.
-  MFE(time, model_time);
-  MFE(vfprintf, model_vfprintf);
-  MFE(write, model_write);
-
-  MFE(strtof_tase, model_strtof);
-  MFE(strtod_tase, model_strtod);
-  MFE(strtold_tase, model_strtold);
-  MFE(strtol_tase, model_strtol);
-  MFE(strtoll_tase, model_strtoll);
-  MFE(strtoul_tase, model_strtoul);
-  MFE(strtoull_tase, model_strtoull);
-  MFE(strtoimax_tase, model_strtoimax);
-  MFE(strtoumax_tase, model_strtoumax);
-
-  MFE(wcstof_tase, model_wcstof);
-  MFE(wcstod_tase, model_wcstod);
-  MFE(wcstold_tase, model_wcstold);
-  MFE(wcstol_tase, model_wcstol);
-  MFE(wcstoll_tase, model_wcstoll);
-  MFE(wcstoul_tase, model_wcstoul);
-  MFE(wcstoull_tase, model_wcstoull);
-  MFE(wcstoumax_tase, model_wcstoumax);
-  MFE(wcstoimax_tase, model_wcstoimax);
-
-  MFE(a_ctz_64_tase, model_a_ctz_64);
-  MFE(a_clz_64_tase, model_a_clz_64);
-  
-  MFE(tase_make_symbolic, model_tase_make_symbolic);
-
-  MFE(__pthread_self_tase, model___pthread_self);
-  
-  #ifdef TASE_OPENSSL
-  MFE(AES_encrypt, model_AES_encrypt);
-  MFE(BIO_printf, model_BIO_printf);
-  MFE(ECDH_compute_key, model_ECDH_compute_key);
-  MFE(EC_KEY_generate_key, model_EC_KEY_generate_key);
-  MFE(EC_POINT_point2oct, model_EC_POINT_point2oct);
-  MFE(gcm_ghash_4bit, model_gcm_ghash_4bit);
-  MFE(gcm_gmult_4bit, model_gcm_gmult_4bit);
-  MFE(ktest_connect, model_ktest_connect);
-  MFE(ktest_master_secret, model_ktest_master_secret);
-  MFE(ktest_RAND_bytes, model_ktest_RAND_bytes);
-  MFE(ktest_RAND_pseudo_bytes, model_ktest_RAND_pseudo_bytes);
-  MFE(ktest_raw_read_stdin, model_ktest_raw_read_stdin);
-  MFE(ktest_readsocket, model_ktest_readsocket);
-  MFE(ktest_select, model_ktest_select);
-  MFE(ktest_start, model_ktest_start);
-  MFE(ktest_writesocket, model_ktest_writesocket);
-  MFE(OpenSSLDie, model_OpenSSLDie);
-  MFE(RAND_add, model_RAND_add);
-  MFE(RAND_load_file, model_RAND_load_file);
-  MFE(RAND_poll, model_RAND_poll);
-  MFE(SHA1_Final, model_SHA1_Final);
-  MFE(SHA1_Update, model_SHA1_Update);
-  MFE(SHA256_Final, model_SHA256_Final);
-  MFE(SHA256_Update, model_SHA256_Update);
-  MFE(select, model_select); //Maybe move to generic section?
-  MFE(setsockopt, model_setsockopt);
-  MFE(shutdown, model_shutdown);
-  MFE(signal, model_signal);
-  MFE(socket, model_socket);
-  MFE(tls1_generate_master_secret, model_tls1_generate_master_secret);
-  #endif 
-
-  printf("Loading float emulation models \n");
-  loadFloatModelMap();
-  
+  auto end = fnModelMap.end();
+  for(auto x = fnModelMap.begin(); x <= end; x++){
+    fnModelMap.insert({x->first + trap_off, x->second});
+  }
+  //printf("Loading float emulation models \n");
+  //  loadFloatModelMap();
 }
 
 
 //Soft float entry macro
-#define SFE(x) fnModelMap.insert(std::make_pair( (uint64_t) &__ ## x ## _tase, &klee::Executor::model__ ## x )); \
-  fnModelMap.insert(std::make_pair( (uint64_t) &__ ## x ## _tase + trap_off, &klee::Executor::model__ ## x ))
+//#define SFE(x) fnModelMap.insert(std::make_pair( (uint64_t) &__ ## x ## _tase, &klee::Executor::model__ ## x )); \
+//  fnModelMap.insert(std::make_pair( (uint64_t) &__ ## x ## _tase + trap_off, &klee::Executor::model__ ## x ))
 
 
 /* Example for SFE(adddf3): 
@@ -4339,67 +4405,13 @@ void Executor::loadFnModelMap() {
   fnModelMap.insert(std::make_pair((uint64_t) &__adddf3_tase + trap_off, &klee::Executor::model__adddf3));
 */
 
-void Executor::loadFloatModelMap() {
 
-  SFE(addsf3);
-  SFE(adddf3);
-  SFE(subsf3);
-  SFE(subdf3);
-  SFE(mulsf3);
-  SFE(muldf3);
-  SFE(divsf3);
-  SFE(divdf3);
-  SFE(negsf2);
-  SFE(negdf2);
-
-  SFE(extendsfdf2);
-  SFE(truncdfsf2);
-  SFE(fixsfsi);
-  SFE(fixdfsi);
-  SFE(fixsfdi);
-  SFE(fixdfdi);
-  SFE(fixsfti);
-  SFE(fixdfti);
-  SFE(fixunssfsi);
-  SFE(fixunsdfsi);
-  SFE(fixunssfdi);
-  SFE(fixunsdfdi);
-  SFE(fixunssfti);
-  SFE(fixunsdfti);
-  SFE(floatsisf);
-  SFE(floatsidf);
-  SFE(floatdisf);
-  SFE(floatdidf);
-  SFE(floattisf);
-  SFE(floattidf);
-  SFE(floatunsisf);
-  SFE(floatunsidf);
-  SFE(floatundisf);
-  SFE(floatundidf);
-  SFE(floatuntisf);
-  SFE(floatuntidf);
-
-  SFE(cmpsf2);
-  SFE(cmpdf2);
-  SFE(unordsf2);
-  SFE(unorddf2);
-  SFE(eqsf2);
-  SFE(eqdf2);
-  SFE(nesf2);
-  SFE(nedf2);
-  SFE(gesf2);
-  SFE(gedf2);
-  SFE(ltsf2);
-  SFE(ltdf2);
-  SFE(lesf2);
-  SFE(ledf2);
-  SFE(gtsf2);
-  SFE(gtdf2);
-
-  SFE(powisf2);
-  SFE(powidf2);
-
-}
+/*void Executor::loadFloatModelMap() {
+  for(auto x: floatModels){
+    fnModelMap.insert(x);
+    fnModelMap.insert({x.first + trap_off, x.second});
+  }
+  }*/
 
 void Executor::model_inst () {
   run_model_count++;
