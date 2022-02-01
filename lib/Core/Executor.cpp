@@ -108,9 +108,9 @@ using namespace klee;
 #include <sys/stat.h>
 #include <netdb.h>
 #include <fcntl.h>
-#include "../../../test/tase/include/tase/tase_interp.h"
-#include "../../../test/tase/include/tase/tase_shims.h"
-#include "../../../test/proj_defs.h"
+#include "tase_interp.h"
+#include "tase_shims.h"
+//#include "../../../test/proj_defs.h"
 #include "tase/TASEControl.h"
 #include "../Tase/TASESoftFloatEmulation.h"
 #include <sys/times.h>

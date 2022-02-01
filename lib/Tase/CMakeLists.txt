@@ -26,5 +26,6 @@ target_link_libraries(kleeTase PRIVATE
   kleaverSolver
   kleaverExpr
   kleeSupport
-  ${CMAKE_SOURCE_DIR}/../build_klee/lib/proj.a
+  ${CMAKE_SOURCE_DIR}/../build_klee/lib/libtase.a
+#  ${CMAKE_SOURCE_DIR}/../build_klee/lib/proj.a
   )
