@@ -4290,8 +4290,8 @@ std::map<uint64_t , void (Executor::*) (void) > fnModelMap = {
   {&wcstoumax_tase,  &Executor::model_wcstoumax},
   {&wcstoimax_tase,  &Executor::model_wcstoimax},
 
-  {&a_ctz_64_tase,  &Executor::model_a_ctz_64},
-  {&a_clz_64_tase,  &Executor::model_a_clz_64},
+ // {&a_ctz_64_tase,  &Executor::model_a_ctz_64},
+ // {&a_clz_64_tase,  &Executor::model_a_clz_64},
 
   {&tase_make_symbolic,  &Executor::model_tase_make_symbolic},
 
