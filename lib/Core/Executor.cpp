@@ -4387,7 +4387,7 @@ std::map<uint64_t , void (Executor::*) (void) > fnModelMap = {
 };
 
   auto end = fnModelMap.end();
-  for(auto x = fnModelMap.begin(); x <= end; x++){
+  for(auto x = fnModelMap.begin(); x != end; x++){
     fnModelMap.insert({x->first + trap_off, x->second});
   }
   //printf("Loading float emulation models \n");
