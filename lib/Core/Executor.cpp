@@ -171,7 +171,7 @@ FILE * prev_stdout_log = NULL;
 FILE * prev_stderr_log = NULL;
 
 void cycleTASELogs(bool isReplay);
-bool isSpecialInst(uint64_t rip);
+//bool isSpecialInst(uint64_t rip);
 bool tase_buf_has_taint (void * ptr, int size);
 void printCtx(tase_greg_t *);
 
@@ -4201,189 +4201,189 @@ fnModelMap.insert(std::make_pair( (uint64_t) &calloc_tase , &klee::Executor::mod
 fnModelMap.insert(std::make_pair( (uint64_t) &calloc_tase + trap_off, &klee::Executor::model_calloc ));
 */
 
-void Executor::loadFnModelMap() {
+void Executor::loadFnModelMap() {(uint64_t)
 std::map<uint64_t , void (Executor::*) (void) > fnModelMap = {
-  {&calloc_tase_shim, &Executor::model_calloc},
-  {&calloc_tase,  &Executor::model_calloc},
-  {&__ctype_b_loc,  &Executor::model___ctype_b_loc},
-  {&__ctype_tolower_loc,  &Executor::model___ctype_tolower_loc},
-  {&__errno_location,  &Executor::model___errno_location},
-  {&exit_tase_shim,  &Executor::model_exit_tase}, //Probably redundant.
-  {&exit_tase,  &Executor::model_exit_tase},
-  {&fclose,  &Executor::model_fclose},
-  {&fcntl,  &Executor::model_fcntl},
-  {&feof,  &Executor::model_feof},
-  {&ferror,  &Executor::model_ferror},
-  {&fflush,  &Executor::model_fflush},
-  {&fgets,  &Executor::model_fgets},
-  {&fileno,  &Executor::model_fileno},
-  {&fopen,  &Executor::model_fopen},
-  {&fopen64,  &Executor::model_fopen64},
-  {&fread,  &Executor::model_fread},
-  {&fread_unlocked,  &Executor::model_fread}, //double check against model_fread
-  {&free,  &Executor::model_free},
-  {&free_tase,  &Executor::model_free},
-  {&free_tase_shim, &Executor::model_free},
-  {&freopen,  &Executor::model_freopen},
-  {&fseek,  &Executor::model_fseek},
-  {&ftell,  &Executor::model_ftell},
-  {&fwrite,  &Executor::model_fwrite},
-  {&fwrite_unlocked,  &Executor::model_fwrite}, //double check against model_fwrite
-  {&getc_unlocked,  &Executor::model_getc_unlocked},
-  {&getc_unlocked_tase,  &Executor::model_getc_unlocked},
-  {&getc_unlocked_tase_shim, &Executor::model_getc_unlocked},
-  {&getegid,  &Executor::model_getegid},
-  {&getenv,  &Executor::model_getenv},
-  {&geteuid,  &Executor::model_geteuid},
-  {&getgid,  &Executor::model_getgid},
-  {&gethostbyname,  &Executor::model_gethostbyname},
-  {&getpid,  &Executor::model_getpid},
-  {&gettimeofday,  &Executor::model_gettimeofday},
-  {&getuid,  &Executor::model_getuid},
-  {&gmtime,  &Executor::model_gmtime},
-  {&isatty,  &Executor::model_isatty},
-  {&__isoc99_sscanf,  &Executor::model___isoc99_sscanf},
-  {&make_byte_symbolic,  &Executor::make_byte_symbolic_model},
-  {&malloc,  &Executor::model_malloc},
-  {&malloc_tase,  &Executor::model_malloc},
-  {&malloc_tase_shim, &Executor::model_malloc},
-  {&memcpy,  &Executor::model_memcpy_tase},
-  {&memcpy_tase,  &Executor::model_memcpy_tase},
-  {&posix_fadvise,  &Executor::model_posix_fadvise},
-  {&putchar,  &Executor::model_putchar},
-  {&printf_tase,  &Executor::model_printf},
-  {&__printf_chk,  &Executor::model___printf_chk},
-  {&puts_tase,  &Executor::model_puts},
-  {&puts_tase_shim, &Executor::model_puts},
-  //{&read,  &Executor::model_read}, //Model doesn't exist yet.  fixme.
-  {&realloc,  &Executor::model_realloc},
-  {&realloc_tase,  &Executor::model_realloc},
-  {&realloc_tase_shim, &Executor::model_realloc},
-  {&rewind,  &Executor::model_rewind},
-  {&sb_disabled,  &Executor::model_sb_disabled},
-  {&sb_reopen,  &Executor::model_sb_reopen},
-  {&sprintf_tase,  &Executor::model_sprintf},
-  {&sscanf,  &Executor::model___isoc99_sscanf},//Check to make sure it's OK to model with C99
-  {&stat,  &Executor::model_stat},
-  //{&target_exit,  &Executor::model_target_exit}, //Special case. fixme. //Doesn't look like we call target_exit anymore.
-  {&time,  &Executor::model_time},
-  {&vfprintf,  &Executor::model_vfprintf},
-  {&write,  &Executor::model_write},
+  {(uint64_t) &calloc_tase_shim, &Executor::model_calloc},
+  {(uint64_t) &calloc_tase,  &Executor::model_calloc},
+  {(uint64_t) &__ctype_b_loc,  &Executor::model___ctype_b_loc},
+  {(uint64_t) &__ctype_tolower_loc,  &Executor::model___ctype_tolower_loc},
+  {(uint64_t) &__errno_location,  &Executor::model___errno_location},
+  {(uint64_t) &exit_tase_shim,  &Executor::model_exit_tase}, //Probably redundant.
+  {(uint64_t) &exit_tase,  &Executor::model_exit_tase},
+  {(uint64_t) &fclose,  &Executor::model_fclose},
+  {(uint64_t) &fcntl,  &Executor::model_fcntl},
+  {(uint64_t) &feof,  &Executor::model_feof},
+  {(uint64_t) &ferror,  &Executor::model_ferror},
+  {(uint64_t) &fflush,  &Executor::model_fflush},
+  {(uint64_t) &fgets,  &Executor::model_fgets},
+  {(uint64_t) &fileno,  &Executor::model_fileno},
+  {(uint64_t) &fopen,  &Executor::model_fopen},
+  {(uint64_t) &fopen64,  &Executor::model_fopen64},
+  {(uint64_t) &fread,  &Executor::model_fread},
+  {(uint64_t) &fread_unlocked,  &Executor::model_fread}, //double check against model_fread
+  {(uint64_t) &free,  &Executor::model_free},
+  {(uint64_t) &free_tase,  &Executor::model_free},
+  {(uint64_t) &free_tase_shim, &Executor::model_free},
+  {(uint64_t) &freopen,  &Executor::model_freopen},
+  {(uint64_t) &fseek,  &Executor::model_fseek},
+  {(uint64_t) &ftell,  &Executor::model_ftell},
+  {(uint64_t) &fwrite,  &Executor::model_fwrite},
+  {(uint64_t) &fwrite_unlocked,  &Executor::model_fwrite}, //double check against model_fwrite
+  {(uint64_t) &getc_unlocked,  &Executor::model_getc_unlocked},
+  {(uint64_t) &getc_unlocked_tase,  &Executor::model_getc_unlocked},
+  {(uint64_t) &getc_unlocked_tase_shim, &Executor::model_getc_unlocked},
+  {(uint64_t) &getegid,  &Executor::model_getegid},
+  {(uint64_t) &getenv,  &Executor::model_getenv},
+  {(uint64_t) &geteuid,  &Executor::model_geteuid},
+  {(uint64_t) &getgid,  &Executor::model_getgid},
+  {(uint64_t) &gethostbyname,  &Executor::model_gethostbyname},
+  {(uint64_t) &getpid,  &Executor::model_getpid},
+  {(uint64_t) &gettimeofday,  &Executor::model_gettimeofday},
+  {(uint64_t) &getuid,  &Executor::model_getuid},
+  {(uint64_t) &gmtime,  &Executor::model_gmtime},
+  {(uint64_t) &isatty,  &Executor::model_isatty},
+  {(uint64_t) &__isoc99_sscanf,  &Executor::model___isoc99_sscanf},
+  {(uint64_t) &make_byte_symbolic,  &Executor::make_byte_symbolic_model},
+  {(uint64_t) &malloc,  &Executor::model_malloc},
+  {(uint64_t) &malloc_tase,  &Executor::model_malloc},
+  {(uint64_t) &malloc_tase_shim, &Executor::model_malloc},
+  {(uint64_t) &memcpy,  &Executor::model_memcpy_tase},
+  {(uint64_t) &memcpy_tase,  &Executor::model_memcpy_tase},
+  {(uint64_t) &posix_fadvise,  &Executor::model_posix_fadvise},
+  {(uint64_t) &putchar,  &Executor::model_putchar},
+  {(uint64_t) &printf_tase,  &Executor::model_printf},
+  {(uint64_t) &__printf_chk,  &Executor::model___printf_chk},
+  {(uint64_t) &puts_tase,  &Executor::model_puts},
+  {(uint64_t) &puts_tase_shim, &Executor::model_puts},
+  //{(uint64_t) &read,  &Executor::model_read}, //Model doesn't exist yet.  fixme.
+  {(uint64_t) &realloc,  &Executor::model_realloc},
+  {(uint64_t) &realloc_tase,  &Executor::model_realloc},
+  {(uint64_t) &realloc_tase_shim, &Executor::model_realloc},
+  {(uint64_t) &rewind,  &Executor::model_rewind},
+  {(uint64_t) &sb_disabled,  &Executor::model_sb_disabled},
+  {(uint64_t) &sb_reopen,  &Executor::model_sb_reopen},
+  {(uint64_t) &sprintf_tase,  &Executor::model_sprintf},
+  {(uint64_t) &sscanf,  &Executor::model___isoc99_sscanf},//Check to make sure it's OK to model with C99
+  {(uint64_t) &stat,  &Executor::model_stat},
+  //{(uint64_t) &target_exit,  &Executor::model_target_exit}, //Special case. fixme. //Doesn't look like we call target_exit anymore.
+  {(uint64_t) &time,  &Executor::model_time},
+  {(uint64_t) &vfprintf,  &Executor::model_vfprintf},
+  {(uint64_t) &write,  &Executor::model_write},
 
-  {&strtof_tase,  &Executor::model_strtof},
-  {&strtod_tase,  &Executor::model_strtod},
-  {&strtold_tase,  &Executor::model_strtold},
-  {&strtol_tase,  &Executor::model_strtol},
-  {&strtoll_tase,  &Executor::model_strtoll},
-  {&strtoul_tase,  &Executor::model_strtoul},
-  {&strtoull_tase,  &Executor::model_strtoull},
-  {&strtoimax_tase,  &Executor::model_strtoimax},
-  {&strtoumax_tase,  &Executor::model_strtoumax},
+  {(uint64_t) &strtof_tase,  &Executor::model_strtof},
+  {(uint64_t) &strtod_tase,  &Executor::model_strtod},
+  {(uint64_t) &strtold_tase,  &Executor::model_strtold},
+  {(uint64_t) &strtol_tase,  &Executor::model_strtol},
+  {(uint64_t) &strtoll_tase,  &Executor::model_strtoll},
+  {(uint64_t) &strtoul_tase,  &Executor::model_strtoul},
+  {(uint64_t) &strtoull_tase,  &Executor::model_strtoull},
+  {(uint64_t) &strtoimax_tase,  &Executor::model_strtoimax},
+  {(uint64_t) &strtoumax_tase,  &Executor::model_strtoumax},
 
-  {&wcstof_tase,  &Executor::model_wcstof},
-  {&wcstod_tase,  &Executor::model_wcstod},
-  {&wcstold_tase,  &Executor::model_wcstold},
-  {&wcstol_tase,  &Executor::model_wcstol},
-  {&wcstoll_tase,  &Executor::model_wcstoll},
-  {&wcstoul_tase,  &Executor::model_wcstoul},
-  {&wcstoull_tase,  &Executor::model_wcstoull},
-  {&wcstoumax_tase,  &Executor::model_wcstoumax},
-  {&wcstoimax_tase,  &Executor::model_wcstoimax},
+  {(uint64_t) &wcstof_tase,  &Executor::model_wcstof},
+  {(uint64_t) &wcstod_tase,  &Executor::model_wcstod},
+  {(uint64_t) &wcstold_tase,  &Executor::model_wcstold},
+  {(uint64_t) &wcstol_tase,  &Executor::model_wcstol},
+  {(uint64_t) &wcstoll_tase,  &Executor::model_wcstoll},
+  {(uint64_t) &wcstoul_tase,  &Executor::model_wcstoul},
+  {(uint64_t) &wcstoull_tase,  &Executor::model_wcstoull},
+  {(uint64_t) &wcstoumax_tase,  &Executor::model_wcstoumax},
+  {(uint64_t) &wcstoimax_tase,  &Executor::model_wcstoimax},
 
- // {&a_ctz_64_tase,  &Executor::model_a_ctz_64},
- // {&a_clz_64_tase,  &Executor::model_a_clz_64},
+ // {(uint64_t) &a_ctz_64_tase,  &Executor::model_a_ctz_64},
+ // {(uint64_t) &a_clz_64_tase,  &Executor::model_a_clz_64},
 
-  {&tase_make_symbolic,  &Executor::model_tase_make_symbolic},
+  {(uint64_t) &tase_make_symbolic,  &Executor::model_tase_make_symbolic},
 
-  {&__pthread_self_tase,  &Executor::model___pthread_self},
+  {(uint64_t) &__pthread_self_tase,  &Executor::model___pthread_self},
 
 #ifdef TASE_OPENSSL
-  {&AES_encrypt,  &Executor::model_AES_encrypt},
-  {&BIO_printf,  &Executor::model_BIO_printf},
-  {&ECDH_compute_key,  &Executor::model_ECDH_compute_key},
-  {&EC_KEY_generate_key,  &Executor::model_EC_KEY_generate_key},
-  {&EC_POINT_point2oct,  &Executor::model_EC_POINT_point2oct},
-  {&gcm_ghash_4bit,  &Executor::model_gcm_ghash_4bit},
-  {&gcm_gmult_4bit,  &Executor::model_gcm_gmult_4bit},
-  {&ktest_connect,  &Executor::model_ktest_connect},
-  {&ktest_master_secret,  &Executor::model_ktest_master_secret},
-  {&ktest_RAND_bytes,  &Executor::model_ktest_RAND_bytes},
-  {&ktest_RAND_pseudo_bytes,  &Executor::model_ktest_RAND_pseudo_bytes},
-  {&ktest_raw_read_stdin,  &Executor::model_ktest_raw_read_stdin},
-  {&ktest_readsocket,  &Executor::model_ktest_readsocket},
-  {&ktest_select,  &Executor::model_ktest_select},
-  {&ktest_start,  &Executor::model_ktest_start},
-  {&ktest_writesocket,  &Executor::model_ktest_writesocket},
-  {&OpenSSLDie,  &Executor::model_OpenSSLDie},
-  {&RAND_add,  &Executor::model_RAND_add},
-  {&RAND_load_file,  &Executor::model_RAND_load_file},
-  {&RAND_poll,  &Executor::model_RAND_poll},
-  {&SHA1_Final,  &Executor::model_SHA1_Final},
-  {&SHA1_Update,  &Executor::model_SHA1_Update},
-  {&SHA256_Final,  &Executor::model_SHA256_Final},
-  {&SHA256_Update,  &Executor::model_SHA256_Update},
-  {&select,  &Executor::model_select}, //Maybe move to generic section?
-  {&setsockopt,  &Executor::model_setsockopt},
-  {&shutdown,  &Executor::model_shutdown},
-  {&signal,  &Executor::model_signal},
-  {&socket,  &Executor::model_socket},
-  {&tls1_generate_master_secret,  &Executor::model_tls1_generate_master_secret},
+  {(uint64_t) &AES_encrypt,  &Executor::model_AES_encrypt},
+  {(uint64_t) &BIO_printf,  &Executor::model_BIO_printf},
+  {(uint64_t) &ECDH_compute_key,  &Executor::model_ECDH_compute_key},
+  {(uint64_t) &EC_KEY_generate_key,  &Executor::model_EC_KEY_generate_key},
+  {(uint64_t) &EC_POINT_point2oct,  &Executor::model_EC_POINT_point2oct},
+  {(uint64_t) &gcm_ghash_4bit,  &Executor::model_gcm_ghash_4bit},
+  {(uint64_t) &gcm_gmult_4bit,  &Executor::model_gcm_gmult_4bit},
+  {(uint64_t) &ktest_connect,  &Executor::model_ktest_connect},
+  {(uint64_t) &ktest_master_secret,  &Executor::model_ktest_master_secret},
+  {(uint64_t) &ktest_RAND_bytes,  &Executor::model_ktest_RAND_bytes},
+  {(uint64_t) &ktest_RAND_pseudo_bytes,  &Executor::model_ktest_RAND_pseudo_bytes},
+  {(uint64_t) &ktest_raw_read_stdin,  &Executor::model_ktest_raw_read_stdin},
+  {(uint64_t) &ktest_readsocket,  &Executor::model_ktest_readsocket},
+  {(uint64_t) &ktest_select,  &Executor::model_ktest_select},
+  {(uint64_t) &ktest_start,  &Executor::model_ktest_start},
+  {(uint64_t) &ktest_writesocket,  &Executor::model_ktest_writesocket},
+  {(uint64_t) &OpenSSLDie,  &Executor::model_OpenSSLDie},
+  {(uint64_t) &RAND_add,  &Executor::model_RAND_add},
+  {(uint64_t) &RAND_load_file,  &Executor::model_RAND_load_file},
+  {(uint64_t) &RAND_poll,  &Executor::model_RAND_poll},
+  {(uint64_t) &SHA1_Final,  &Executor::model_SHA1_Final},
+  {(uint64_t) &SHA1_Update,  &Executor::model_SHA1_Update},
+  {(uint64_t) &SHA256_Final,  &Executor::model_SHA256_Final},
+  {(uint64_t) &SHA256_Update,  &Executor::model_SHA256_Update},
+  {(uint64_t) &select,  &Executor::model_select}, //Maybe move to generic section?
+  {(uint64_t) &setsockopt,  &Executor::model_setsockopt},
+  {(uint64_t) &shutdown,  &Executor::model_shutdown},
+  {(uint64_t) &signal,  &Executor::model_signal},
+  {(uint64_t) &socket,  &Executor::model_socket},
+  {(uint64_t) &tls1_generate_master_secret,  &Executor::model_tls1_generate_master_secret},
 #endif
 
-  {&__addsf3_tase, &Executor::model__addsf3},
-  {&__adddf3_tase, &Executor::model__adddf3},
-  {&__subsf3_tase, &Executor::model__subsf3},
-  {&__subdf3_tase, &Executor::model__subdf3},
-  {&__mulsf3_tase, &Executor::model__mulsf3},
-  {&__muldf3_tase, &Executor::model__muldf3},
-  {&__divsf3_tase, &Executor::model__divsf3},
-  {&__divdf3_tase, &Executor::model__divdf3},
-  {&__negsf2_tase, &Executor::model__negsf2},
-  {&__negdf2_tase, &Executor::model__negdf2},
-  {&__extendsfdf2_tase, &Executor::model__extendsfdf2},
-  {&__truncdfsf2_tase, &Executor::model__truncdfsf2},
-  {&__fixsfsi_tase, &Executor::model__fixsfsi},
-  {&__fixdfsi_tase, &Executor::model__fixdfsi},
-  {&__fixsfdi_tase, &Executor::model__fixsfdi},
-  {&__fixdfdi_tase, &Executor::model__fixdfdi},
-  {&__fixsfti_tase, &Executor::model__fixsfti},
-  {&__fixdfti_tase, &Executor::model__fixdfti},
-  {&__fixunssfsi_tase, &Executor::model__fixunssfsi},
-  {&__fixunsdfsi_tase, &Executor::model__fixunsdfsi},
-  {&__fixunssfdi_tase, &Executor::model__fixunssfdi},
-  {&__fixunsdfdi_tase, &Executor::model__fixunsdfdi},
-  {&__fixunssfti_tase, &Executor::model__fixunssfti},
-  {&__fixunsdfti_tase, &Executor::model__fixunsdfti},
-  {&__floatsisf_tase, &Executor::model__floatsisf},
-  {&__floatsidf_tase, &Executor::model__floatsidf},
-  {&__floatdisf_tase, &Executor::model__floatdisf},
-  {&__floatdidf_tase, &Executor::model__floatdidf},
-  {&__floattisf_tase, &Executor::model__floattisf},
-  {&__floattidf_tase, &Executor::model__floattidf},
-  {&__floatunsisf_tase, &Executor::model__floatunsisf},
-  {&__floatunsidf_tase, &Executor::model__floatunsidf},
-  {&__floatundisf_tase, &Executor::model__floatundisf},
-  {&__floatundidf_tase, &Executor::model__floatundidf},
-  {&__floatuntisf_tase, &Executor::model__floatuntisf},
-  {&__floatuntidf_tase, &Executor::model__floatuntidf},
-  {&__cmpsf2_tase, &Executor::model__cmpsf2},
-  {&__cmpdf2_tase, &Executor::model__cmpdf2},
-  {&__unordsf2_tase, &Executor::model__unordsf2},
-  {&__unorddf2_tase, &Executor::model__unorddf2},
-  {&__eqsf2_tase, &Executor::model__eqsf2},
-  {&__eqdf2_tase, &Executor::model__eqdf2},
-  {&__nesf2_tase, &Executor::model__nesf2},
-  {&__nedf2_tase, &Executor::model__nedf2},
-  {&__gesf2_tase, &Executor::model__gesf2},
-  {&__gedf2_tase, &Executor::model__gedf2},
-  {&__ltsf2_tase, &Executor::model__ltsf2},
-  {&__ltdf2_tase, &Executor::model__ltdf2},
-  {&__lesf2_tase, &Executor::model__lesf2},
-  {&__ledf2_tase, &Executor::model__ledf2},
-  {&__gtsf2_tase, &Executor::model__gtsf2},
-  {&__gtdf2_tase, &Executor::model__gtdf2},
-  {&__powisf2_tase, &Executor::model__powisf2},
-  {&__powidf2_tase, &Executor::model__powidf2},
+  {(uint64_t) &__addsf3_tase, &Executor::model__addsf3},
+  {(uint64_t) &__adddf3_tase, &Executor::model__adddf3},
+  {(uint64_t) &__subsf3_tase, &Executor::model__subsf3},
+  {(uint64_t) &__subdf3_tase, &Executor::model__subdf3},
+  {(uint64_t) &__mulsf3_tase, &Executor::model__mulsf3},
+  {(uint64_t) &__muldf3_tase, &Executor::model__muldf3},
+  {(uint64_t) &__divsf3_tase, &Executor::model__divsf3},
+  {(uint64_t) &__divdf3_tase, &Executor::model__divdf3},
+  {(uint64_t) &__negsf2_tase, &Executor::model__negsf2},
+  {(uint64_t) &__negdf2_tase, &Executor::model__negdf2},
+  {(uint64_t) &__extendsfdf2_tase, &Executor::model__extendsfdf2},
+  {(uint64_t) &__truncdfsf2_tase, &Executor::model__truncdfsf2},
+  {(uint64_t) &__fixsfsi_tase, &Executor::model__fixsfsi},
+  {(uint64_t) &__fixdfsi_tase, &Executor::model__fixdfsi},
+  {(uint64_t) &__fixsfdi_tase, &Executor::model__fixsfdi},
+  {(uint64_t) &__fixdfdi_tase, &Executor::model__fixdfdi},
+  {(uint64_t) &__fixsfti_tase, &Executor::model__fixsfti},
+  {(uint64_t) &__fixdfti_tase, &Executor::model__fixdfti},
+  {(uint64_t) &__fixunssfsi_tase, &Executor::model__fixunssfsi},
+  {(uint64_t) &__fixunsdfsi_tase, &Executor::model__fixunsdfsi},
+  {(uint64_t) &__fixunssfdi_tase, &Executor::model__fixunssfdi},
+  {(uint64_t) &__fixunsdfdi_tase, &Executor::model__fixunsdfdi},
+  {(uint64_t) &__fixunssfti_tase, &Executor::model__fixunssfti},
+  {(uint64_t) &__fixunsdfti_tase, &Executor::model__fixunsdfti},
+  {(uint64_t) &__floatsisf_tase, &Executor::model__floatsisf},
+  {(uint64_t) &__floatsidf_tase, &Executor::model__floatsidf},
+  {(uint64_t) &__floatdisf_tase, &Executor::model__floatdisf},
+  {(uint64_t) &__floatdidf_tase, &Executor::model__floatdidf},
+  {(uint64_t) &__floattisf_tase, &Executor::model__floattisf},
+  {(uint64_t) &__floattidf_tase, &Executor::model__floattidf},
+  {(uint64_t) &__floatunsisf_tase, &Executor::model__floatunsisf},
+  {(uint64_t) &__floatunsidf_tase, &Executor::model__floatunsidf},
+  {(uint64_t) &__floatundisf_tase, &Executor::model__floatundisf},
+  {(uint64_t) &__floatundidf_tase, &Executor::model__floatundidf},
+  {(uint64_t) &__floatuntisf_tase, &Executor::model__floatuntisf},
+  {(uint64_t) &__floatuntidf_tase, &Executor::model__floatuntidf},
+  {(uint64_t) &__cmpsf2_tase, &Executor::model__cmpsf2},
+  {(uint64_t) &__cmpdf2_tase, &Executor::model__cmpdf2},
+  {(uint64_t) &__unordsf2_tase, &Executor::model__unordsf2},
+  {(uint64_t) &__unorddf2_tase, &Executor::model__unorddf2},
+  {(uint64_t) &__eqsf2_tase, &Executor::model__eqsf2},
+  {(uint64_t) &__eqdf2_tase, &Executor::model__eqdf2},
+  {(uint64_t) &__nesf2_tase, &Executor::model__nesf2},
+  {(uint64_t) &__nedf2_tase, &Executor::model__nedf2},
+  {(uint64_t) &__gesf2_tase, &Executor::model__gesf2},
+  {(uint64_t) &__gedf2_tase, &Executor::model__gedf2},
+  {(uint64_t) &__ltsf2_tase, &Executor::model__ltsf2},
+  {(uint64_t) &__ltdf2_tase, &Executor::model__ltdf2},
+  {(uint64_t) &__lesf2_tase, &Executor::model__lesf2},
+  {(uint64_t) &__ledf2_tase, &Executor::model__ledf2},
+  {(uint64_t) &__gtsf2_tase, &Executor::model__gtsf2},
+  {(uint64_t) &__gtdf2_tase, &Executor::model__gtdf2},
+  {(uint64_t) &__powisf2_tase, &Executor::model__powisf2},
+  {(uint64_t) &__powidf2_tase, &Executor::model__powidf2},
 };
 
   auto end = fnModelMap.end();
@@ -4413,36 +4413,36 @@ std::map<uint64_t , void (Executor::*) (void) > fnModelMap = {
   }
   }*/
 
-void Executor::model_inst () {
-  run_model_count++;
-  uint64_t rip = target_ctx_gregs[GREG_RIP].u64;
-  if (taseDebug) {
-    printf("INTERPRETER: FOUND SPECIAL MODELED INST at rip 0x%lx \n", rip);
-    fflush(stdout);
-  }
+// void Executor::model_inst () {
+//   run_model_count++;
+//   uint64_t rip = target_ctx_gregs[GREG_RIP].u64;
+//   if (taseDebug) {
+//     printf("INTERPRETER: FOUND SPECIAL MODELED INST at rip 0x%lx \n", rip);
+//     fflush(stdout);
+//   }
 
-  
-  auto it = fnModelMap.find(rip);
-  if (it != fnModelMap.end() ) {
-    void (klee::Executor::*fp)() = it->second;
-    (this->*fp)();
-  }
 
-}
+//   auto it = fnModelMap.find(rip);
+//   if (it != fnModelMap.end() ) {
+//     void (klee::Executor::*fp)() = it->second;
+//     (this->*fp)();
+//   }
 
-bool isSpecialInst (uint64_t rip ) {
-  if (taseDebug) {
-    printf("In isSpecialInst for rip 0x%lx \n", rip);
-    fflush(stdout);
-  }
+// }
 
-  auto it = fnModelMap.find(rip);
-  if (it != fnModelMap.end())
-    return true;
-  else
-    return false;
-  
-} 
+// bool isSpecialInst (uint64_t rip ) {
+//   if (taseDebug) {
+//     printf("In isSpecialInst for rip 0x%lx \n", rip);
+//     fflush(stdout);
+//   }
+
+//   auto it = fnModelMap.find(rip);
+//   if (it != fnModelMap.end())
+//     return true;
+//   else
+//     return false;
+
+// }
 
 void Executor::printDebugInterpHeader() {
 
@@ -4524,57 +4524,88 @@ void Executor::klee_interp_internal () {
     // cause a segfault if the process isn't executing a transaction.
 
     //dont_model is used to force execution in interpreter when a register is tainted (but no args are symbolic) for a modeled fn 
-    if (isSpecialInst(rip) && !dont_model) {
-      hasMadeProgress=true;
-      model_inst();
-    } else if (resumeNativeExecution() && !dont_model && hasMadeProgress) {
-      break;
-    } else {
+    // if (isSpecialInst(rip) && !dont_model) {
+    //   hasMadeProgress=true;
+    //   model_inst();
+    // } else if (resumeNativeExecution() && !dont_model && hasMadeProgress) {
+    //   break;
+    // } else {
+    //   dont_model = false;
+    //   hasMadeProgress= true;
+    //   tryKillFlags(target_ctx_gregs);
+
+    //   if (skipInstrumentationInstruction(target_ctx_gregs)) {
+
+    //   } else {
+    //     runCoreInterpreter(target_ctx_gregs);
+    //   }
+    //}
+    if(dont_model){
       dont_model = false;
-      hasMadeProgress= true;
+      hasMadeProgress = true;
       tryKillFlags(target_ctx_gregs);
 
-      if (skipInstrumentationInstruction(target_ctx_gregs)) {
-	
-      } else {
+      if(!skipInstrumentationInstruction(target_ctx_gregs)){
         runCoreInterpreter(target_ctx_gregs);
       }
+    } else {
+      if(taseDebug){
+        printf("In isSpecialInst for rip 0x%lx \n", rip);
+        fflush(stdout);
+      }
+      auto mod = fnModelMap.find(rip);
+
+      if(mod == fnModelMap.end()){
+        if(taseDebug){
+          printf("INTERPRETER: FOUND SPECIAL MODELED INST at rip 0x%lx \n", rip);
+          fflush(stdout);
+        }
+
+        hasMadeProgress = true;
+        void (klee::Executor::*fp)() = mod->second;
+        (this->*fp)();
+      } else {
+        break;
+      }
     }
+
 
     if(tase_buf_has_taint((void *) &(target_ctx_gregs[GREG_RIP].u64), 8) ) {
       ref<Expr> RIPExpr = tase_helper_read((uint64_t) &(target_ctx_gregs[GREG_RIP].u64), 8);
       if (!(isa<ConstantExpr>(RIPExpr))) {
-	forkOnPossibleRIPValues(RIPExpr, rip_init);	
-	if (taseDebug) {
-	  ref<Expr> FinalRIPExpr = target_ctx_gregs_OS->read(GREG_RIP * 8, Expr::Int64);
-	  if (!(isa<ConstantExpr>(FinalRIPExpr))) {
-	    printf("ERROR: Failed to concretize RIP \n");
-	    std::cout.flush();
-	    std::exit(EXIT_FAILURE);
-	  }
-	}        
+        forkOnPossibleRIPValues(RIPExpr, rip_init);
+
+        if (taseDebug) {
+          ref<Expr> FinalRIPExpr = target_ctx_gregs_OS->read(GREG_RIP * 8, Expr::Int64);
+          if (!(isa<ConstantExpr>(FinalRIPExpr))) {
+            printf("ERROR: Failed to concretize RIP \n");
+            std::cout.flush();
+            std::exit(EXIT_FAILURE);
+          }
+        }
       }
     }
+
     //Kludge to get us back to native execution for prohib fns with concrete input
     
     if (forceNativeRet) {
       if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
-	if (taseDebug) {
-	  printf("Trying to return to native execution \n");
-	  fflush(stdout);
-	}
+        if (taseDebug) {
+          printf("Trying to return to native execution \n");
+          fflush(stdout);
+        }
 	//This case is for attempts to execute natively that repeatedly result in
 	//page faults.  We have to interpret in that case to map the page in.
-	if (tran_max ==0 && target_ctx_gregs[GREG_RIP].u64 == init_trap_RIP) {
-	  if (taseDebug) {
-	    printf("Repeated faults detected for prohib function \n");
-	    fflush(stdout);
-	  }
-	  dont_model = true;
-	  forceNativeRet = false;
-	} else {
-	  break;
-	}
+        if (tran_max ==0 && target_ctx_gregs[GREG_RIP].u64 == init_trap_RIP) {
+          if (taseDebug) {
+            printf("Repeated faults detected for prohib function \n");
+            fflush(stdout);
+          }
+          dont_model = true;
+          forceNativeRet = false;
+        } else {
+          break;
+        }
       }
     }
   }

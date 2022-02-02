@@ -342,7 +342,7 @@ private:
   bool instructionBeginsTransaction(uint64_t pc);
   bool instructionIsModeled();
   void model_tase_make_symbolic();
-  void model_inst();
+  //void model_inst();
   void killDeadRegsPreCall();
   void do_ret();
   void model_sb_disabled();
