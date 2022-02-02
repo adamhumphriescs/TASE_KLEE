@@ -4201,7 +4201,7 @@ fnModelMap.insert(std::make_pair( (uint64_t) &calloc_tase , &klee::Executor::mod
 fnModelMap.insert(std::make_pair( (uint64_t) &calloc_tase + trap_off, &klee::Executor::model_calloc ));
 */
 
-void Executor::loadFnModelMap() {(uint64_t)
+void Executor::loadFnModelMap() {
 std::map<uint64_t , void (Executor::*) (void) > fnModelMap = {
   {(uint64_t) &calloc_tase_shim, &Executor::model_calloc},
   {(uint64_t) &calloc_tase,  &Executor::model_calloc},
