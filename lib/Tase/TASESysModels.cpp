@@ -2013,7 +2013,7 @@ bool Executor::addPrintfArgNo(std::stringstream * output ,print_specifier type, 
   return true;
 
 }
-
+/*
 void Executor::model_printf() {
 
   char * input = (char *) target_ctx_gregs[GREG_RDI].u64;
@@ -2059,7 +2059,7 @@ void Executor::model_printf() {
   do_ret();
 
 }
-
+*/
 //Modeles for strtod, strtol, etc. and wcstod, wcstol, etc.  These should just
 //be user-level code in principal for which we don't need models, but because the musl
 //stdlib implmentation reuses some file-based utilities from stdio to handle the string
