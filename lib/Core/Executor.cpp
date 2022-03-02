@@ -135,6 +135,7 @@ extern "C" int __isoc99_sscanf ( const char * s, const char * format, ...);
 extern uint16_t poison_val;
 extern target_ctx_t target_ctx;
 extern tase_greg_t * target_ctx_gregs;
+extern xmm_reg_t * target_ctx_xmms;
 extern bool taseDebug;
 extern int retryMax;
 extern Module * interpModule;
@@ -147,6 +148,8 @@ extern double target_end_time;
 Executor * GlobalExecutorPtr;
 MemoryObject * target_ctx_gregs_MO;
 ObjectState * target_ctx_gregs_OS;
+MemoryObject * target_ctx_xmms_MO;
+ObjectState * target_ctx_xmms_OS;
 ExecutionState * GlobalExecutionStatePtr;
 void * rodata_base_ptr;
 uint64_t rodata_size;
@@ -4930,6 +4933,10 @@ void Executor::initializeInterpretationStructures (Function *f) {
   target_ctx_gregs_OS = GlobalExecutionStatePtr->addressSpace.getWriteable(target_ctx_gregs_MO,targetCtxOS);
   target_ctx_gregs_OS->concreteStore = (uint8_t *) target_ctx_gregs;
 
+  target_ctx_xmms_MO = addExternalObject(*GlobalExecutionStatePtr, (void*) target_ctx.xmm, 8*XMMREG_SIZE, false);
+  const ObjectState *targetCtxXOS = GlobalExecutionStatePtr->addressSpace.findObject(target_ctx_xmm_MO);
+  target_ctx_xmms_OS = GlobalExecutionStatePtr->addressSpace.getWritable(target_ctx_xmms_MO, targetCtxXOS);
+  target_ctx_xmms_OS->concreteStore = (uint8_t *) target_ctx_xmms;
   //Map in read-only globals
   //Todo -- find a less hacky way of getting the exact size of the .rodata section
 

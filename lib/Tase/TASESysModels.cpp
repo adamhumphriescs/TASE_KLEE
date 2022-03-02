@@ -119,6 +119,19 @@ bool roundUpHeapAllocations = true; //Round the size Arg of malloc, realloc, and
 
 std::map<void *, void *> heap_guard_map; //
 
+
+template<typename T> T as(tase_greg_t t);
+template<> uint64_t as(tase_greg_t t){return t.u64;}
+template<> int64_t as(tase_greg_t t){return t.i64;}
+template<> uint32_t as(tase_greg_t t){return t.u32;}
+template<> int32_t as(tase_greg_t t){return t.i32;}
+template<> int16_t as(tase_greg_t t){return t.i16;}
+template<> unt16_t as(tase_greg_t t){return t.u16;}
+template<> double as(tase_greg_t t){return t.dbl;}
+template<> char as(tase_greg_t t){return (char) t.u8;}
+template<> char * as(tase_greg_t t){return (char*) t.u64;}
+
+
 void printBuf(FILE * f,void * buf, size_t count)
 {
   fprintf(f,"Calling printBuf with count %d \n", count);
@@ -317,6 +330,177 @@ void Executor::model_vfprintf(){
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
   do_ret();//fake a ret
 }
+
+// vprintf(const char* fmt, va_list args)
+void Executor::model_vprintf() {
+  const char * fmt = (const char*) target_ctx_gregs[GREG_RDX].u64;
+  va_list lst = (va_list) target_ctx_gregs[GREG_RSI].u64;
+  // parse format string to get types list
+  // use va_arg / va_end to access lst elements
+  // cast them to appropriate type using the fmt string specifiers
+  // check if all constexprs
+  // call printf on concrete args
+
+
+  do_ret();
+}
+
+
+template<typename T>
+uint64_t * get_val(int count, uint64_t *s_offset, T& t, const char* reason){
+  if(count < 6){
+    auto ref = target_ctx_gregs_OS->read(count < 4 ? (5-count)*8 : (4+count)*8, Expr::Int64);
+    if(isa<ConstantExpr>(ref)){
+      t =  as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
+    } else {
+      auto ref2 = toConstant(*GlobalExecutionStatePtr, ref, reason);
+      tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, ref2);
+      t = as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
+    }
+  } else {
+    auto ref = tase_helper_read((uint64_t) s_offset, 8);
+    if(isa<ConstantExpr>(ref)){
+      t = *dynamic_cast<T*>(s_offset);
+    } else {
+      auto ref2 = toConstant(*GlobalExecutionStatePtr, ref, reason);
+      tase_helper_write((uint64_t) s_offset, ref2);
+    }
+    return s_offset + 8;
+  }
+  return s_offset;
+}
+
+/*
+uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reason){
+  if(fpcount < 16){
+    int idx = fpcount / 2;
+    bool even = fpcount % 2 == 0
+    auto ref = target_ctx_xmms_OS->read(idx*XMMREG_SIZE + (even ? 0 : 1), Expr::Int64); // Width given here, not a type
+    if(isa<ConstantExpr>(ref)){
+      t = target_ctx_xmms[idx][(even ? 0 : 1)];
+    }
+  } else {
+    auto ref = tase_helper_read(s_offset);
+    if(isa<ConstantExpr>(ref)){
+      t = *s_offset;
+    } else {
+      auto ref2 = toConstant(*GlobalExecutionStatePtr, ref, reason);
+      tase_helper_write((uint64_t) s_offset, ref2);
+    }
+    return s_offset + 8;
+  }
+  return s_offset;
+}
+*/
+
+// specifiers:
+// %([-+#0 ])?([0-9*])?(.[0-9]+|.*)?(length)?(type)
+// type/length table: see here https://cplusplus.com/reference/cstdio/printf/
+// *-items -> extra arg given to fill in, precedes the value to be interpolated
+// abi reference: https://www.intel.com/content/dam/develop/external/us/en/documents/mpx-linux64-abi.pdf
+// printf(const char * fmt, ...)
+void Executor::model_printf(){
+  int count = 0;
+  //int fpcount = 0;
+  uint64_t * s_offset = target_ctx_gregs[GREG_RSP].u64 + 8; // RSP should be sitting on return addr
+
+  char reason[14] = "model_printf\n";
+
+  char * fmtc;
+  s_offset = get_val(count, s_offset, fmtc, reason);
+  std::string fmt = std::string(fmtc);
+
+  // possibly useful alternative for doubles:
+  // check al
+  // if al is zero, no fp args
+  // else dump xmm 0-7 to array
+
+  std::regex specifier("%([-+#0 ])?([0-9*])?(.[0-9]+|.[*])?(hh|h|l|ll|j|z|t|L)?([diouxXfFeEgGaAcspn])", std::regex::egrep);
+  auto match_begin = std::sregex_iterator(fmt.begin(), fmt.end(), specifier);
+  auto out = std::string();
+  auto last = fmt.begin();
+  for(auto x = match_begin; x != std::sregex_iterator(); ++x){
+    out += std::string(last, x[0].first);
+    last = x[4].second;
+
+    char type = *x[4];
+    char outstr[255];
+    switch(type){
+      case 'd': //signed int
+      case 'i':
+        {
+  // printf will down-convert (u)int64_t to whatever was specified in fmt string
+          int64_t arg;
+          s_offset = get_val(count, s_offset, arg, reason);
+          auto ff = std::string(x[0].first, x[4].last);
+          sprintf(outstr, ff.c_str(), arg);
+          out += std::string(outstr);
+        }
+        break;
+      case 'u': //unsigned int
+      case 'o':
+      case 'x':
+      case 'X':
+        // same as above but unsigned
+        {
+          uint64_t arg;
+          s_offset = get_val(count, s_offset, arg, reason);
+          auto ff = std::string(x[0].first, x[4].last)
+          sprintf(outstr, ff, arg);
+          out += std::string(outstr);
+        }
+        break;
+      case 'f': // fp - the difference in size matters here. Check if x[3] is L or not? for now just ignore - no long doubles allowed!
+      case 'F':
+      case 'e':
+      case 'E':
+      case 'g':
+      case 'G':
+      case 'a':
+      case 'A':
+        {
+          double arg;
+          s_offset = get_val(count, s_offset, arg, reason);
+          auto ff = std::string(x[0].first, x[4].last);
+          sprintf(outstr, ff, arg);
+          out += std::string(outstr);
+          //fpcount++;
+        }
+        break;
+
+      case 'c': // char
+        {
+          char arg;
+          s_offset = get_val(count, arg, reason);
+          auto ff = std::string(x[0].first, x[4].last);
+          sprintf(outstr, ff, arg);
+          out += std::string(outstr);
+        }
+        break;
+      case 's': // char*
+        {
+          char* arg;
+          s_offset = get_val(count, s_offset, arg, reason);
+          auto ff = std::string(x[0].first, x[4].last);
+          sprintf(outstr, ff, arg);
+          out += std::string(outstr);
+        }
+        break;
+
+      case 'n': // ptr to int, stores the # chars printed so far and elides the %n
+        // save out.length() to the pointer
+        {
+          int* arg;
+          s_offset = get_val(count, s_offset, arg, reason);
+          *arg = out.length();
+        }
+        break;
+    }
+    count++;
+  }
+  do_ret();
+}
+
 
 extern int * __errno_location();
 
