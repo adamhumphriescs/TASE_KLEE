@@ -354,16 +354,16 @@ uint64_t * get_val(int count, uint64_t *s_offset, T& t, const char* reason){
       t =  as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     } else {
       auto ref2 = Executor::toConstant(*GlobalExecutionStatePtr, ref, reason);
-      tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, ref2);
+      Executor::tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, ref2);
       t = as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     }
   } else {
-    auto ref = tase_helper_read((uint64_t) s_offset, 8);
+    auto ref = Executor::tase_helper_read((uint64_t) s_offset, 8);
     if(isa<ConstantExpr>(ref)){
       t = *dynamic_cast<T*>(s_offset);
     } else {
       auto ref2 = Executor::toConstant(*GlobalExecutionStatePtr, ref, reason);
-      tase_helper_write((uint64_t) s_offset, ref2);
+      Executor::tase_helper_write((uint64_t) s_offset, ref2);
     }
     return s_offset + 8;
   }
