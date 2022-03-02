@@ -471,7 +471,7 @@ void Executor::model_printf(){
       case 'c': // char
         {
           char arg;
-          s_offset = get_val(count, arg, reason);
+          s_offset = get_val(count, s_offset, arg, reason);
           auto ff = std::string(x[0].first, x[4].last);
           sprintf(outstr, ff, arg);
           out += std::string(outstr);
