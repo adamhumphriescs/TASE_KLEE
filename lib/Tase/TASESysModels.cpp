@@ -332,7 +332,7 @@ void Executor::model_vfprintf(){
 }
 
 // vprintf(const char* fmt, va_list args)
-void Executor::model_vprintf() {
+/*void Executor::model_vprintf() {
   const char * fmt = (const char*) target_ctx_gregs[GREG_RDX].u64;
   va_list lst = (va_list) target_ctx_gregs[GREG_RSI].u64;
   // parse format string to get types list
@@ -343,7 +343,7 @@ void Executor::model_vprintf() {
 
 
   do_ret();
-}
+}*/
 
 
 template<typename T>
@@ -353,7 +353,7 @@ uint64_t * get_val(int count, uint64_t *s_offset, T& t, const char* reason){
     if(isa<ConstantExpr>(ref)){
       t =  as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     } else {
-      auto ref2 = toConstant(*GlobalExecutionStatePtr, ref, reason);
+      auto ref2 = Executor::toConstant(*GlobalExecutionStatePtr, ref, reason);
       tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, ref2);
       t = as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     }
@@ -362,7 +362,7 @@ uint64_t * get_val(int count, uint64_t *s_offset, T& t, const char* reason){
     if(isa<ConstantExpr>(ref)){
       t = *dynamic_cast<T*>(s_offset);
     } else {
-      auto ref2 = toConstant(*GlobalExecutionStatePtr, ref, reason);
+      auto ref2 = Executor::toConstant(*GlobalExecutionStatePtr, ref, reason);
       tase_helper_write((uint64_t) s_offset, ref2);
     }
     return s_offset + 8;
