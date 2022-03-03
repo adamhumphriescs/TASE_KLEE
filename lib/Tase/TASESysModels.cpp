@@ -84,6 +84,7 @@ using namespace klee;
 #include <fcntl.h>
 #include <fstream>
 #include <byteswap.h>
+#include <regex>
 //#include "../../../musl/arch/x86_64/pthread_arch.h"
 //#include "../../../musl/src/internal/pthread_impl.h"
 
@@ -253,7 +254,7 @@ void Executor::model_memcpy_tase() {
       
       //Fast path aligned case
       if ((((uint64_t) dst) %2 == 0) && (((uint64_t) src) % 2 == 0) && (((uint64_t) s) %2 == 0)) {
-	for (int i = 0; i < s; i++) {
+	for (auto i = 0; i < s; i++) {
 	  
 	  if (i%2 == 0
 	      && *((uint16_t *) ((uint64_t) src + i) ) != poison_val
@@ -347,23 +348,23 @@ void Executor::model_vfprintf(){
 
 
 template<typename T>
-uint64_t * get_val(int count, uint64_t *s_offset, T& t, const char* reason){
+uint64_t * Executor::get_val(int count, uint64_t *s_offset, T& t, const char* reason){
   if(count < 6){
     ref<Expr> aref = target_ctx_gregs_OS->read(count < 4 ? (5-count)*8 : (4+count)*8, Expr::Int64);
     if(isa<ConstantExpr>(aref)){
       t =  as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     } else {
-      ref<Expr> aref2 = Executor::toConstant(*GlobalExecutionStatePtr, aref, reason);
-      Executor::tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, aref2);
+      ref<Expr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason);
+      tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, aref2);
       t = as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     }
   } else {
-    ref<Expr> aref = Executor::tase_helper_read((uint64_t) s_offset, 8);
+    ref<Expr> aref = tase_helper_read((uint64_t) s_offset, 8);
     if(isa<ConstantExpr>(aref)){
       t = *dynamic_cast<T*>(s_offset);
     } else {
-      ref<ConstantExpr> aref2 = Executor::toConstant(*GlobalExecutionStatePtr, aref, reason);
-      Executor::tase_helper_write((uint64_t) s_offset, aref2);
+      ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason);
+      tase_helper_write((uint64_t) s_offset, aref2);
     }
     return s_offset + 8;
   }

@@ -382,7 +382,10 @@ private:
   void tase_make_symbolic_internal (uint64_t addr, uint64_t len,const  char * name);
   void tase_make_symbolic_bytewise(uint64_t addr, uint64_t len, const char * name);
   void rewriteConstants(uint64_t addr, size_t num);
-  
+
+  template<typename T>
+  uint64_t * Executor::get_val(int count, uint64_t *s_offset, T& t, const char* reason);
+
   void model_tase_debug();
   
   void model_ktest_start();
