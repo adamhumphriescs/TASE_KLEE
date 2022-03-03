@@ -126,7 +126,7 @@ template<> int64_t as(tase_greg_t t){return t.i64;}
 template<> uint32_t as(tase_greg_t t){return t.u32;}
 template<> int32_t as(tase_greg_t t){return t.i32;}
 template<> int16_t as(tase_greg_t t){return t.i16;}
-template<> unt16_t as(tase_greg_t t){return t.u16;}
+template<> uint16_t as(tase_greg_t t){return t.u16;}
 template<> double as(tase_greg_t t){return t.dbl;}
 template<> char as(tase_greg_t t){return (char) t.u8;}
 template<> char * as(tase_greg_t t){return (char*) t.u64;}
@@ -349,20 +349,20 @@ void Executor::model_vfprintf(){
 template<typename T>
 uint64_t * get_val(int count, uint64_t *s_offset, T& t, const char* reason){
   if(count < 6){
-    auto ref = target_ctx_gregs_OS->read(count < 4 ? (5-count)*8 : (4+count)*8, Expr::Int64);
+    ref<Expr> ref = target_ctx_gregs_OS->read(count < 4 ? (5-count)*8 : (4+count)*8, Expr::Int64);
     if(isa<ConstantExpr>(ref)){
       t =  as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     } else {
-      auto ref2 = Executor::toConstant(*GlobalExecutionStatePtr, ref, reason);
+      ref<Expr> ref2 = Executor::toConstant(*GlobalExecutionStatePtr, ref, reason);
       Executor::tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, ref2);
       t = as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     }
   } else {
-    auto ref = Executor::tase_helper_read((uint64_t) s_offset, 8);
+    ref<Expr> ref = Executor::tase_helper_read((uint64_t) s_offset, 8);
     if(isa<ConstantExpr>(ref)){
       t = *dynamic_cast<T*>(s_offset);
     } else {
-      auto ref2 = Executor::toConstant(*GlobalExecutionStatePtr, ref, reason);
+      ref<ConstantExpr> ref2 = Executor::toConstant(*GlobalExecutionStatePtr, ref, reason);
       Executor::tase_helper_write((uint64_t) s_offset, ref2);
     }
     return s_offset + 8;
@@ -402,7 +402,7 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 void Executor::model_printf(){
   int count = 0;
   //int fpcount = 0;
-  uint64_t * s_offset = target_ctx_gregs[GREG_RSP].u64 + 8; // RSP should be sitting on return addr
+  uint64_t * s_offset = (uint64_t*) (target_ctx_gregs[GREG_RSP].u64 + 8); // RSP should be sitting on return addr
 
   char reason[14] = "model_printf\n";
 
