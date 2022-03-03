@@ -254,7 +254,7 @@ void Executor::model_memcpy_tase() {
       
       //Fast path aligned case
       if ((((uint64_t) dst) %2 == 0) && (((uint64_t) src) % 2 == 0) && (((uint64_t) s) %2 == 0)) {
-	for (auto i = 0; i < s; i++) {
+	for (uint i = 0; i < s; i++) {
 	  
 	  if (i%2 == 0
 	      && *((uint16_t *) ((uint64_t) src + i) ) != poison_val
@@ -275,7 +275,7 @@ void Executor::model_memcpy_tase() {
 
 	
       } else {
-	for (int i = 0; i < s; i++) {
+	for (uint i = 0; i < s; i++) {
 	  ref <Expr> b = tase_helper_read((uint64_t) src + i, 1);
 	  tase_helper_write((uint64_t) dst +i,b );
 	}
@@ -420,11 +420,12 @@ void Executor::model_printf(){
   auto match_begin = std::sregex_iterator(fmt.begin(), fmt.end(), specifier);
   auto out = std::string();
   auto last = fmt.begin();
-  for(auto x = match_begin; x != std::sregex_iterator(); ++x){
+  for(auto it = match_begin; it != std::sregex_iterator(); ++it){
+    auto x = *it
     out += std::string(last, x[0].first);
     last = x[4].second;
 
-    char type = *x[4];
+    char type = x[4];
     char outstr[255];
     switch(type){
       case 'd': //signed int
