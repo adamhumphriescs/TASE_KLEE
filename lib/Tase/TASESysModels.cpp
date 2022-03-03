@@ -349,21 +349,21 @@ void Executor::model_vfprintf(){
 template<typename T>
 uint64_t * get_val(int count, uint64_t *s_offset, T& t, const char* reason){
   if(count < 6){
-    ref<Expr> ref = target_ctx_gregs_OS->read(count < 4 ? (5-count)*8 : (4+count)*8, Expr::Int64);
-    if(isa<ConstantExpr>(ref)){
+    ref<Expr> aref = target_ctx_gregs_OS->read(count < 4 ? (5-count)*8 : (4+count)*8, Expr::Int64);
+    if(isa<ConstantExpr>(aref)){
       t =  as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     } else {
-      ref<Expr> ref2 = Executor::toConstant(*GlobalExecutionStatePtr, ref, reason);
-      Executor::tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, ref2);
+      ref<Expr> aref2 = Executor::toConstant(*GlobalExecutionStatePtr, aref, reason);
+      Executor::tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, aref2);
       t = as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     }
   } else {
-    ref<Expr> ref = Executor::tase_helper_read((uint64_t) s_offset, 8);
-    if(isa<ConstantExpr>(ref)){
+    ref<Expr> aref = Executor::tase_helper_read((uint64_t) s_offset, 8);
+    if(isa<ConstantExpr>(aref)){
       t = *dynamic_cast<T*>(s_offset);
     } else {
-      ref<ConstantExpr> ref2 = Executor::toConstant(*GlobalExecutionStatePtr, ref, reason);
-      Executor::tase_helper_write((uint64_t) s_offset, ref2);
+      ref<ConstantExpr> aref2 = Executor::toConstant(*GlobalExecutionStatePtr, aref, reason);
+      Executor::tase_helper_write((uint64_t) s_offset, aref2);
     }
     return s_offset + 8;
   }
