@@ -361,7 +361,7 @@ uint64_t * Executor::get_val(int count, uint64_t *s_offset, T& t, const char* re
   } else {
     ref<Expr> aref = tase_helper_read((uint64_t) s_offset, 8);
     if(isa<ConstantExpr>(aref)){
-      t = *dynamic_cast<T*>(s_offset);
+      t = *static_cast<T*>(s_offset);
     } else {
       ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason);
       tase_helper_write((uint64_t) s_offset, aref2);
@@ -427,7 +427,7 @@ void Executor::model_printf(){
 
     char type = x[4].str()[0];
     char outstr[255];
-    std::string ff = fmt.substr(x[0].first - fmt.begin(), x[4].last - x[0].first);
+    std::string ff = fmt.substr(x[0].first - fmt.begin(), last - x[0].first);
     switch(type){
       case 'd': //signed int
       case 'i':
