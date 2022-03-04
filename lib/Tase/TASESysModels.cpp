@@ -422,11 +422,12 @@ void Executor::model_printf(){
   auto last = fmt.begin();
   for(auto it = match_begin; it != std::sregex_iterator(); ++it){
     auto x = *it;
-    out += std::string(last, x[0].first);
+    out += fmt.substr(last - fmt.begin(), x[0].first - last);
     last = x[4].second;
 
-    char type = x[4];
+    char type = (x[4].str)[0];
     char outstr[255];
+    std::string ff = fmt.substr(x[0].first - fmt.begin(), x[4].last - x[0].first);
     switch(type){
       case 'd': //signed int
       case 'i':
@@ -434,7 +435,6 @@ void Executor::model_printf(){
   // printf will down-convert (u)int64_t to whatever was specified in fmt string
           int64_t arg;
           s_offset = get_val(count, s_offset, arg, reason);
-          auto ff = std::string(x[0].first, x[4].last);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
         }
@@ -447,7 +447,6 @@ void Executor::model_printf(){
         {
           uint64_t arg;
           s_offset = get_val(count, s_offset, arg, reason);
-          auto ff = std::string(x[0].first, x[4].last)
           sprintf(outstr, ff, arg);
           out += std::string(outstr);
         }
@@ -463,7 +462,6 @@ void Executor::model_printf(){
         {
           double arg;
           s_offset = get_val(count, s_offset, arg, reason);
-          auto ff = std::string(x[0].first, x[4].last);
           sprintf(outstr, ff, arg);
           out += std::string(outstr);
           //fpcount++;
@@ -483,7 +481,6 @@ void Executor::model_printf(){
         {
           char* arg;
           s_offset = get_val(count, s_offset, arg, reason);
-          auto ff = std::string(x[0].first, x[4].last);
           sprintf(outstr, ff, arg);
           out += std::string(outstr);
         }
