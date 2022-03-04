@@ -425,7 +425,7 @@ void Executor::model_printf(){
     out += fmt.substr(last - fmt.begin(), x[0].first - last);
     last = x[4].second;
 
-    char type = (x[4].str)[0];
+    char type = x[4].str()[0];
     char outstr[255];
     std::string ff = fmt.substr(x[0].first - fmt.begin(), x[4].last - x[0].first);
     switch(type){
@@ -447,7 +447,7 @@ void Executor::model_printf(){
         {
           uint64_t arg;
           s_offset = get_val(count, s_offset, arg, reason);
-          sprintf(outstr, ff, arg);
+          sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
         }
         break;
@@ -462,7 +462,7 @@ void Executor::model_printf(){
         {
           double arg;
           s_offset = get_val(count, s_offset, arg, reason);
-          sprintf(outstr, ff, arg);
+          sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
           //fpcount++;
         }
@@ -473,7 +473,7 @@ void Executor::model_printf(){
           char arg;
           s_offset = get_val(count, s_offset, arg, reason);
           auto ff = std::string(x[0].first, x[4].last);
-          sprintf(outstr, ff, arg);
+          sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
         }
         break;
@@ -481,7 +481,7 @@ void Executor::model_printf(){
         {
           char* arg;
           s_offset = get_val(count, s_offset, arg, reason);
-          sprintf(outstr, ff, arg);
+          sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
         }
         break;
