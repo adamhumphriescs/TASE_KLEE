@@ -421,7 +421,7 @@ void Executor::model_printf(){
   auto out = std::string();
   auto last = fmt.begin();
   for(auto it = match_begin; it != std::sregex_iterator(); ++it){
-    auto x = *it
+    auto x = *it;
     out += std::string(last, x[0].first);
     last = x[4].second;
 
