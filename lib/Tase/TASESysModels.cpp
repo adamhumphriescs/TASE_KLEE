@@ -361,7 +361,7 @@ uint64_t * Executor::get_val(int count, uint64_t *s_offset, T& t, const char* re
   } else {
     ref<Expr> aref = tase_helper_read((uint64_t) s_offset, 8);
     if(isa<ConstantExpr>(aref)){
-      t = *static_cast<T*>(s_offset);
+      t = *((T*)s_offset);
     } else {
       ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason);
       tase_helper_write((uint64_t) s_offset, aref2);
@@ -472,7 +472,6 @@ void Executor::model_printf(){
         {
           char arg;
           s_offset = get_val(count, s_offset, arg, reason);
-          auto ff = std::string(x[0].first, x[4].last);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
         }
