@@ -135,7 +135,7 @@ extern "C" int __isoc99_sscanf ( const char * s, const char * format, ...);
 extern uint16_t poison_val;
 extern target_ctx_t target_ctx;
 extern tase_greg_t * target_ctx_gregs;
-extern xmm_reg_t * target_ctx_xmms;
+//extern xmmreg_t * target_ctx_xmms;
 extern bool taseDebug;
 extern int retryMax;
 extern Module * interpModule;
