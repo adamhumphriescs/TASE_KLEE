@@ -92,11 +92,6 @@ namespace klee {
   class MergeHandler;
   template<class T> class ref;
 
-  template<typename T, typename U>
-  bool are(U u){return isa<T>(u);}
-
-  template<typename T, typename V, typename U, typename... Us>
-  bool are(V v, U u, Us... us){return isa<T>(v) & are(u, us...);}
 
   /// \todo Add a context object to keep track of data only live
   /// during an instruction step. Should contain addedStates,
