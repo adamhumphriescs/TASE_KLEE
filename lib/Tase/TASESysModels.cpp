@@ -419,15 +419,15 @@ void Executor::model_printf(){
   std::regex specifier("%([-+#0 ])?([0-9*])?(.[0-9]+|.[*])?(hh|h|l|ll|j|z|t|L)?([diouxXfFeEgGaAcspn])", std::regex::egrep);
   auto match_begin = std::sregex_iterator(fmt.begin(), fmt.end(), specifier);
   auto out = std::string();
-  auto last = fmt.begin();
+  auto last = fmt.cbegin();
   for(auto it = match_begin; it != std::sregex_iterator(); ++it){
     auto x = *it;
-    out += fmt.substr(last - fmt.begin(), x[0].first - last);
+    out += fmt.substr(last - fmt.begin(), x[0].first - last); // non-format characters up to current match
     last = x[4].second;
 
     char type = x[4].str()[0];
     char outstr[255];
-    std::string ff = fmt.substr(x[0].first - fmt.begin(), last - x[0].first);
+    std::string ff = fmt.substr(x[0].first - fmt.begin(), last - x[0].first); // current format match
     switch(type){
       case 'd': //signed int
       case 'i':
