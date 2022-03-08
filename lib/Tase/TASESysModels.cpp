@@ -132,6 +132,7 @@ template<> double as(tase_greg_t t){return t.dbl;}
 template<> char as(tase_greg_t t){return (char) t.u8;}
 template<> char * as(tase_greg_t t){return (char*) t.u64;}
 template<> int* as(tase_greg_t t){return (int*) t.u64;}
+template<> int64_t* as(tase_greg_t t){return (uint64_t*) t.u64;}
 
 
 void printBuf(FILE * f,void * buf, size_t count)
@@ -411,7 +412,9 @@ void Executor::model_printf(){
   char * fmtc;
   s_offset = get_val(count, s_offset, fmtc, reason);
   std::string fmt = std::string(fmtc);
-
+  if(modelDebug){
+    printf("model_printf with fmt string: \"%s\"", fmtc);
+  }
   // possibly useful alternative for doubles:
   // check al
   // if al is zero, no fp args
