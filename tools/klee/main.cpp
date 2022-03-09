@@ -1637,11 +1637,13 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
 	  interpModule->size(), interpModule->alias_size());
 
    interpModule->named_metadata_empty();
-   
+   printf("Calling initializeInterpretationStructures");
    fflush(stdout);
    interpreter->initializeInterpretationStructures(entryFn);
    GlobalInterpreter = interpreter;
 
+   printf("loading cartridges");
+   fflush(stdout);
    loadCartridgeInfo();
    loadCartridgeDests();
 
