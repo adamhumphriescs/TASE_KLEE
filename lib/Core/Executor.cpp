@@ -5053,13 +5053,13 @@ void Executor::initializeInterpretationStructures (Function *f) {
   printf("set ptreeNode");
   fflush(stdout);
   bindModuleConstants(); //Moved from "run"
-  print("Bound constants");
+  printf("Bound constants");
   fflush(stdout);
   fclose(externalsFile);
-  print("closed Externals file");
+  printf("closed Externals file");
   fflush(stdout);
   loadFnModelMap();
-  print("Loaded fnModelMap");
+  printf("Loaded fnModelMap");
   fflush(stdout);
   
   FILE * stats = fopen("/proc/self/statm", "r");
