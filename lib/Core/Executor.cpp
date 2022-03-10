@@ -4389,9 +4389,9 @@ std::map<uint64_t , void (Executor::*) (void) > fnModelMap = {
   {(uint64_t) &__powidf2_tase, &Executor::model__powidf2},
 };
 
-  auto end = fnModelMap.end();
-  for(auto x = fnModelMap.begin(); x != end; x++){
-    fnModelMap.insert({x->first + trap_off, x->second});
+  std::map<uint64_t , void (Executor::*) (void) > cpy(fnModelMap);
+  for(auto& x : cpy){
+    fnModelMap.insert({x.first + trap_off, x.second});
   }
   //printf("Loading float emulation models \n");
   //  loadFloatModelMap();
@@ -4934,6 +4934,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
   const ObjectState *targetCtxOS = GlobalExecutionStatePtr->addressSpace.findObject(target_ctx_gregs_MO);
   target_ctx_gregs_OS = GlobalExecutionStatePtr->addressSpace.getWriteable(target_ctx_gregs_MO,targetCtxOS);
   target_ctx_gregs_OS->concreteStore = (uint8_t *) target_ctx_gregs;
+
   printf("Initialized GREGS");
   fflush(stdout);
   /*target_ctx_xmms_MO = addExternalObject(*GlobalExecutionStatePtr, (void*) target_ctx.xmm, 8*XMMREG_SIZE, false);
@@ -4963,54 +4964,35 @@ void Executor::initializeInterpretationStructures (Function *f) {
 
   //Map in initialized and uninitialized non-read only globals into klee from .vars file.
   std::string varsFileLocation = "./" + project + ".vars";
-
-  FILE * externalsFile = fopen (varsFileLocation.c_str(), "r+");
-
-  if (externalsFile == NULL) {
+  std::ifstream externals(varsFileLocation);
+  if(externals){
+    std::string line;
+    uint64_t addrVal;
+    uint64_t sizeVal;
+    int lines = 0;
+    while(std::getline(externals, line)){
+      std::istringstream ss(line, std::hex);
+      ss >> std::hex >> addrVal >> sizeVal;
+      if(!ss){
+        printf("Error reading externals file within initializeInterpretationStructures() at line %d \n", lines);
+        worker_exit();
+        std::exit(EXIT_FAILURE);
+      }
+      if((uint64_t) addrVal == (uint64_t) &target_ctx_gregs){
+        if((sizeVal %2) == 1){
+          ++sizeVal;
+          printf("rounding up sizeval to even number - %lu \n", sizeVal);
+        }
+        tase_map_buf(addrVal, sizeVal);
+      }
+      ++lines;
+    }
+  } else {
     printf("Error reading externals file within initializeInterpretationStructures() \n");
     worker_exit();
     std::exit(EXIT_FAILURE);
   }
 
-  while (true) {
-    char addr [30];
-    char size [30];
-
-    if ( fscanf (externalsFile, "%s", addr) != EOF)
-      printf("Found global var with addr %s ", addr);
-    else
-      break;
-    
-    if (fscanf (externalsFile, "%s", size) != EOF)
-      printf("and size %s \n", size);
-    else
-      break;
-
-    uint64_t addrVal;
-    uint64_t sizeVal;
-    
-    std::stringstream addrStream;
-    addrStream << std::hex << addr;
-    addrStream >> addrVal;
-    std::stringstream sizeStream;
-    sizeStream << std::hex << size;
-    sizeStream >> sizeVal;
-
-    if ((sizeVal %2) == 1) {
-      sizeVal = sizeVal + 1;
-      printf("rounding up sizeval to even number - %lu \n",sizeVal);
-    }
-
-    //Todo:  Get rid of the special cases below for target_ctx_gregs and basket.
-    //The checks are there now to prevent us from creating two different MO/OS
-    //for the variables, since we map them above already.
-    if ((uint64_t) addrVal == (uint64_t) &target_ctx_gregs) {
-      //printf("Found target_ctx_gregs while mapping extern symbols \n");
-      continue;
-    }
-
-    tase_map_buf(addrVal, sizeVal);
-  }
   printf("Read Externals file");
   fflush(stdout);
   //Todo -- De-hackify this environ variable mapping
@@ -5252,7 +5234,8 @@ bool Executor::getSymbolicSolution(const ExecutionState &state,
     for (; pi != pie; ++pi) {
       bool mustBeTrue;
       // Attempt to bound byte to constraints held in cexPreferences
-      bool success = solver->mustBeTrue(tmp, Expr::createIsZero(*pi), 
+      bool success = solver->mustBeTrue(tmp, Expr::createIsZero(*pi),
+
 					mustBeTrue);
       // If it isn't possible to constrain this particular byte in the desired
       // way (normally this would mean that the byte can't be constrained to
