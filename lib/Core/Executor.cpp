@@ -4971,7 +4971,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
     uint64_t sizeVal;
     int lines = 0;
     while(std::getline(externals, line)){
-      std::istringstream ss(line, std::hex);
+      std::istringstream ss(line);
       ss >> std::hex >> addrVal >> sizeVal;
       if(!ss){
         printf("Error reading externals file within initializeInterpretationStructures() at line %d \n", lines);
