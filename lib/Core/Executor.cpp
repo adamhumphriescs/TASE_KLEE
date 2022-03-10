@@ -4205,7 +4205,7 @@ fnModelMap.insert(std::make_pair( (uint64_t) &calloc_tase + trap_off, &klee::Exe
 */
 
 void Executor::loadFnModelMap() {
-std::map<uint64_t , void (Executor::*) (void) > fnModelMap = {
+  std::map<uint64_t , void (Executor::*) (void) > fnModelMap = {
   {(uint64_t) &calloc_tase_shim, &Executor::model_calloc},
   {(uint64_t) &calloc_tase,  &Executor::model_calloc},
   {(uint64_t) &__ctype_b_loc,  &Executor::model___ctype_b_loc},
@@ -4387,9 +4387,12 @@ std::map<uint64_t , void (Executor::*) (void) > fnModelMap = {
   {(uint64_t) &__gtdf2_tase, &Executor::model__gtdf2},
   {(uint64_t) &__powisf2_tase, &Executor::model__powisf2},
   {(uint64_t) &__powidf2_tase, &Executor::model__powidf2},
-};
+  };
+  printf("fnModelMap size %u", fnModelMap.size());
 
   std::map<uint64_t , void (Executor::*) (void) > cpy(fnModelMap);
+  printf("adding %u items", cpy.size());
+  fflush(stdout);
   for(auto& x : cpy){
     fnModelMap.insert({x.first + trap_off, x.second});
   }
