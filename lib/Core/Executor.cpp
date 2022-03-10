@@ -5037,9 +5037,6 @@ void Executor::initializeInterpretationStructures (Function *f) {
   bindModuleConstants(); //Moved from "run"
   printf("Bound constants");
   fflush(stdout);
-  fclose(externalsFile);
-  printf("closed Externals file");
-  fflush(stdout);
   loadFnModelMap();
   printf("Loaded fnModelMap");
   fflush(stdout);
