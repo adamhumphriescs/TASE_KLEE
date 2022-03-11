@@ -4388,11 +4388,8 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &__powisf2_tase, &Executor::model__powisf2},
   {(uint64_t) &__powidf2_tase, &Executor::model__powidf2},
   };
-  printf("fnModelMap size %u", fnModelMap.size());
 
   std::map<uint64_t , void (Executor::*) (void) > cpy(fnModelMap);
-  printf("adding %u items", cpy.size());
-  fflush(stdout);
   for(auto& x : cpy){
     fnModelMap.insert({x.first + trap_off, x.second});
   }
@@ -4510,7 +4507,11 @@ bool tase_buf_has_taint (void * ptr, int size) {
 void Executor::klee_interp_internal () {
   bool hasMadeProgress = false;
   run_interp_traps++;
-  
+
+  printf("printf_tase: 0x%lx\n", &printf_tase);
+  auto test = fnModelMap.find((uint64_t) &printf_tase);
+  printf("printf_tase found: %s\n", test == fnModelMap.end() ? "false" : "true");
+  printf("fnModelMap size: %u\n", fnModelMap.size());
   while (true) {
     run_interp_insts++;
     interpCtr++;
@@ -4550,6 +4551,7 @@ void Executor::klee_interp_internal () {
     auto mod = fnModelMap.find(rip);
     if(modelDebug){
       printf("Model found: %s", mod == fnModelMap.end() ? "false" : "true");
+      printf("Dont model: %s", dont_model ? "true" : "false");
       fflush(stdout);
     }
 
