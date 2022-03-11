@@ -4548,7 +4548,17 @@ void Executor::klee_interp_internal () {
     //}
 
     auto mod = fnModelMap.find(rip);
-    if(dont_model || mod == fnModelMap.end()){
+    if(!dont_model && mod != fnModelMap.end()){
+      if(taseDebug){
+        printf("INTERPRETER: FOUND SPECIAL MODELED INST at rip 0x%lx \n", rip);
+        fflush(stdout);
+      }
+      hasMadeProgress = true;
+      void (klee::Executor::*fp)() = mod->second;
+      (this->*fp)();
+    } else if(!dont_model && resumeNativeExecution() && hasMadeProgress){
+      break;
+    } else {
       dont_model = false;
       hasMadeProgress = true;
       tryKillFlags(target_ctx_gregs);
@@ -4556,21 +4566,7 @@ void Executor::klee_interp_internal () {
       if(!skipInstrumentationInstruction(target_ctx_gregs)){
         runCoreInterpreter(target_ctx_gregs);
       }
-    } else {
-      if(resumeNativeExecution() && hasMadeProgress){
-        break;
-      }
-
-      if(taseDebug){
-        printf("INTERPRETER: FOUND SPECIAL MODELED INST at rip 0x%lx \n", rip);
-        fflush(stdout);
-      }
-
-      hasMadeProgress = true;
-      void (klee::Executor::*fp)() = mod->second;
-      (this->*fp)();
     }
-
 
     if(tase_buf_has_taint((void *) &(target_ctx_gregs[GREG_RIP].u64), 8) ) {
       ref<Expr> RIPExpr = tase_helper_read((uint64_t) &(target_ctx_gregs[GREG_RIP].u64), 8);
@@ -4591,14 +4587,14 @@ void Executor::klee_interp_internal () {
     //Kludge to get us back to native execution for prohib fns with concrete input
     
     if (forceNativeRet) {
-      if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
+      if (gprsAreConcrete() && execMode != INTERP_ONLY) {
         if (taseDebug) {
           printf("Trying to return to native execution \n");
           fflush(stdout);
         }
 	//This case is for attempts to execute natively that repeatedly result in
 	//page faults.  We have to interpret in that case to map the page in.
-        if (tran_max ==0 && target_ctx_gregs[GREG_RIP].u64 == init_trap_RIP) {
+        if (tran_max == 0 && target_ctx_gregs[GREG_RIP].u64 == init_trap_RIP) {
           if (taseDebug) {
             printf("Repeated faults detected for prohib function \n");
             fflush(stdout);
