@@ -123,7 +123,7 @@ std::map<void *, void *> heap_guard_map; //
 
 template<typename T> T as(tase_greg_t t);
 template<> uint64_t as(tase_greg_t t){return t.u64;}
-template<> int64_t as(tase_greg_t t){return t.i64;}
+template<> int64_t as(tase_greg_t t){return t.i64;}h
 template<> uint32_t as(tase_greg_t t){return t.u32;}
 template<> int32_t as(tase_greg_t t){return t.i32;}
 template<> int16_t as(tase_greg_t t){return t.i16;}
@@ -500,6 +500,7 @@ void Executor::model_printf(){
     }
     count++;
   }
+  printf(out);
   do_ret();
 }
 
