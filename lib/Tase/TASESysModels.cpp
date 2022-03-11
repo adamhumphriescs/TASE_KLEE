@@ -432,6 +432,8 @@ void Executor::model_printf(){
     char type = x[4].str()[0];
     char outstr[255];
     std::string ff = fmt.substr(x[0].first - fmt.begin(), last - x[0].first); // current format match
+    printf("format section: %s", ff.c_str());
+
     switch(type){
       case 'd': //signed int
       case 'i':
