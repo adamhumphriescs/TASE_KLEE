@@ -4548,6 +4548,11 @@ void Executor::klee_interp_internal () {
     //}
 
     auto mod = fnModelMap.find(rip);
+    if(modelDebug){
+      printf("Model found: %s", mod == fnModelMap.end() ? "false" : "true");
+      fflush(stdout);
+    }
+
     if(!dont_model && mod != fnModelMap.end()){
       if(taseDebug){
         printf("INTERPRETER: FOUND SPECIAL MODELED INST at rip 0x%lx \n", rip);
@@ -4611,10 +4616,9 @@ void Executor::klee_interp_internal () {
   
   static int numReturns = 0;
   numReturns++;
-  if (taseDebug)
-    printf("Returning to native execution for time %d \n", numReturns);
-  
+
   if (taseDebug) {
+    printf("Returning to native execution for time %d \n", numReturns);
     printf("Prior to return to native execution, ctx is ... \n");
     printCtx(target_ctx_gregs);
     printf("--------RETURNING TO TARGET --- ------------ \n" );
