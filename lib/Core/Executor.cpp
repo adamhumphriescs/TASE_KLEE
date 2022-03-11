@@ -4557,7 +4557,7 @@ void Executor::klee_interp_internal () {
         runCoreInterpreter(target_ctx_gregs);
       }
     } else {
-      if(execMode == INTERP_ONLY && hasMadeProgress){
+      if(resumeNativeExecution() && hasMadeProgress){
         break;
       }
 
