@@ -4546,7 +4546,9 @@ void Executor::klee_interp_internal () {
     //     runCoreInterpreter(target_ctx_gregs);
     //   }
     //}
-    if(dont_model){
+
+    auto mod = fnModelMap.find(rip);
+    if(dont_model || mod == fnModelMap.end()){
       dont_model = false;
       hasMadeProgress = true;
       tryKillFlags(target_ctx_gregs);
@@ -4555,24 +4557,18 @@ void Executor::klee_interp_internal () {
         runCoreInterpreter(target_ctx_gregs);
       }
     } else {
-      if(taseDebug){
-        printf("In isSpecialInst for rip 0x%lx \n", rip);
-        fflush(stdout);
-      }
-      auto mod = fnModelMap.find(rip);
-
-      if(mod == fnModelMap.end()){
-        if(taseDebug){
-          printf("INTERPRETER: FOUND SPECIAL MODELED INST at rip 0x%lx \n", rip);
-          fflush(stdout);
-        }
-
-        hasMadeProgress = true;
-        void (klee::Executor::*fp)() = mod->second;
-        (this->*fp)();
-      } else {
+      if(execMode == INTERP_ONLY && hasMadeProgress){
         break;
       }
+
+      if(taseDebug){
+        printf("INTERPRETER: FOUND SPECIAL MODELED INST at rip 0x%lx \n", rip);
+        fflush(stdout);
+      }
+
+      hasMadeProgress = true;
+      void (klee::Executor::*fp)() = mod->second;
+      (this->*fp)();
     }
 
 
