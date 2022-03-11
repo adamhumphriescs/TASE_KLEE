@@ -413,7 +413,7 @@ void Executor::model_printf(){
   s_offset = get_val(count, s_offset, fmtc, reason);
   std::string fmt = std::string(fmtc);
   if(modelDebug){
-    printf("model_printf with fmt string: \"%s\"", fmtc);
+    printf("model_printf with fmt string: \"%s\"\n", fmtc);
   }
   // possibly useful alternative for doubles:
   // check al
@@ -432,7 +432,7 @@ void Executor::model_printf(){
     char type = x[4].str()[0];
     char outstr[255];
     std::string ff = fmt.substr(x[0].first - fmt.begin(), last - x[0].first); // current format match
-    printf("format section: %s", ff.c_str());
+    printf("format section: %s, type %c\n", ff.c_str(), type);
 
     switch(type){
       case 'd': //signed int
@@ -501,6 +501,7 @@ void Executor::model_printf(){
         break;
     }
     count++;
+    printf("added %s", outstr);
   }
   printf(out.c_str());
   do_ret();
