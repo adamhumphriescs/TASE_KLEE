@@ -430,7 +430,7 @@ void Executor::model_printf(){
     last = x[4].second;
 
     char type = x[4].str()[0];
-    char outstr[255] = { '\0' };
+    char outstr[255];
     std::string ff = x.str(0); //fmt.substr(x[0].first - fmt.begin(), x[4] - x[0].first); // current format match
     printf("format section: %s, type %c\n", ff.c_str(), type);
 
@@ -443,6 +443,7 @@ void Executor::model_printf(){
           s_offset = get_val(count, s_offset, arg, reason);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
+          printf("got value: %d\n", arg);
         }
         break;
       case 'u': //unsigned int
@@ -488,6 +489,7 @@ void Executor::model_printf(){
           s_offset = get_val(count, s_offset, arg, reason);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
+          printf("got val: %s", arg);
         }
         break;
 
