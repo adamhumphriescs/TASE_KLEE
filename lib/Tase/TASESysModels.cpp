@@ -427,13 +427,13 @@ void Executor::model_printf(){
   for(auto it = match_begin; it != std::sregex_iterator(); ++it){
     auto x = *it;
     out += fmt.substr(last - fmt.begin(), x[0].first - last); // non-format characters up to current match
-    last = x[4].second;
+    last = x[5].second;
 
-    char type = x[4].str()[0];
+    char type = x[5].str()[0];
     char outstr[255];
     std::string ff = x.str(0); //fmt.substr(x[0].first - fmt.begin(), x[4] - x[0].first); // current format match
     printf("format section: %s, type %c\n", ff.c_str(), type);
-    printf("type match: %s\n", x[4].str().c_str());
+    printf("type match: %s\n", x[5].str().c_str());
 
     switch(type){
       case 'd': //signed int
