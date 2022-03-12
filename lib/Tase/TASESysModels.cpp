@@ -429,7 +429,7 @@ void Executor::model_printf(){
     out += fmt.substr(last - fmt.begin(), x[0].first - last); // non-format characters up to current match
     last = x[4].second;
 
-    char type = x.str(4);
+    char type = x[4].str()[0];
     char outstr[255] = { '\0' };
     std::string ff = x.str(0); //fmt.substr(x[0].first - fmt.begin(), x[4] - x[0].first); // current format match
     printf("format section: %s, type %c\n", ff.c_str(), type);
