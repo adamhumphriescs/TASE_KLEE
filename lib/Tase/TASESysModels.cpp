@@ -411,6 +411,8 @@ void Executor::model_printf(){
 
   char * fmtc;
   s_offset = get_val(count, s_offset, fmtc, reason);
+  ++count;
+
   std::string fmt = std::string(fmtc);
   if(modelDebug){
     printf("model_printf with fmt string: \"%s\"\n", fmtc);
@@ -420,9 +422,6 @@ void Executor::model_printf(){
   // check al
   // if al is zero, no fp args
   // else dump xmm 0-7 to array
-
-  s_offset += 8;
-  printf("added anomalous offset");
 
   std::regex specifier("%([-+#0 ])?([0-9*])?(.[0-9]+|.[*])?(hh|h|l|ll|j|z|t|L)?([diouxXfFeEgGaAcspn])", std::regex::egrep);
   auto match_begin = std::sregex_iterator(fmt.begin(), fmt.end(), specifier);
