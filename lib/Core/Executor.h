@@ -463,7 +463,7 @@ private:
   void model___isoc99_sscanf();
   void model_putchar();
 
-  std::string model_printf_base();
+  std::string model_printf_base(int& count, uint64_t* &s_offset, char* reason);
   void model_vfprintf();
   void model_sprintf();
   //Printf modeling and helpers:
