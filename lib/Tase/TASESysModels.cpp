@@ -402,7 +402,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
-    printf("model_printf with fmt string: \"%s\"\n", fmtc);
+    printf("%s with fmt string: \"%s\"\n", reason, fmtc);
     fflush(stdout);
   }
 
