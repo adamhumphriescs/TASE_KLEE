@@ -543,6 +543,7 @@ void Executor::model_sprintf(){
 void Executor::model_fprintf(){
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  ++s_offset;
 
   char reason[15] = "model_fprintf\n";
 
