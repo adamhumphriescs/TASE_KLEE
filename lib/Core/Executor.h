@@ -455,8 +455,6 @@ private:
   void model_calloc();
   void model_realloc();
   void model_free();
-  void model_vfprintf();
-  void model_sprintf();  
   void model_exit();
   void model_write();
   void model___errno_location();
@@ -464,7 +462,10 @@ private:
   void model___ctype_tolower_loc();
   void model___isoc99_sscanf();
   void model_putchar();
-  
+
+  std::string model_printf_base();
+  void model_vfprintf();
+  void model_sprintf();
   //Printf modeling and helpers:
   enum print_specifier  {d_s, f_s, lf_s, s_s, c_s, lu_s, bad_s};
   print_specifier parse_specifier(char * input, int * offset);
