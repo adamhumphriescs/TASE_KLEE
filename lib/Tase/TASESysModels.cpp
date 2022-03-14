@@ -133,6 +133,7 @@ template<> char as(tase_greg_t t){return (char) t.u8;}
 template<> char * as(tase_greg_t t){return (char*) t.u64;}
 template<> int* as(tase_greg_t t){return (int*) t.u64;}
 template<> int64_t* as(tase_greg_t t){return (int64_t*) t.u64;}
+template<> FILE* as(tase_greg_t t){return (FILE*) t.u64;}
 
 
 void printBuf(FILE * f,void * buf, size_t count)
@@ -535,6 +536,21 @@ void Executor::model_sprintf(){
 
   std::string out = model_printf_base(count, s_offset, reason);
   target_ctx_gregs[GREG_RAX].u64 = (uint64_t) sprintf(argout, out.c_str());
+  do_ret();
+}
+
+
+void Executor::model_fprintf(){
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+
+  char reason[15] = "model_fprintf\n";
+
+  FILE* argout;
+  get_val(count, s_offset, argout, reason);
+
+  std::string out = model_printf_base(count, s_offset, reason);
+  target_ctx_gregs[GREG_RAX].u64 = (uint64_t) fprintf(argout, out.c_str());
   do_ret();
 }
 
