@@ -4550,8 +4550,8 @@ void Executor::klee_interp_internal () {
 
     auto mod = fnModelMap.find(rip);
     if(modelDebug){
-      printf("Model found: %s", mod == fnModelMap.end() ? "false" : "true");
-      printf("Dont model: %s", dont_model ? "true" : "false");
+      printf("Model found: %s\n", mod == fnModelMap.end() ? "false" : "true");
+      printf("Dont model: %s\n", dont_model ? "true" : "false");
       fflush(stdout);
     }
 
@@ -4570,13 +4570,18 @@ void Executor::klee_interp_internal () {
       hasMadeProgress = true;
       tryKillFlags(target_ctx_gregs);
 
-      if(!skipInstrumentationInstruction(target_ctx_gregs)){
+      if(((*(uint64_t*)target_ctx_gregs[GREG_RIP].u64) & 0x00ffffffffffffff) == 0x00000000053d8d4c){
+        target_ctx_gregs[GREG_RIP].u64 += trap_off;
+        if(modelDebug){
+          printf("Skipping LEA...\n");
+        }
+      } else {
         runCoreInterpreter(target_ctx_gregs);
       }
     }
 
-    if(tase_buf_has_taint((void *) &(target_ctx_gregs[GREG_RIP].u64), 8) ) {
-      ref<Expr> RIPExpr = tase_helper_read((uint64_t) &(target_ctx_gregs[GREG_RIP].u64), 8);
+    if(tase_buf_has_taint((void *) &(target_ctx_gregs[GREG_RIP].u64), 8) ) { // fast check for potential taint
+      ref<Expr> RIPExpr = tase_helper_read((uint64_t) &(target_ctx_gregs[GREG_RIP].u64), 8); // full/slow check
       if (!(isa<ConstantExpr>(RIPExpr))) {
         forkOnPossibleRIPValues(RIPExpr, rip_init);
 
@@ -4635,7 +4640,7 @@ void Executor::klee_interp_internal () {
 //we skip, and performs the skipping.
 
 //Only implemented for lea for now.
-bool Executor::skipInstrumentationInstruction (tase_greg_t * gregs) {  
+/*bool Executor::skipInstrumentationInstruction (tase_greg_t * gregs) {
   uint64_t rip = gregs[GREG_RIP].u64;
 
   //Opt to skip LEAs.  Specifically, we're looking to skip instructions like
@@ -4651,9 +4656,10 @@ bool Executor::skipInstrumentationInstruction (tase_greg_t * gregs) {
     return true;
   } else {
     return false;
-  }
-  
-}
+    }
+
+  return (*(uint64_t*)gregs[GREG_RIP].u64 & 0x00ffffffffffffff) == 0x00000000053d8d4c;
+}*/
 
 void Executor::tryKillFlags(tase_greg_t * gregs) {
   if (killFlags) {
@@ -4685,7 +4691,7 @@ void Executor::runCoreInterpreter(tase_greg_t * gregs) {
 
   GlobalExecutionStatePtr->pushFrameTASE(0,interpFn);
 
-  GlobalExecutionStatePtr->pc = interpFn->instructions ;
+  GlobalExecutionStatePtr->pc = interpFn->instructions;
   GlobalExecutionStatePtr->prevPC = GlobalExecutionStatePtr->pc;
   
   //getArgumentCell(GlobalExecutionStatePtr,interpFn,0).value = arguments[0];

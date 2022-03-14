@@ -414,6 +414,7 @@ void Executor::model_printf(){
   std::string fmt = std::string(fmtc);
   if(modelDebug){
     printf("model_printf with fmt string: \"%s\"\n", fmtc);
+    fflush(stdout);
   }
   // possibly useful alternative for doubles:
   // check al
@@ -434,6 +435,7 @@ void Executor::model_printf(){
     std::string ff = x.str(0); //fmt.substr(x[0].first - fmt.begin(), x[4] - x[0].first); // current format match
     printf("format section: %s, type %c\n", ff.c_str(), type);
     printf("type match: %s\n", x[5].str().c_str());
+    fflush(stdout);
 
     switch(type){
       case 'd': //signed int
@@ -445,6 +447,7 @@ void Executor::model_printf(){
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
           printf("got value: %d\n", arg);
+          fflush(stdout);
         }
         break;
       case 'u': //unsigned int
@@ -491,6 +494,7 @@ void Executor::model_printf(){
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
           printf("got val: %s", arg);
+          fflush(stdout);
         }
         break;
 
