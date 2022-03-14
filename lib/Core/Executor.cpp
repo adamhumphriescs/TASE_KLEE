@@ -4270,7 +4270,8 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &stat,  &Executor::model_stat},
   //{(uint64_t) &target_exit,  &Executor::model_target_exit}, //Special case. fixme. //Doesn't look like we call target_exit anymore.
   {(uint64_t) &time,  &Executor::model_time},
-  {(uint64_t) &vfprintf,  &Executor::model_vfprintf},
+  {(uint64_t) &fprintf, &Executor::model_fprintf},
+//  {(uint64_t) &vfprintf,  &Executor::model_vfprintf},
   {(uint64_t) &write,  &Executor::model_write},
 
   {(uint64_t) &strtof_tase,  &Executor::model_strtof},
