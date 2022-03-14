@@ -396,19 +396,7 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 }
 */
 
-// specifiers:
-// %([-+#0 ])?([0-9*])?(.[0-9]+|.*)?(length)?(type)
-// type/length table: see here https://cplusplus.com/reference/cstdio/printf/
-// *-items -> extra arg given to fill in, precedes the value to be interpolated
-// abi reference: https://www.intel.com/content/dam/develop/external/us/en/documents/mpx-linux64-abi.pdf
-// printf(const char * fmt, ...)
-void Executor::model_printf(){
-  int count = 0;
-  //int fpcount = 0;
-  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
-  ++s_offset;
-  char reason[14] = "model_printf\n";
-
+std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* reason){
   char * fmtc;
   get_val(count, s_offset, fmtc, reason);
 
@@ -417,6 +405,7 @@ void Executor::model_printf(){
     printf("model_printf with fmt string: \"%s\"\n", fmtc);
     fflush(stdout);
   }
+
   // possibly useful alternative for doubles:
   // check al
   // if al is zero, no fp args
@@ -434,10 +423,10 @@ void Executor::model_printf(){
     char type = x[5].str()[0];
     char outstr[255];
     std::string ff = x.str(0); //fmt.substr(x[0].first - fmt.begin(), x[4] - x[0].first); // current format match
-    printf("s_offset: %lu\n", s_offset);
+    /*printf("s_offset: %lu\n", s_offset);
     printf("format section: %s, type %c\n", ff.c_str(), type);
     printf("type match: %s\n", x[5].str().c_str());
-    fflush(stdout);
+    fflush(stdout);*/
 
     switch(type){
       case 'd': //signed int
@@ -448,8 +437,8 @@ void Executor::model_printf(){
           get_val(count, s_offset, arg, reason);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
-          printf("got val: %d\n", arg);
-          fflush(stdout);
+          //printf("got val: %d\n", arg);
+          //fflush(stdout);
         }
         break;
       case 'u': //unsigned int
@@ -462,8 +451,8 @@ void Executor::model_printf(){
           get_val(count, s_offset, arg, reason);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
-          printf("got val: %d\n", arg);
-          fflush(stdout);
+          //printf("got val: %d\n", arg);
+          //fflush(stdout);
         }
         break;
       case 'f': // fp - the difference in size matters here. Check if x[3] is L or not? for now just ignore - no long doubles allowed!
@@ -497,8 +486,8 @@ void Executor::model_printf(){
           get_val(count, s_offset, arg, reason);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
-          printf("got val: %s", arg);
-          fflush(stdout);
+          //printf("got val: %s", arg);
+          //fflush(stdout);
         }
         break;
 
@@ -512,8 +501,40 @@ void Executor::model_printf(){
         break;
     }
   }
-  printf(out.c_str());
-  fflush(stdout);
+  return out;
+}
+
+// specifiers:
+// %([-+#0 ])?([0-9*])?(.[0-9]+|.*)?(length)?(type)
+// type/length table: see here https://cplusplus.com/reference/cstdio/printf/
+// *-items -> extra arg given to fill in, precedes the value to be interpolated
+// abi reference: https://www.intel.com/content/dam/develop/external/us/en/documents/mpx-linux64-abi.pdf
+// printf(const char * fmt, ...)
+void Executor::model_printf(){
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  ++s_offset;
+
+  bchar reason[14] = "model_printf\n";
+
+  std::string out = model_printf_base(count, s_offset, reason);
+  target_ctx_gregs[GREG_RAX].u64 = (uint64_t) printf(out.c_str());
+  do_ret();
+}
+
+
+void Executor::model_sprintf(){
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  ++s_offset;
+
+  char reason[14] = "model_sprintf\n";
+
+  char* argout;
+  get_val(count, s_offset, arg, reason):
+
+  std::string out = model_printf_base(count, s_offset, reason);
+  target_ctx_gregs[GREG_RAX].u64 = (uint64_t) sprintf(argout, out.c_str());
   do_ret();
 }
 
