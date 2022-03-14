@@ -405,8 +405,8 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 void Executor::model_printf(){
   int count = 0;
   //int fpcount = 0;
-  uint64_t * s_offset = (uint64_t*) (target_ctx_gregs[GREG_RBP].u64 + 8); // RSP should be sitting on return addr
-
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  ++s_offset;
   char reason[14] = "model_printf\n";
 
   char * fmtc;
