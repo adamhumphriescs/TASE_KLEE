@@ -515,7 +515,7 @@ void Executor::model_printf(){
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
 
-  bchar reason[14] = "model_printf\n";
+  char reason[14] = "model_printf\n";
 
   std::string out = model_printf_base(count, s_offset, reason);
   target_ctx_gregs[GREG_RAX].u64 = (uint64_t) printf(out.c_str());
@@ -2534,7 +2534,7 @@ void Executor::model_puts() {
 
 //The specific calls we're cherry-picking now are ecvt, fcvt, and gcvt in stdlib.
 //Todo: Be careful when using this for SSL verification.
-
+/*
 void Executor::model_sprintf() {
 
   char * str = (char *) target_ctx_gregs[GREG_RDI].u64;
@@ -2563,7 +2563,7 @@ void Executor::model_sprintf() {
   do_ret();
   
 }
-
+*/
 //This struct comes from pthread_impl.h in musl.
 struct pthread {
   /* Part 1 -- these fields may be external or
