@@ -350,7 +350,7 @@ void Executor::model_vfprintf(){
 
 
 template<typename T>
-uint64_t * Executor::get_val(int count, uint64_t *s_offset, T& t, const char* reason){
+void Executor::get_val(int& count, uint64_t* &s_offset, T& t, const char* reason){
   if(count < 6){
     ref<Expr> aref = target_ctx_gregs_OS->read(count < 4 ? (5-count)*8 : (4+count)*8, Expr::Int64);
     if(isa<ConstantExpr>(aref)){
@@ -360,6 +360,7 @@ uint64_t * Executor::get_val(int count, uint64_t *s_offset, T& t, const char* re
       tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, aref2);
       t = as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     }
+    ++count;
   } else {
     ref<Expr> aref = tase_helper_read((uint64_t) s_offset, 8);
     if(isa<ConstantExpr>(aref)){
@@ -368,9 +369,8 @@ uint64_t * Executor::get_val(int count, uint64_t *s_offset, T& t, const char* re
       ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason);
       tase_helper_write((uint64_t) s_offset, aref2);
     }
-    return s_offset + 8;
+    ++s_offset;
   }
-  return s_offset;
 }
 
 /*
@@ -410,8 +410,7 @@ void Executor::model_printf(){
   char reason[14] = "model_printf\n";
 
   char * fmtc;
-  s_offset = get_val(count, s_offset, fmtc, reason);
-  ++count;
+  get_val(count, s_offset, fmtc, reason);
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
@@ -446,7 +445,7 @@ void Executor::model_printf(){
         {
   // printf will down-convert (u)int64_t to whatever was specified in fmt string
           int64_t arg;
-          s_offset = get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, arg, reason);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
           printf("got val: %d\n", arg);
@@ -460,7 +459,7 @@ void Executor::model_printf(){
         // same as above but unsigned
         {
           uint64_t arg;
-          s_offset = get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, arg, reason);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
           printf("got val: %d\n", arg);
@@ -477,7 +476,7 @@ void Executor::model_printf(){
       case 'A':
         {
           double arg;
-          s_offset = get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, arg, reason);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
           //fpcount++;
@@ -487,7 +486,7 @@ void Executor::model_printf(){
       case 'c': // char
         {
           char arg;
-          s_offset = get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, arg, reason);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
         }
@@ -495,7 +494,7 @@ void Executor::model_printf(){
       case 's': // char*
         {
           char* arg;
-          s_offset = get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, arg, reason);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
           printf("got val: %s", arg);
@@ -507,12 +506,11 @@ void Executor::model_printf(){
         // save out.length() to the pointer
         {
           int* arg;
-          s_offset = get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, arg, reason);
           *arg = out.length();
         }
         break;
     }
-    count++;
   }
   printf(out.c_str());
   fflush(stdout);
