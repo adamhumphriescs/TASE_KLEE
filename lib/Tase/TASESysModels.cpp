@@ -531,7 +531,7 @@ void Executor::model_sprintf(){
   char reason[15] = "model_sprintf\n";
 
   char* argout;
-  get_val(count, s_offset, arg, reason):
+  get_val(count, s_offset, argout, reason):
 
   std::string out = model_printf_base(count, s_offset, reason);
   target_ctx_gregs[GREG_RAX].u64 = (uint64_t) sprintf(argout, out.c_str());
