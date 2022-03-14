@@ -466,6 +466,7 @@ private:
   std::string model_printf_base(int& count, uint64_t* &s_offset, char* reason);
   void model_vfprintf();
   void model_sprintf();
+  void model_fprintf();
   //Printf modeling and helpers:
   enum print_specifier  {d_s, f_s, lf_s, s_s, c_s, lu_s, bad_s};
   print_specifier parse_specifier(char * input, int * offset);
