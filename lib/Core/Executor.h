@@ -379,7 +379,7 @@ private:
   void rewriteConstants(uint64_t addr, size_t num);
 
   template<typename T>
-  uint64_t * get_val(int count, uint64_t *s_offset, T& t, const char* reason);
+  uint64_t * get_val(int& count, uint64_t* &s_offset, T& t, const char* reason);
 
   void model_tase_debug();
   
