@@ -528,7 +528,7 @@ void Executor::model_sprintf(){
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
 
-  char reason[14] = "model_sprintf\n";
+  char reason[15] = "model_sprintf\n";
 
   char* argout;
   get_val(count, s_offset, arg, reason):
