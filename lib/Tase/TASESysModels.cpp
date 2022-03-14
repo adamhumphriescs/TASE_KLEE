@@ -422,6 +422,7 @@ void Executor::model_printf(){
   // else dump xmm 0-7 to array
 
   s_offset += 8;
+  printf("added anomalous offset");
 
   std::regex specifier("%([-+#0 ])?([0-9*])?(.[0-9]+|.[*])?(hh|h|l|ll|j|z|t|L)?([diouxXfFeEgGaAcspn])", std::regex::egrep);
   auto match_begin = std::sregex_iterator(fmt.begin(), fmt.end(), specifier);
