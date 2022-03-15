@@ -1412,7 +1412,8 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    std::string target_args = targetArgs.getValue();
    if(target_args.size() > 0){
      std::vector<std::string> args;
-     for(std::string line; std::getline(target_args, line); ){
+     std::istringstream ss(target_args);
+     for(std::string line; std::getline(ss, line); ){
        args.push_back(line);
      }
      target_ctx.rdi.u64 = (int64_t) args.size()+1;
