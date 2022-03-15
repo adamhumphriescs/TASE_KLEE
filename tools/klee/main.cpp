@@ -153,7 +153,7 @@ namespace klee {
 	      cl::init(MIXED));
 
   cl::opt<std::string>
-  target_args("targetArgs", cl::desc("pass-through arguments"), cl::init(""));
+  target_args("target_args", cl::desc("pass-through arguments"), cl::init(""));
 
   cl::opt<TASETestType>
   testType("testType", cl::desc("EXPLORATION or VERIFICATION"),
