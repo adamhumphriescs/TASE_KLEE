@@ -1429,7 +1429,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      char ** argv = new char*[1];
      sprintf(argv[0], project.c_str());
      target_ctx.rdi.u64 = 1;
-     target_ctx.rsi.u64 = argv;
+     target_ctx.rsi.u64 = (uint64_t) argv;
    }
 
 
