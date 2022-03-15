@@ -88,7 +88,7 @@ int glob_argc;
 char ** glob_argv;
 char ** glob_envp;
 extern KTestObjectVector ktov;
-extern "C" void begin_target_inner(int argc, char* argv[]);
+extern "C" void begin_target_inner(int argc, char** argv);
 extern "C" void klee_interp();
 
 std::unordered_set<uint64_t> cartridge_entry_points;
@@ -1454,7 +1454,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    } else {
     
      int sbArg = 1;
-     enter_tase(&begin_target_inner + trap_off, sbArg);
+     enter_tase(&begin_target_inner + trap_off, sbArg, argc, argv);
      if (taseDebug) {
        printf("TASE - returned from enter_tase... \n");
        std::cout.flush();
@@ -1462,13 +1462,13 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      while (target_ctx_gregs[GREG_RIP].u64 != (uint64_t) &tase_exit) {
        klee_interp();
        if (taseDebug) {
-	 printf("Returning from klee_interp ... \n");
-	 std::cout.flush();
+         printf("Returning from klee_interp ... \n");
+         std::cout.flush();
        }
        tase_inject(sbArg);
        if (taseDebug) {
-	 printf("Returning from tase_inject ... \n");
-	 std::cout.flush();
+         printf("Returning from tase_inject ... \n");
+         std::cout.flush();
        }
      }
    }  
