@@ -129,7 +129,6 @@ bool dropS2C;
 bool enableTimeSeries;
 bool bufferGuard;
 int orig_stdout_fd;
-std::string target_args;
 
 #ifdef TASE_BIGNUM
 extern int symIndex;
