@@ -1417,7 +1417,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
        args.push_back(line);
      }
      target_ctx.rdi.u64 = (int64_t) args.size()+1;
-     char * argv[] = new char*[args.size()+1];
+     char * argv[args.size()+1];
      argv[0] = project.c_str();
      int idx = 1;
      for(auto& x : args){
@@ -1426,7 +1426,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      }
      target_ctx.rsi.u64 = (uint64_t) argv;
    } else {
-     char * argv[] = new char*[1];
+     char * argv[1];
      argv[0] = project.c_str();
      target_ctx.rdi.u64 = 1;
      target_ctx.rsi.u64 = argv;
