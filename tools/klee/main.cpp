@@ -129,6 +129,7 @@ bool dropS2C;
 bool enableTimeSeries;
 bool bufferGuard;
 int orig_stdout_fd;
+std::string target_args;
 
 #ifdef TASE_BIGNUM
 extern int symIndex;
@@ -151,7 +152,9 @@ namespace klee {
 		  KLEE_LLVM_CL_VAL_END),
 
 	      cl::init(MIXED));
-  
+
+  cl::opt<std::string>
+  target_args("targetArgs", cl::desc("pass-through arguments"), cl::init(""));
 
   cl::opt<TASETestType>
   testType("testType", cl::desc("EXPLORATION or VERIFICATION"),
@@ -1339,7 +1342,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      printf("ERROR: unrecognized testType \n");
 
    printf("\t TASE project name: %s \n", project.c_str());
-
+   printf("\t TASE project args: \"%s\"\n", target_args.c_str());
    //Really shouldn't be casting to "bool" below given it's not
    //a defined type for C-style printfs.  Replace with a printstream
    //or something later.
@@ -1406,6 +1409,30 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
 
    run_start_time = util::getWallTime();
    printf("Inside transferToTarget \n");
+
+
+   if(target_args.size() > 0){
+     std::vector<std::string> args;
+     for(std::string line; std::getline(target_args, line); ){
+       args.push_back(line);
+     }
+     target_ctx.rdi.u64 = (int64_t) args.size()+1;
+     char * argv[] = new char*[args.size()+1];
+     argv[0] = project.c_str();
+     int idx = 1;
+     for(auto& x : args){
+       argv[idx] = x.c_str();
+       ++idx;
+     }
+     target_ctx.rsi.u64 = (uint64_t) argv;
+   } else {
+     char * argv[] = new char*[1];
+     argv[0] = project.c_str();
+     target_ctx.rdi.u64 = 1;
+     target_ctx.rsi.u64 = argv;
+   }
+
+
    if (execMode == INTERP_ONLY) {
      memset(&target_ctx, 0, sizeof(target_ctx));
     
