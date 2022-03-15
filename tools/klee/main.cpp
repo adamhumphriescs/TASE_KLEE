@@ -153,7 +153,7 @@ namespace klee {
 	      cl::init(MIXED));
 
   cl::opt<std::string>
-  target_args("target_args", cl::desc("pass-through arguments"), cl::init(""));
+  targetArgs("targetArgs", cl::desc("pass-through arguments"), cl::init(""));
 
   cl::opt<TASETestType>
   testType("testType", cl::desc("EXPLORATION or VERIFICATION"),
@@ -1409,7 +1409,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    run_start_time = util::getWallTime();
    printf("Inside transferToTarget \n");
 
-
+   std::string target_args = targetArgs.getValue();
    if(target_args.size() > 0){
      std::vector<std::string> args;
      for(std::string line; std::getline(target_args, line); ){
