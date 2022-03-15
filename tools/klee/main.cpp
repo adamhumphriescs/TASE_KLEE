@@ -88,7 +88,7 @@ int glob_argc;
 char ** glob_argv;
 char ** glob_envp;
 extern KTestObjectVector ktov;
-extern "C" void begin_target_inner();
+extern "C" void begin_target_inner(int argc, char* argv[]);
 extern "C" void klee_interp();
 
 std::unordered_set<uint64_t> cartridge_entry_points;
