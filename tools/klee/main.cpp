@@ -1341,7 +1341,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      printf("ERROR: unrecognized testType \n");
 
    printf("\t TASE project name: %s \n", project.c_str());
-   printf("\t TASE project args: \"%s\"\n", target_args.c_str());
+   printf("\t TASE project args: \"%s\"\n", target_argsValue().c_str());
    //Really shouldn't be casting to "bool" below given it's not
    //a defined type for C-style printfs.  Replace with a printstream
    //or something later.
