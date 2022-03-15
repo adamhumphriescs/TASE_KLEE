@@ -1404,34 +1404,13 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    return true;
  }
 
- void __attribute__ ((noreturn)) transferToTarget()  {
+ void __attribute__ ((noreturn)) transferToTarget(int argc, char** argv)  {
 
    run_start_time = util::getWallTime();
    printf("Inside transferToTarget \n");
 
-   std::string target_args = targetArgs.getValue();
-   if(target_args.size() > 0){
-     std::vector<std::string> args;
-     std::istringstream ss(target_args);
-     for(std::string line; std::getline(ss, line); ){
-       args.push_back(line);
-     }
-     target_ctx.rdi.u64 = (int64_t) args.size()+1;
-     char ** argv = new char*[args.size()+1];
-     sprintf(argv[0], project.c_str());
-     int idx = 1;
-     for(auto& x : args){
-       sprintf(argv[idx], x.c_str());
-       ++idx;
-     }
-     target_ctx.rsi.u64 = (uint64_t) argv;
-   } else {
-     char ** argv = new char*[1];
-     sprintf(argv[0], project.c_str());
-     target_ctx.rdi.u64 = 1;
-     target_ctx.rsi.u64 = (uint64_t) argv;
-   }
-
+   target_ctx.rdi.i64 = argc;
+   target_ctx.rsi.u64 = (uint64_t) argv;
 
    if (execMode == INTERP_ONLY) {
      memset(&target_ctx, 0, sizeof(target_ctx));
@@ -1773,7 +1752,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
        std::cout.flush();
      }
      
-     transferToTarget();
+     transferToTarget(pArgc, pArgv);
      printf("RETURNING TO MAIN HANDLER \n");
      return 0;
 
