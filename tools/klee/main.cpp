@@ -1753,7 +1753,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
        std::cout.flush();
      }
 
-     auto exe = dynamic_cast<klee::Executor*>(interpreter);
+     auto exe = static_cast<klee::Executor*>(interpreter);
      exe->tase_map_buf((uint64_t) &pArgc, sizeof(pArgc));
      exe->tase_map_buf((uint64_t) pArgv, sizeof(pArgv)*pArgc);
      for(int i = pArgc-1; i>=0; --i){
