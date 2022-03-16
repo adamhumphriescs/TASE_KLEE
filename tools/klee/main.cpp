@@ -1753,11 +1753,11 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
        std::cout.flush();
      }
 
-
-     interpreter->tase_map_buf(pArgc, sizeof(pArgc));
-     interpreter->tase_map_buf(pArgv, sizeof(pArgv)*pArgc);
+     auto exe = dynamic_cast<klee::Executor*>(interpreter);
+     exe->tase_map_buf((uint64_t) &pArgc, sizeof(pArgc));
+     exe->tase_map_buf((uint64_t) pArgv, sizeof(pArgv)*pArgc);
      for(int i = pArgc-1; i>=0; --i){
-       interpreter->tase_map_buf(pArgv[i], argsizes[i]);
+       exe->tase_map_buf((uint64_t) pArgv[i], argsizes[i]);
      }
 
      transferToTarget(pArgc, pArgv);
