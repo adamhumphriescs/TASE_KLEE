@@ -1595,14 +1595,15 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    } else {
      pEnvp = envp;
    }
-   
+
+   std::vector<size_t> argsizes;
    pArgc = InputArgv.size() + 1;
    pArgv = new char *[pArgc];
    for (unsigned i=0; i<InputArgv.size()+1; i++) {
      std::string &arg = (i==0 ? InputFile : InputArgv[i-1]);
      unsigned size = arg.size() + 1;
      char *pArg = new char[size];
-     
+     argsizes.push_back((size_t) size);
      std::copy(arg.begin(), arg.end(), pArg);
      pArg[size - 1] = 0;
      
@@ -1751,7 +1752,14 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
        printf("Calling transferToTarget() \n");
        std::cout.flush();
      }
-     
+
+
+     interpreter->tase_map_buf(pArgc, sizeof(pArgc));
+     interpreter->tase_map_buf(pArgv, sizeof(pArgv)*pArgc);
+     for(int i = pArgc-1; i>=0; --i){
+       interpreter->tase_map_buf(pArgv[i], argsizes[i]);
+     }
+
      transferToTarget(pArgc, pArgv);
      printf("RETURNING TO MAIN HANDLER \n");
      return 0;

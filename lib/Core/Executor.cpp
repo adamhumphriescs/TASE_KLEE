@@ -4509,10 +4509,10 @@ void Executor::klee_interp_internal () {
   bool hasMadeProgress = false;
   run_interp_traps++;
 
-  printf("printf_tase: 0x%lx\n", &printf_tase);
-  auto test = fnModelMap.find((uint64_t) &printf_tase);
-  printf("printf_tase found: %s\n", test == fnModelMap.end() ? "false" : "true");
-  printf("fnModelMap size: %u\n", fnModelMap.size());
+  //printf("printf_tase: 0x%lx\n", &printf_tase);
+  //auto test = fnModelMap.find((uint64_t) &printf_tase);
+  //printf("printf_tase found: %s\n", test == fnModelMap.end() ? "false" : "true");
+  //printf("fnModelMap size: %u\n", fnModelMap.size());
   while (true) {
     run_interp_insts++;
     interpCtr++;
@@ -4927,8 +4927,6 @@ void Executor::initializeInterpretationStructures (Function *f) {
   arguments.push_back(regExpr);
   
   initializeGlobals(*GlobalExecutionStatePtr);
-  printf("Initialized Globals");
-  fflush(stdout);
   //Set up the KLEE memory object for the stack, and back the concrete store with the actual stack.
   //Need to be careful here.  The buffer we allocate for the stack is char [X] target_stack. It
   // starts at address StackBase and covers up to StackBase + sizeof(target_stack) -1.
@@ -4943,8 +4941,6 @@ void Executor::initializeInterpretationStructures (Function *f) {
   target_ctx_gregs_OS = GlobalExecutionStatePtr->addressSpace.getWriteable(target_ctx_gregs_MO,targetCtxOS);
   target_ctx_gregs_OS->concreteStore = (uint8_t *) target_ctx_gregs;
 
-  printf("Initialized GREGS");
-  fflush(stdout);
   /*target_ctx_xmms_MO = addExternalObject(*GlobalExecutionStatePtr, (void*) target_ctx.xmm, 8*XMMREG_SIZE, false);
   const ObjectState *targetCtxXOS = GlobalExecutionStatePtr->addressSpace.findObject(target_ctx_xmm_MO);
   target_ctx_xmms_OS = GlobalExecutionStatePtr->addressSpace.getWritable(target_ctx_xmms_MO, targetCtxXOS);
@@ -4967,8 +4963,6 @@ void Executor::initializeInterpretationStructures (Function *f) {
   
   //Map in special stderr libc symbol
   tase_map_buf((uint64_t) &stderr, 8);
-  printf("Initialized standard streams");
-  fflush(stdout);
 
   //Map in initialized and uninitialized non-read only globals into klee from .vars file.
   std::string varsFileLocation = "./" + project + ".vars";
@@ -5001,8 +4995,6 @@ void Executor::initializeInterpretationStructures (Function *f) {
     std::exit(EXIT_FAILURE);
   }
 
-  printf("Read Externals file");
-  fflush(stdout);
   //Todo -- De-hackify this environ variable mapping
   char ** environPtr = environ;
   char * envStr = environ[0];
@@ -5034,20 +5026,13 @@ void Executor::initializeInterpretationStructures (Function *f) {
   //Todo -- remove dependency on _edata location
   //printf("Mapping edata at 0x%lx \n", (uint64_t) &edata);
   tase_map_buf((uint64_t) &edata, 16);
-  printf("mapped bufs");
-  fflush(stdout);
+
   //Get rid of the dummy function used for initialization
   GlobalExecutionStatePtr->popFrame();
   processTree = new PTree(GlobalExecutionStatePtr);
   GlobalExecutionStatePtr->ptreeNode = processTree->root;
-  printf("set ptreeNode");
-  fflush(stdout);
   bindModuleConstants(); //Moved from "run"
-  printf("Bound constants");
-  fflush(stdout);
   loadFnModelMap();
-  printf("Loaded fnModelMap");
-  fflush(stdout);
   
   FILE * stats = fopen("/proc/self/statm", "r");
   if (stats <= 0 ) {
