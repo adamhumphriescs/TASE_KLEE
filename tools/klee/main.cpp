@@ -1601,7 +1601,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
 
    printf("InputArgv: \n");
    for(auto& x : InputArgv){
-     printf("  %s\n", x.c_str());
+     printf("  %s\n", x.c_str()k);
    }
    fflush(stdout);
    std::vector<size_t> argsizes;
@@ -1620,7 +1620,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    }
    ///////////////////// End of Arg Parsing Section
 
-   
+   printf("should have seen Args here");
    printf("Creating interpreter... \n");
    Interpreter::InterpreterOptions IOpts;
    KleeHandler *handler = new KleeHandler(pArgc, pArgv);
