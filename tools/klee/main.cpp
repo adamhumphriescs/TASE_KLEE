@@ -1601,6 +1601,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    pArgv = new char *[pArgc];
    for (unsigned i=0; i<InputArgv.size()+1; i++) {
      std::string &arg = (i==0 ? InputFile : InputArgv[i-1]);
+     std::cout << "Arg: " << arg << std::endl;
      unsigned size = arg.size() + 1;
      char *pArg = new char[size];
      argsizes.push_back((size_t) size);
