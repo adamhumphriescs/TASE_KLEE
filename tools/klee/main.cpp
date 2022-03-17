@@ -1601,7 +1601,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
 
    printf("InputArgv: \n");
    for(auto& x : InputArgv){
-     printf("  %s\n", x.c_str()k);
+     printf("  %s\n", x.c_str());
    }
    fflush(stdout);
    std::vector<size_t> argsizes;
