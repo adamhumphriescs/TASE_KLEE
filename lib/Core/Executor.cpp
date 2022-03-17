@@ -3438,7 +3438,8 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     std::string ss;
     llvm::raw_string_ostream tmp(ss);
     address->print(tmp);
-    printf("Could not resolve address to MO: %s", tmp.str());
+    printf("Could not resolve address to MO: %s\n", tmp.str());
+    address->dump();
     fflush(stdout);
   }
 
