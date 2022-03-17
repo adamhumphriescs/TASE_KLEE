@@ -136,7 +136,10 @@ public:
   ArrayCache * getArrayCache() {
     return &arrayCache;
   }
-  
+
+
+  ObjectState * tase_map_buf (uint64_t addr, size_t size);
+
 private:
   static const char *TerminateReasonNames[];
 
@@ -363,7 +366,6 @@ private:
 
   //AH: Internal helper functions--------------------------
 
-  ObjectState * tase_map_buf (uint64_t addr, size_t size);
   //Tase helper to write an expr directly to an addr.  Width
   //(1/2/4/8 bytes) is inferred based on type of val.
   //Written because KLEE typically requires mem ops in terms of an
