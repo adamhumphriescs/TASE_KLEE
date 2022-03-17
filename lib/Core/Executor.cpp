@@ -3433,8 +3433,9 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   }
   
   if (!success) {
-    printf("Could not resolve address to MO \n");
-    fflush(stdout);
+    //printf("Could not resolve address to MO %s\n", address.dump());
+    //fflush(stdout);
+    std::cout << "Could not resolve address " << address << std::endl;
   }
 
   if (success) {
