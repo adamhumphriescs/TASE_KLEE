@@ -1599,11 +1599,11 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      pEnvp = envp;
    }
 
-   std::cout << "InputArgv: " << std::endl;
+printf("InputArgv: ");
    for(auto& x : InputArgv){
-     std::cout << "  " << x << std::endl;
+     printf("  %s", x);
    }
-   std::cout << std::endl;
+   fflush(stdout);
    std::vector<size_t> argsizes;
    pArgc = InputArgv.size() + 1;
    pArgv = new char *[pArgc];
