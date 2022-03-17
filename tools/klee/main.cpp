@@ -1599,9 +1599,9 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      pEnvp = envp;
    }
 
-printf("InputArgv: ");
+   printf("InputArgv: \n");
    for(auto& x : InputArgv){
-     printf("  %s", x);
+     printf("  %s\n", x.c_str());
    }
    fflush(stdout);
    std::vector<size_t> argsizes;
@@ -1609,7 +1609,7 @@ printf("InputArgv: ");
    pArgv = new char *[pArgc];
    for (unsigned i=0; i<InputArgv.size()+1; i++) {
      std::string &arg = (i==0 ? InputFile : InputArgv[i-1]);
-     std::cout << "Arg: " << arg << std::endl;
+     printf("Arg: %s\n", arg.c_str());
      unsigned size = arg.size() + 1;
      char *pArg = new char[size];
      argsizes.push_back((size_t) size);
