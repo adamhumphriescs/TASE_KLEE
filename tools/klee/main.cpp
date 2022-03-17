@@ -1414,7 +1414,10 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
 
    if (execMode == INTERP_ONLY) {
      memset(&target_ctx, 0, sizeof(target_ctx));
-    
+
+     target_ctx.rdi.i64 = argc;
+     target_ctx.rsi.u64 = (uint64_t) argv;
+
      target_ctx.target_exit_addr = (uintptr_t)&exit_tase_shim;
      target_ctx.sentinel[0] = CTX_STACK_SENTINEL;
      target_ctx.sentinel[1] = CTX_STACK_SENTINEL;
@@ -1596,6 +1599,11 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      pEnvp = envp;
    }
 
+   std::cout << "InputArgv: " << std::endl;
+   for(auto& x : InputArgv){
+     std::cout << "  " << x << std::endl;
+   }
+   std::cout << std::endl;
    std::vector<size_t> argsizes;
    pArgc = InputArgv.size() + 1;
    pArgv = new char *[pArgc];
