@@ -1418,7 +1418,7 @@ void Executor::executeCall(ExecutionState &state,
       Expr::Width WordSize = Context::get().getPointerWidth();
       if (WordSize == Expr::Int32) {
         executeMemoryOperation(state, true, arguments[0], 
-                               sf.varargs->getBaseExpr(), 0);
+                               sf.varargs->getBaseExpr(), 0, "vastart 0, instCtr: " + std::string(instCtr));
       } else {
         assert(WordSize == Expr::Int64 && "Unknown word size!");
 
@@ -1426,19 +1426,19 @@ void Executor::executeCall(ExecutionState &state,
         // instead of implementing it, we can do a simple hack: just
         // make a function believe that all varargs are on stack.
         executeMemoryOperation(state, true, arguments[0],
-                               ConstantExpr::create(48, 32), 0); // gp_offset
+                               ConstantExpr::create(48, 32), 0, "vastart 1, instCtr: " + std::string(instCtr)); // gp_offset
         executeMemoryOperation(state, true,
                                AddExpr::create(arguments[0], 
                                                ConstantExpr::create(4, 64)),
-                               ConstantExpr::create(304, 32), 0); // fp_offset
+                               ConstantExpr::create(304, 32), 0, "vastart 2, instCtr: " + std::string(instCtr)); // fp_offset
         executeMemoryOperation(state, true,
                                AddExpr::create(arguments[0], 
                                                ConstantExpr::create(8, 64)),
-                               sf.varargs->getBaseExpr(), 0); // overflow_arg_area
+                               sf.varargs->getBaseExpr(), 0, "vastart 3, instCtr: " + std::string(instCtr)); // overflow_arg_area
         executeMemoryOperation(state, true,
                                AddExpr::create(arguments[0], 
                                                ConstantExpr::create(16, 64)),
-                               ConstantExpr::create(0, 64), 0); // reg_save_area
+                               ConstantExpr::create(0, 64), 0, "vastart 4, instCtr: " + std::string(instCtr)); // reg_save_area
       }
       break;
     }
@@ -2217,7 +2217,7 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
     ref<Expr> base = eval(ki, 0, state).value;
     if (measureTime)
       mem_op_eval_time += util::getWallTime() - T0;
-    executeMemoryOperation(state, false, base, 0, ki);
+    executeMemoryOperation(state, false, base, 0, ki, "load 0, instCtr: " + std::string(instCtr));
     if (measureTime)
       run_mem_op_time += (util::getWallTime() - T0);
     break;
@@ -2230,7 +2230,7 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
     ref<Expr> value = eval(ki, 0, state).value;
     if (measureTime) 
       mem_op_eval_time += util::getWallTime() - T0;
-    executeMemoryOperation(state, true, base, value, 0);
+    executeMemoryOperation(state, true, base, value, 0, "store 0, instCtr: " + std::string(instCtr));
     if (measureTime)
       run_mem_op_time += (util::getWallTime() - T0);
     break;
@@ -3398,7 +3398,8 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                       bool isWrite,
                                       ref<Expr> address,
                                       ref<Expr> value /* undef if read */,
-				      KInstruction *target /* undef if write */) {
+                                      KInstruction *target /* undef if write */,
+                                      const std::string& reason) {
 
   Expr::Width type = (isWrite ? value->getWidth() : 
                      getWidthForLLVMType(target->inst->getType()));
