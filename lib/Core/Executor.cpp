@@ -4990,13 +4990,13 @@ void Executor::initializeInterpretationStructures (Function *f) {
         worker_exit();
         std::exit(EXIT_FAILURE);
       }
-      if((uint64_t) addrVal == (uint64_t) &target_ctx_gregs){
+      if((uint64_t) addrVal != (uint64_t) &target_ctx_gregs){
         if((sizeVal %2) == 1){
           ++sizeVal;
           printf("rounding up sizeval to even number - %lu \n", sizeVal);
         }
         tase_map_buf(addrVal, sizeVal);
-        std::cout << "Global: " << addrVal << " size " << sizeVal << std::endl;
+        std::cout << "Global: " << std::hex << addrVal << " size " << std::dec << sizeVal << std::endl;
       }
       lines++;
     }
