@@ -3424,7 +3424,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     // fast path: single in-bounds resolution
     solver->setTimeout(coreSolverTimeout);
     if (!state.addressSpace.resolveOne(state, solver, address, op, success)) {
-      printf("resolveOne failure! \n");
+      std::cout << "resolveOne failure! " << std::endl;
       fflush(stdout);
       address = toConstant(state, address, "resolveOne failure");
       success = state.addressSpace.resolveOne(cast<ConstantExpr>(address), op);
@@ -3439,10 +3439,9 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     std::string ss;
     llvm::raw_string_ostream tmp(ss);
     address->print(tmp);
-    printf("Could not resolve address to MO: %s\n", tmp.str());
-    printf("Reason: %s\n", reason);
+    std::cout << "Could not resolve address to MO: " << tmp << "\n";
+    std::cout << "Reason: ", reason << "\n" << std::endl;
     address->dump();
-    fflush(stdout);
   }
 
   if (success) {
