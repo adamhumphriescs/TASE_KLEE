@@ -3440,6 +3440,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     llvm::raw_string_ostream tmp(ss);
     address->print(tmp);
     printf("Could not resolve address to MO: %s\n", tmp.str());
+    printf("%s\n", reason);
     address->dump();
     fflush(stdout);
   }
