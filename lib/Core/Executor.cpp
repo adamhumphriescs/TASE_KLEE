@@ -3443,7 +3443,6 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     ss = "";
     state.dumpStack(tmp);
     std::cout << "STACK:\n" << tmp.str() << std::endl;
-    }
     address->dump();
   }
 
