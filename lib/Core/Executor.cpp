@@ -4986,7 +4986,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
       std::istringstream ss(line);
       ss >> std::hex >> addrVal >> sizeVal;
       if(!ss){
-        printf("Error reading externals file within initializeInterpretationStructures() at line %d \n", lines);
+        std::cout << "Error reading externals file within initializeInterpretationStructures() at line " << line << std::endl;
         worker_exit();
         std::exit(EXIT_FAILURE);
       }
@@ -4996,8 +4996,9 @@ void Executor::initializeInterpretationStructures (Function *f) {
           printf("rounding up sizeval to even number - %lu \n", sizeVal);
         }
         tase_map_buf(addrVal, sizeVal);
+        std::cout << "Global: " << addrVal << " size " << sizeVal << std::endl;
       }
-      ++lines;
+      lines++;
     }
   } else {
     printf("Error reading externals file within initializeInterpretationStructures() \n");
