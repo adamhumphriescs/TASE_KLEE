@@ -3439,7 +3439,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     std::string ss;
     llvm::raw_string_ostream tmp(ss);
     address->print(tmp);
-    std::cout << "Could not resolve address to MO: " << tmp << "\n";
+    std::cout << "Could not resolve address to MO: " << tmp.str() << "\n";
     std::cout << "Reason: ", reason << "\n" << std::endl;
     address->dump();
   }
