@@ -3440,11 +3440,11 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     std::cout << "Could not resolve address to MO: " << tmp.str() << "\n";
     std::cout << "Reason: " << reason << "\n";
     std::cout << "address was " << (CE ? "" : "not ") << "a ConstExpr" << std::endl;
-    std::string ss2;
+    /*std::string ss2;
     llvm::raw_string_ostream tmp2(ss2);
     state.dumpStack(tmp2);
-    std::cout << "STACK:\n" << tmp2.str() << std::endl;
-    address->dump();
+    std::cout << "STACK:\n" << tmp2.str() << std::endl;*/
+    //address->dump();
   }
 
   if (success) {
