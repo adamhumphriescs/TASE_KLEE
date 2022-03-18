@@ -334,7 +334,9 @@ private:
                               bool isWrite,
                               ref<Expr> address,
                               ref<Expr> value /* undef if read */,
-                              KInstruction *target /* undef if write */);
+                              KInstruction *target /* undef if write */,
+                              const std::string& reason);
+
 
   ////////////////////////////////////////////////////////////
   //AH: Tase additions below ---------------------------------
