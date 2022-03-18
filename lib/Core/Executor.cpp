@@ -3441,7 +3441,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     std::cout << "Reason: " << reason << "\n";
     std::cout << "address was " << (CE ? "" : "not ") << "a ConstExpr" << std::endl;
     ss = "";
-    state.dump(tmp);
+    state.dumpStack(tmp);
     std::cout << "STACK:\n" << tmp.str() << std::endl;
     }
     address->dump();
