@@ -3439,7 +3439,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     address->print(tmp);
     std::cout << "Could not resolve address to MO: " << tmp.str() << "\n";
     std::cout << "Reason: " << reason << "\n";
-    std::cout << "address was " << (CE ? "" else "not ") << "a ConstExpr" << std::endl;
+    std::cout << "address was " << (CE ? "" : "not ") << "a ConstExpr" << std::endl;
     ss = "";
     state.dump(tmp);
     std::cout << "STACK:\n" << tmp.str() << std::endl;
