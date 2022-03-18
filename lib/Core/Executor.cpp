@@ -3434,13 +3434,16 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   }
   
   if (!success) {
-    //printf("Could not resolve address to MO %s\n", address.dump());
-    //fflush(stdout);
     std::string ss;
     llvm::raw_string_ostream tmp(ss);
     address->print(tmp);
     std::cout << "Could not resolve address to MO: " << tmp.str() << "\n";
-    std::cout << "Reason: " << reason << "\n" << std::endl;
+    std::cout << "Reason: " << reason << "\n";
+    std::cout << "address was " << (CE ? "" else "not ") << "a ConstExpr" << std::endl;
+    ss = "";
+    state.dump(tmp);
+    std::cout << "STACK:\n" << tmp.str() << std::endl;
+    }
     address->dump();
   }
 
