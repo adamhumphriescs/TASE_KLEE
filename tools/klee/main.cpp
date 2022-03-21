@@ -1406,12 +1406,11 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    run_start_time = util::getWallTime();
    printf("Inside transferToTarget \n");
 
+   memset(&target_ctx, 0, sizeof(target_ctx));
+   target_ctx.rdi.i64 = argc;
+   target_ctx.rsi.u64 = (uint64_t) argv;
+
    if (execMode == INTERP_ONLY) {
-     memset(&target_ctx, 0, sizeof(target_ctx));
-
-     target_ctx.rdi.i64 = argc;
-     target_ctx.rsi.u64 = (uint64_t) argv;
-
      target_ctx.target_exit_addr = (uintptr_t)&exit_tase_shim;
      target_ctx.sentinel[0] = CTX_STACK_SENTINEL;
      target_ctx.sentinel[1] = CTX_STACK_SENTINEL;
@@ -1428,9 +1427,6 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      klee_interp();
     
    } else {
-     target_ctx.rdi.i64 = argc;
-     target_ctx.rsi.u64 = (uint64_t) argv;
-
      int sbArg = 1;
      enter_tase(&begin_target_inner + trap_off, sbArg);
      if (taseDebug) {
