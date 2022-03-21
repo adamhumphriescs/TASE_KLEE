@@ -152,8 +152,6 @@ namespace klee {
 
 	      cl::init(MIXED));
 
-  cl::opt<std::string>
-  targetArgs("targetArgs", cl::desc("pass-through arguments"), cl::init(""));
 
   cl::opt<TASETestType>
   testType("testType", cl::desc("EXPLORATION or VERIFICATION"),
@@ -1409,9 +1407,6 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    run_start_time = util::getWallTime();
    printf("Inside transferToTarget \n");
 
-   target_ctx.rdi.i64 = argc;
-   target_ctx.rsi.u64 = (uint64_t) argv;
-
    if (execMode == INTERP_ONLY) {
      memset(&target_ctx, 0, sizeof(target_ctx));
 
@@ -1434,7 +1429,9 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      klee_interp();
     
    } else {
-    
+     target_ctx.rdi.i64 = argc;
+     target_ctx.rsi.u64 = (uint64_t) argv;
+
      int sbArg = 1;
      enter_tase(&begin_target_inner + trap_off, sbArg);
      if (taseDebug) {
@@ -1765,7 +1762,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      auto exe = static_cast<klee::Executor*>(interpreter);
      exe->tase_map_buf((uint64_t) &pArgc, sizeof(pArgc));
      exe->tase_map_buf((uint64_t) pArgv, sizeof(pArgv)*pArgc);
-     for(int i = pArgc-1; i>=0; --i){
+     for(int i = 0; i < pArgc; ++i){
        exe->tase_map_buf((uint64_t) pArgv[i], argsizes[i]);
      }
 
