@@ -3803,7 +3803,7 @@ extern "C" void klee_interp () {
     {    
       target_ctx_gregs[GREG_RIP].u64 -= bounceback_offset;
       if (taseDebug) 
-	printf("After adjusting offset, attempting to bounceback to 0x%lx \n", target_ctx_gregs[GREG_RIP].u64);
+        printf("After adjusting offset, attempting to bounceback to 0x%lx \n", target_ctx_gregs[GREG_RIP].u64);
       return;
     }
 
@@ -3853,14 +3853,14 @@ bool canBounceback (uint32_t abort_status, uint64_t rip) {
   } else if (abort_status & (1 << TSX_XABORT)) {
     if ((abort_status & TSX_XABORT_MASK) == 0xFF000000) {
       if (modelDebug) {
-	printf("Model abort \n");
+        printf("Model abort \n");
       }
       retry = false;
       is_model_trap = true;
       BB_MOD++;
     } else {
       if (modelDebug) {
-	printf("Psn abort \n");
+        printf("Psn abort \n");
       }
 
       uint8_t psnCode = (uint8_t) (abort_status >> 24);
@@ -4986,7 +4986,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
       std::istringstream ss(line);
       ss >> std::hex >> addrVal >> sizeVal;
       if(!ss){
-        std::cout << "Error reading externals file within initializeInterpretationStructures() at line " << line << std::endl;
+        std::cout << "Error reading externals file within initializeInterpretationStructures() at line " << lines << std::endl;
         worker_exit();
         std::exit(EXIT_FAILURE);
       }
@@ -5001,7 +5001,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
       lines++;
     }
   } else {
-    printf("Error reading externals file within initializeInterpretationStructures() \n");
+    std::cout << "Error reading externals file within initializeInterpretationStructures()" << std::endl;
     worker_exit();
     std::exit(EXIT_FAILURE);
   }
