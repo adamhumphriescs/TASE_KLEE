@@ -577,7 +577,7 @@ void Executor::model_sigemptyset(){
   }
 
   int count = 0;
-  uint64_t * s_offset = (uint64_t) target_ctx_gregs[GREG_RSP].u64;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
   char reason[18] = "model_sigemptyset\n";
