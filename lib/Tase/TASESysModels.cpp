@@ -2570,7 +2570,7 @@ void Executor::model_setlocale(){
   get_val(count, s_offset, locale, reason);
 
   char * out = setlocale(category, locale);
-  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) out, Expr::int64);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) out, Expr::Int64);
   tase_helper_write((uint64_t) &tase_ctx_gregs[GREG_RAX], (uint64_t) resExpr);
   do_ret();
 }
