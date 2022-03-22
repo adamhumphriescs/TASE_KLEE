@@ -4118,7 +4118,7 @@ void Executor::tase_helper_write (uint64_t addr, ref<Expr> val) {
   ObjectState *wos = GlobalExecutionStatePtr->addressSpace.getWriteable(op.first, op.second);
 
   wos->write(offset, val);
-  wos->applyPsnOnWrite(offset,val);
+  wos->applyPsnOnWrite(offset, val);
 
 }
 

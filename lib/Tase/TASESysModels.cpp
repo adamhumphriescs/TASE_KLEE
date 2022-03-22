@@ -374,6 +374,7 @@ void Executor::get_val(int& count, uint64_t* &s_offset, T& t, const char* reason
   }
 }
 
+
 /*
 uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reason){
   if(fpcount < 16){
@@ -521,9 +522,9 @@ void Executor::model_printf(){
   ++s_offset;
 
   char reason[14] = "model_printf\n";
-
   std::string out = model_printf_base(count, s_offset, reason);
-  target_ctx_gregs[GREG_RAX].i64 = (int64_t) printf("%s", out.c_str());
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) printf("%s", out.c_str()), Expr::Int64);
+  tase_helper_write((uint64_t)&target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
 }
 
@@ -542,7 +543,8 @@ void Executor::model_sprintf(){
   get_val(count, s_offset, argout, reason);
 
   std::string out = model_printf_base(count, s_offset, reason);
-  target_ctx_gregs[GREG_RAX].i64 = (int64_t) sprintf(argout, "%s", out.c_str());
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sprintf(argout, "%s", out.c_str()), Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
 }
 
@@ -561,7 +563,8 @@ void Executor::model_fprintf(){
   get_val(count, s_offset, argout, reason);
 
   std::string out = model_printf_base(count, s_offset, reason);
-  target_ctx_gregs[GREG_RAX].i64 = (int64_t) fprintf(argout, "%s", out.c_str());
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) fprintf(argout, "%s", out.c_str()), Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
 }
 
@@ -2552,6 +2555,23 @@ void Executor::model_puts() {
     concretizeGPRArgs(1, "model_puts");
     model_puts();
   }
+}
+
+void Executor::model_setlocale(){
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  char reason[17] = "model_setlocale\n";
+  int category;
+  char * locale;
+  get_val(count, s_offset, category, reason);
+  get_val(count, s_offset, locale, reason);
+
+  char * out = setlocale(category, locale);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) out, Expr::int64);
+  tase_helper_write((uint64_t) &tase_ctx_gregs[GREG_RAX], (uint64_t) resExpr);
+  do_ret();
 }
 
 //We're not fully modeling sprintf just yet because of varargs.  However, some sub-libraries
