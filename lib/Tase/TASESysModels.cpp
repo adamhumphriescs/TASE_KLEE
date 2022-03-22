@@ -324,7 +324,7 @@ void Executor::do_ret() {
   target_ctx_gregs[GREG_RIP].u64 = retAddr;
   target_ctx_gregs[GREG_RSP].u64 += 8;
 }
-
+/*
 void Executor::model_vfprintf(){
   if (modelDebug && !noLog) {
     printf("Entering model_vfprintf at RIP 0x%lx \n", target_ctx_gregs[GREG_RIP].u64);
@@ -334,7 +334,7 @@ void Executor::model_vfprintf(){
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
   do_ret();//fake a ret
 }
-
+*/
 // vprintf(const char* fmt, va_list args)
 /*void Executor::model_vprintf() {
   const char * fmt = (const char*) target_ctx_gregs[GREG_RDX].u64;
