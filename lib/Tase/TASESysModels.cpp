@@ -583,7 +583,7 @@ void Executor::model_sigemptyset(){
   char reason[19] = "model_sigemptyset\n";
 
   sigset_t * set;
-  get_val(count, s_offset, argout, reason);
+  get_val(count, s_offset, set, reason);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigemptyset(set), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
