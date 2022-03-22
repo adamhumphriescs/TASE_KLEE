@@ -502,7 +502,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
         break;
     }
   }
-  out += fmt.substr(fmt.end() - last);
+  out += fmt.substr(fmt.end() - last, fmt.end());
   return out;
 }
 
@@ -520,7 +520,7 @@ void Executor::model_printf(){
   char reason[14] = "model_printf\n";
 
   std::string out = model_printf_base(count, s_offset, reason);
-  target_ctx_gregs[GREG_RAX].i64 = (int64_t) printf(out.c_str());
+  target_ctx_gregs[GREG_RAX].i64 = (int64_t) printf("%s", out.c_str());
   do_ret();
 }
 
