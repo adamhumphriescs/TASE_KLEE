@@ -520,7 +520,7 @@ void Executor::model_printf(){
   char reason[14] = "model_printf\n";
 
   std::string out = model_printf_base(count, s_offset, reason);
-  target_ctx_gregs[GREG_RAX].u64 = (uint64_t) printf(out.c_str());
+  target_ctx_gregs[GREG_RAX].i64 = (int64_t) printf(out.c_str());
   do_ret();
 }
 
@@ -536,7 +536,7 @@ void Executor::model_sprintf(){
   get_val(count, s_offset, argout, reason);
 
   std::string out = model_printf_base(count, s_offset, reason);
-  target_ctx_gregs[GREG_RAX].u64 = (uint64_t) sprintf(argout, out.c_str());
+  target_ctx_gregs[GREG_RAX].i64 = (int64_t) sprintf(argout, out.c_str());
   do_ret();
 }
 
@@ -552,7 +552,7 @@ void Executor::model_fprintf(){
   get_val(count, s_offset, argout, reason);
 
   std::string out = model_printf_base(count, s_offset, reason);
-  target_ctx_gregs[GREG_RAX].u64 = (uint64_t) fprintf(argout, out.c_str());
+  target_ctx_gregs[GREG_RAX].i64 = (int64_t) fprintf(argout, out.c_str());
   do_ret();
 }
 
