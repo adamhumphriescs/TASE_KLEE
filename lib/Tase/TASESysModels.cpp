@@ -580,7 +580,7 @@ void Executor::model_sigemptyset(){
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
-  char reason[18] = "model_sigemptyset\n";
+  char reason[19] = "model_sigemptyset\n";
 
   sigset_t * set;
   get_val(count, s_offset, argout, reason);
