@@ -85,6 +85,7 @@ using namespace klee;
 #include <fstream>
 #include <byteswap.h>
 #include <regex>
+#include <signal.h>
 //#include "../../../musl/arch/x86_64/pthread_arch.h"
 //#include "../../../musl/src/internal/pthread_impl.h"
 
@@ -134,6 +135,7 @@ template<> char * as(tase_greg_t t){return (char*) t.u64;}
 template<> int* as(tase_greg_t t){return (int*) t.u64;}
 template<> int64_t* as(tase_greg_t t){return (int64_t*) t.u64;}
 template<> FILE* as(tase_greg_t t){return (FILE*) t.u64;}
+template<> sigset_t* as(tase_greg_t t){return (sigset_t*) t.u64;}
 
 
 void printBuf(FILE * f,void * buf, size_t count)
@@ -564,6 +566,25 @@ void Executor::model_fprintf(){
 
   std::string out = model_printf_base(count, s_offset, reason);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) fprintf(argout, "%s", out.c_str()), Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
+}
+
+
+void Executor::model_sigemptyset(){
+  if(!noLog){
+    printf("Entering model_sigemptyset at %lu \n", interpCtr);
+  }
+
+  int count = 0;
+  uint64_t * s_offset = (uint64_t) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  char reason[18] = "model_sigemptyset\n";
+
+  sigset_t * set;
+  get_val(count, s_offset, argout, reason);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigemptyset(set), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
 }
