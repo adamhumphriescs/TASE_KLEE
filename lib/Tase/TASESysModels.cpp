@@ -1968,7 +1968,7 @@ void Executor::model_fwrite() {
     model_fwrite();
   } 
 }
-
+/*
 Executor::print_specifier Executor::parse_specifier (char * input, int * offset) {
 
   if (input[0] != '%') {
@@ -2080,6 +2080,7 @@ bool Executor::addPrintfArgNo(std::stringstream * output ,print_specifier type, 
   return true;
 
 }
+*/
 /*
 void Executor::model_printf() {
 
