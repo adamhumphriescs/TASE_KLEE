@@ -34,7 +34,7 @@ struct KTest;
 
 #include "../../../test/proj_defs.h"
 #include "../../../test/tase/include/tase/tase_interp.h"
-
+#include <signal.h>
 //AH: I'd really rather not include the openssl stuff here but I guess we need it
 // for the make_BN_symbolic declaration since it references a bignum struct
 // FIXME: need internal openssl data types
