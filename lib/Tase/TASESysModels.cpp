@@ -502,7 +502,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
         break;
     }
   }
-  out += fmt.substr(fmt.end() - last, fmt.end());
+  out += fmt.substr(last - fmt.begin(), fmt.end() - last);
   return out;
 }
 
