@@ -4266,6 +4266,7 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &posix_fadvise,  &Executor::model_posix_fadvise},
   {(uint64_t) &putchar,  &Executor::model_putchar},
   {(uint64_t) &printf_tase,  &Executor::model_printf},
+  {(uint64_t) &setlocale, &Executor::model_setlocale},
   {(uint64_t) &__printf_chk,  &Executor::model___printf_chk},
   {(uint64_t) &puts_tase,  &Executor::model_puts},
   {(uint64_t) &puts_tase_shim, &Executor::model_puts},

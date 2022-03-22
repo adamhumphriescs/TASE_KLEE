@@ -480,7 +480,9 @@ private:
   void model___pthread_self();
   void model_a_ctz_64();
   void model_a_clz_64();
-  
+
+  void model_setlocale();
+
   //AH: Modeling specific to tls---------------------------
   #ifdef TASE_OPENSSL
   void model_OpenSSLDie();
