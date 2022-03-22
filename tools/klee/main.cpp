@@ -1407,6 +1407,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    printf("Inside transferToTarget \n");
 
    memset(&target_ctx, 0, sizeof(target_ctx));
+
    target_ctx.rdi.i64 = argc;
    target_ctx.rsi.u64 = (uint64_t) argv;
 

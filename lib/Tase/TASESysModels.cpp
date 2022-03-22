@@ -502,6 +502,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
         break;
     }
   }
+  out += format.substr(fmt.end() - last);
   return out;
 }
 
