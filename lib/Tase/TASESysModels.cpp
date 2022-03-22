@@ -85,7 +85,7 @@ using namespace klee;
 #include <fstream>
 #include <byteswap.h>
 #include <regex>
-#include <signal.h>
+
 //#include "../../../musl/arch/x86_64/pthread_arch.h"
 //#include "../../../musl/src/internal/pthread_impl.h"
 
@@ -136,6 +136,7 @@ template<> int* as(tase_greg_t t){return (int*) t.u64;}
 template<> int64_t* as(tase_greg_t t){return (int64_t*) t.u64;}
 template<> FILE* as(tase_greg_t t){return (FILE*) t.u64;}
 template<> sigset_t* as(tase_greg_t t){return (sigset_t*) t.u64;}
+template<> sigaction* as(tase_greg_t t){return (sigaction*) t.u64;}
 
 
 void printBuf(FILE * f,void * buf, size_t count)
@@ -585,6 +586,91 @@ void Executor::model_sigemptyset(){
   sigset_t * set;
   get_val(count, s_offset, set, reason);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigemptyset(set), Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
+}
+
+void Executor::model_sigfillset(){
+    if(!noLog){
+    printf("Entering model_sigfillset at %lu \n", interpCtr);
+  }
+
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  char reason[18] = "model_sigfillset\n";
+
+  sigset_t * set;
+  get_val(count, s_offset, set, reason);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigfillset(set), Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
+}
+
+void Executor::model_sigaddset(){
+  if(!noLog){
+    printf("Entering model_sigaddset at %lu \n", interpCtr);
+  }
+
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  char reason[17] = "model_sigaddset\n";
+
+  sigset_t * set;
+  int signum;
+  get_val(count, s_offset, set, reason);
+  get_val(count, s_offset, signum, reason);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigaddset(set, signum), Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
+}
+
+void Executor::model_sigaction(){
+    if(!noLog){
+    printf("Entering model_sigaction at %lu \n", interpCtr);
+  }
+
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  char reason[17] = "model_sigaction\n";
+
+  int signum;
+  sigaction * set;
+  sigaction * oldset;
+  get_val(count, s_offset, signum, reason);
+  get_val(count, s_offset, set, reason);
+  get_val(count, s_offset, oldset, reason);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigaction(signum, set, oldset), Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
+}
+
+
+//int sigprocmask(int how, const sigset_t *restrict set,
+//                       sigset_t *restrict oldset);
+void Executor::model_sigprocmask(){
+  if(!noLog){
+    printf("Entering model_sigprocmask at %lu \n", interpCtr);
+  }
+
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  char reason[19] = "model_sigprocmask\n";
+
+  int how;
+  sigset_t * set;
+  sigset_t * oldset;
+  get_val(count, s_offset, how, reason);
+  get_val(count, s_offset, set, reason);
+  get_val(count, s_offset, oldset, reason);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigprocmask(how, set, oldset), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
 }
