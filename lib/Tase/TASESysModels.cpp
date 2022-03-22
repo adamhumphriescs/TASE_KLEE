@@ -513,6 +513,9 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
 // abi reference: https://www.intel.com/content/dam/develop/external/us/en/documents/mpx-linux64-abi.pdf
 // printf(const char * fmt, ...)
 void Executor::model_printf(){
+  if(!noLog){
+    printf("Entering model_printf at interpCtr %lu \n", interpCtr);
+  }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
@@ -526,6 +529,9 @@ void Executor::model_printf(){
 
 
 void Executor::model_sprintf(){
+  if(!noLog){
+    printf("Entering model_sprintf at interpCtr %lu \n", interpCtr);
+  }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
@@ -542,6 +548,9 @@ void Executor::model_sprintf(){
 
 
 void Executor::model_fprintf(){
+  if(!noLog){
+    printf("Entering model_fprintf at interpCtr %lu \n", interpCtr);
+  }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
