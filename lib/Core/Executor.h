@@ -482,6 +482,7 @@ private:
   void model_a_clz_64();
 
   void model_setlocale();
+  void model_sigemptyset();
 
   //AH: Modeling specific to tls---------------------------
   #ifdef TASE_OPENSSL
