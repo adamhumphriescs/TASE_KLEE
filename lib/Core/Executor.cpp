@@ -4268,6 +4268,7 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &printf_tase,  &Executor::model_printf},
   {(uint64_t) &vsnprintf, &Executor::model_vsnprintf},
   {(uint64_t) &vasprintf, &Executor::model_vasprintf},
+  {(uint64_t) &mbsrtowcs, &Executor::model_mbsrtowcs},
   {(uint64_t) &setlocale, &Executor::model_setlocale},
   {(uint64_t) &sigemptyset, &Executor::model_sigemptyset},
   {(uint64_t) &sigaddset, &Executor::model_sigaddset},

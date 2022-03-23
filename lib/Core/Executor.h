@@ -480,6 +480,7 @@ private:
   void model_fprintf();
   void model_vsnprintf();
   void model_vasprintf();
+  void model_mbsrtowcs();
   //Printf modeling and helpers:
   //enum print_specifier  {d_s, f_s, lf_s, s_s, c_s, lu_s, bad_s};
   //print_specifier parse_specifier(char * input, int * offset);
