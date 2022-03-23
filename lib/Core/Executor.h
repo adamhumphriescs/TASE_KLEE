@@ -390,7 +390,7 @@ private:
   void get_val(int& count, uint64_t* &s_offset, const char* reason, T& t);
 
   template<typename... T>
-  void get_vals(int& count, uint64_t* &s_offset, const char* reason, T...& t);
+  void get_vals(int& count, uint64_t* &s_offset, const char* reason, T&... t);
 
   void model_tase_debug();
   
