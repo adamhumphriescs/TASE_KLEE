@@ -609,7 +609,7 @@ void Executor::model_vasprintf(){
 
   std::string out = model_printf_base(count, s_offset, reason);
 
-  char * outstr = calloc(1, (out.size()+1)*sizeof(char));
+  char * outstr = (char*) calloc(1, (out.size()+1)*sizeof(char));
   argout = &outstr;
   strcpy(outstr, out.c_str());
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) out.size(), Expr::Int64);
