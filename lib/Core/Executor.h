@@ -382,8 +382,15 @@ private:
   void tase_make_symbolic_bytewise(uint64_t addr, uint64_t len, const char * name);
   void rewriteConstants(uint64_t addr, size_t num);
 
+
+  template<typename... T>
+  void get_vals(int& count, uint64_t* &s_offset, const char* reason);
+
   template<typename T>
- void get_val(int& count, uint64_t* &s_offset, T& t, const char* reason);
+  void get_val(int& count, uint64_t* &s_offset, const char* reason, T& t);
+
+  template<typename... T>
+  void get_vals(int& count, uint64_t* &s_offset, const char* reason, T...& t);
 
   void model_tase_debug();
   
