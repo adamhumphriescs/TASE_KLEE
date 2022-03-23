@@ -132,6 +132,7 @@ template<> uint16_t as(tase_greg_t t){return t.u16;}
 template<> double as(tase_greg_t t){return t.dbl;}
 template<> char as(tase_greg_t t){return (char) t.u8;}
 template<> char * as(tase_greg_t t){return (char*) t.u64;}
+template<> char ** as(tase_greg_t t){return (char**) t.u64;}
 template<> int* as(tase_greg_t t){return (int*) t.u64;}
 template<> int64_t* as(tase_greg_t t){return (int64_t*) t.u64;}
 template<> FILE* as(tase_greg_t t){return (FILE*) t.u64;}
