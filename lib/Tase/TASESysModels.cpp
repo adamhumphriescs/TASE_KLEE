@@ -593,6 +593,30 @@ void Executor::model_vsnprintf(){
   do_ret();
 }
 
+// sprintf but allocate a c str large enough, pass to char**. varargs...
+void Executor::model_vasprintf(){
+      if(!noLog){
+    printf("Entering model_fprintf at interpCtr %lu \n", interpCtr);
+  }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  ++s_offset;
+
+  char reason[17] = "model_vasprintf\n";
+
+  char ** argout;
+  get_val(count, s_offset, argout, reason);
+
+  std::string out = model_printf_base(count, s_offset, reason);
+
+  char * outstr = calloc(1, (out.size()+1)*sizeof(char));
+  argout = &outstr;
+  strcpy(outstr, out.c_str());
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) out.size(), Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
+}
+
 
 void Executor::model_sigemptyset(){
   if(!noLog){
