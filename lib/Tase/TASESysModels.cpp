@@ -381,7 +381,7 @@ void Executor::get_val(int& count, uint64_t* &s_offset, const char* reason, T& t
 template<typename U, typename... T>
 void Executor::get_vals(int& count, uint64_t* &s_offset, const char* reason, U& u, T&... ts){
   get_val(count, s_offset, reason, u);
-  get_vals(count, s_offset, reason, ts);
+  get_vals(count, s_offset, reason, ts...);
 }
 
 template<typename... T>
