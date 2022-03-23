@@ -139,6 +139,7 @@ template<> int64_t* as(tase_greg_t t){return (int64_t*) t.u64;}
 template<> FILE* as(tase_greg_t t){return (FILE*) t.u64;}
 template<> sigset_t* as(tase_greg_t t){return (sigset_t*) t.u64;}
 template<> struct sigaction* as(tase_greg_t t){return (struct sigaction*) t.u64;}
+template<> mbstate_t* as(tase_greg_t t){return (mbstate_t*) t.u64;}
 
 
 void printBuf(FILE * f,void * buf, size_t count)
