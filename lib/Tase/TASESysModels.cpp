@@ -133,6 +133,7 @@ template<> double as(tase_greg_t t){return t.dbl;}
 template<> char as(tase_greg_t t){return (char) t.u8;}
 template<> char * as(tase_greg_t t){return (char*) t.u64;}
 template<> char ** as(tase_greg_t t){return (char**) t.u64;}
+template<> const char** as(tase_greg_t t){return (const char**) t.u64;}
 template<> int* as(tase_greg_t t){return (int*) t.u64;}
 template<> int64_t* as(tase_greg_t t){return (int64_t*) t.u64;}
 template<> FILE* as(tase_greg_t t){return (FILE*) t.u64;}
@@ -2709,7 +2710,7 @@ void Executor::model_mbsrtowcs(){
   char reason[17] = "model_mbsrtowcs\n";
 
   wchar_t* dest;
-  char** src;
+  const char** src;
   size_t max;
   mbstate_t* ps;
   get_vals(count, s_offset, reason, dest, src, max, ps);
@@ -2752,7 +2753,7 @@ void Executor::model_setlocale(){
   char reason[17] = "model_setlocale\n";
   int category;
   char * locale;
-  get_vals(count, s_offset, reason, category, locale)
+  get_vals(count, s_offset, reason, category, locale);
 
   char * out = setlocale(category, locale);
   ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) out, Expr::Int64);
