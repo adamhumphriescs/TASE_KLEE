@@ -136,7 +136,7 @@ template<> int* as(tase_greg_t t){return (int*) t.u64;}
 template<> int64_t* as(tase_greg_t t){return (int64_t*) t.u64;}
 template<> FILE* as(tase_greg_t t){return (FILE*) t.u64;}
 template<> sigset_t* as(tase_greg_t t){return (sigset_t*) t.u64;}
-template<> sigaction* as(tase_greg_t t){return (sigaction*) t.u64;}
+template<> struct sigaction* as(tase_greg_t t){return (sigaction*) t.u64;}
 
 
 void printBuf(FILE * f,void * buf, size_t count)
@@ -640,8 +640,8 @@ void Executor::model_sigaction(){
   char reason[17] = "model_sigaction\n";
 
   int signum;
-  sigaction * set;
-  sigaction * oldset;
+  struct sigaction * set;
+  struct sigaction * oldset;
   get_val(count, s_offset, signum, reason);
   get_val(count, s_offset, set, reason);
   get_val(count, s_offset, oldset, reason);
