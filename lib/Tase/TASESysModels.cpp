@@ -587,7 +587,8 @@ void Executor::model_vsnprintf(){
   get_val(count, s_offset, size, reason);
 
   std::string out = model_printf_base(count, s_offset, reason);
-  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) vsnprintf(argout, size, "%s", out.c_str()), Expr::Int64);
+  sprintf(argout, size, "%s", out.substr(0, size-1 <= out.size() ? size-1 : out.size()).c_str());
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) out.size(), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
 }
