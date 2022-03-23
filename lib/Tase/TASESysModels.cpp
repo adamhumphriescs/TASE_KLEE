@@ -571,6 +571,27 @@ void Executor::model_fprintf(){
   do_ret();
 }
 
+void Executor::model_vsnprintf(){
+    if(!noLog){
+    printf("Entering model_fprintf at interpCtr %lu \n", interpCtr);
+  }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  ++s_offset;
+
+  char reason[17] = "model_vsnprintf\n";
+
+  char * argout;
+  size_t size;
+  get_val(count, s_offset, argout, reason);
+  get_val(count, s_offset, size, reason);
+
+  std::string out = model_printf_base(count, s_offset, reason);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) vsnprintf(argout, size, "%s", out.c_str()), Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
+}
+
 
 void Executor::model_sigemptyset(){
   if(!noLog){
