@@ -355,7 +355,7 @@ void Executor::model_vfprintf(){
 
 
 template<typename T>
-void Executor::get_val(int& count, uint64_t* &s_offset, T& t, const char* reason){
+void Executor::get_val(int& count, uint64_t* &s_offset, const char* reason, T& t){
   if(count < 6){
     ref<Expr> aref = target_ctx_gregs_OS->read(count < 4 ? (5-count)*8 : (4+count)*8, Expr::Int64);
     if(isa<ConstantExpr>(aref)){
@@ -378,6 +378,16 @@ void Executor::get_val(int& count, uint64_t* &s_offset, T& t, const char* reason
   }
 }
 
+template<typename U, typename... T>
+Executor::get_vals(int& count, uint64_t* &s_offset, const char* reason, U& u, T... ts){
+  get_val(count, s_offset, reason, u);
+  get_vals(count, s_offset, reason, ts);
+}
+
+template<typename... T>
+void Executor::get_vals(int& count, uint64_t* &s_offset, const char* reason){
+  return;
+}
 
 /*
 uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reason){
@@ -404,7 +414,7 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 
 std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* reason){
   char * fmtc;
-  get_val(count, s_offset, fmtc, reason);
+  get_val(count, s_offset, reason, fmtc);
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
@@ -440,7 +450,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
         {
   // printf will down-convert (u)int64_t to whatever was specified in fmt string
           int64_t arg;
-          get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, reason, arg);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
           //printf("got val: %d\n", arg);
@@ -454,7 +464,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
         // same as above but unsigned
         {
           uint64_t arg;
-          get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, reason, arg);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
           //printf("got val: %d\n", arg);
@@ -471,7 +481,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
       case 'A':
         {
           double arg;
-          get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, reason, arg);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
           //fpcount++;
@@ -481,7 +491,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
       case 'c': // char
         {
           char arg;
-          get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, reason, arg);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
         }
@@ -489,7 +499,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
       case 's': // char*
         {
           char* arg;
-          get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, reason, arg);
           sprintf(outstr, ff.c_str(), arg);
           out += std::string(outstr);
           //printf("got val: %s", arg);
@@ -501,7 +511,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
         // save out.length() to the pointer
         {
           int* arg;
-          get_val(count, s_offset, arg, reason);
+          get_val(count, s_offset, reason, arg);
           *arg = out.length();
         }
         break;
@@ -544,7 +554,7 @@ void Executor::model_sprintf(){
   char reason[15] = "model_sprintf\n";
 
   char* argout;
-  get_val(count, s_offset, argout, reason);
+  get_val(count, s_offset, reason, argout);
 
   std::string out = model_printf_base(count, s_offset, reason);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sprintf(argout, "%s", out.c_str()), Expr::Int64);
@@ -564,7 +574,7 @@ void Executor::model_fprintf(){
   char reason[15] = "model_fprintf\n";
 
   FILE* argout;
-  get_val(count, s_offset, argout, reason);
+  get_val(count, s_offset, reason, argout);
 
   std::string out = model_printf_base(count, s_offset, reason);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) fprintf(argout, "%s", out.c_str()), Expr::Int64);
@@ -584,8 +594,7 @@ void Executor::model_vsnprintf(){
 
   char * argout;
   size_t size;
-  get_val(count, s_offset, argout, reason);
-  get_val(count, s_offset, size, reason);
+  get_vals(count, s_offset, reason, argout, size);
 
   std::string out = model_printf_base(count, s_offset, reason);
   sprintf(argout, "%s", out.substr(0, size-1 <= out.size() ? size-1 : out.size()).c_str());
@@ -597,7 +606,7 @@ void Executor::model_vsnprintf(){
 // sprintf but allocate a c str large enough, pass to char**. varargs...
 void Executor::model_vasprintf(){
       if(!noLog){
-    printf("Entering model_fprintf at interpCtr %lu \n", interpCtr);
+    printf("Entering model_vasprintf at interpCtr %lu \n", interpCtr);
   }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
@@ -606,11 +615,12 @@ void Executor::model_vasprintf(){
   char reason[17] = "model_vasprintf\n";
 
   char ** argout;
-  get_val(count, s_offset, argout, reason);
+  get_val(count, s_offset, reason, argout);
 
   std::string out = model_printf_base(count, s_offset, reason);
 
   char * outstr = (char*) calloc(1, (out.size()+1)*sizeof(char));
+  tase_map_buf((uint64_t) outstr, (out.size()+1)*sizeof(char));
   argout = &outstr;
   strcpy(outstr, out.c_str());
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) out.size(), Expr::Int64);
@@ -631,7 +641,7 @@ void Executor::model_sigemptyset(){
   char reason[19] = "model_sigemptyset\n";
 
   sigset_t * set;
-  get_val(count, s_offset, set, reason);
+  get_val(count, s_offset, reason, set);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigemptyset(set), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -649,7 +659,7 @@ void Executor::model_sigfillset(){
   char reason[18] = "model_sigfillset\n";
 
   sigset_t * set;
-  get_val(count, s_offset, set, reason);
+  get_val(count, s_offset, reason, set);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigfillset(set), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -668,8 +678,8 @@ void Executor::model_sigaddset(){
 
   sigset_t * set;
   int signum;
-  get_val(count, s_offset, set, reason);
-  get_val(count, s_offset, signum, reason);
+  get_vals(count, s_offset, reason, set, signum);
+
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigaddset(set, signum), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -689,9 +699,8 @@ void Executor::model_sigaction(){
   int signum;
   struct sigaction * set;
   struct sigaction * oldset;
-  get_val(count, s_offset, signum, reason);
-  get_val(count, s_offset, set, reason);
-  get_val(count, s_offset, oldset, reason);
+  get_vals(count, s_offset, reason, signum, set, oldset);
+
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigaction(signum, set, oldset), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -714,9 +723,8 @@ void Executor::model_sigprocmask(){
   int how;
   sigset_t * set;
   sigset_t * oldset;
-  get_val(count, s_offset, how, reason);
-  get_val(count, s_offset, set, reason);
-  get_val(count, s_offset, oldset, reason);
+  get_vals(count, s_offset, reason, how, set, oldset);
+
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigprocmask(how, set, oldset), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -2689,6 +2697,30 @@ void Executor::model_wcstoumax() {
   model_wcstoull();
 }
 
+// size_t mbsrtowcs (wchar_t* dest, const char** src, size_t max, mbstate_t* ps);
+void Executor::model_mbsrtowcs(){
+      if(!noLog){
+    printf("Entering model_mbsrtowcs at interpCtr %lu \n", interpCtr);
+  }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  ++s_offset;
+
+  char reason[17] = "model_mbsrtowcs\n";
+
+  wchar_t* dest;
+  char** src;
+  size_t max;
+  mbstate_t* ps;
+  get_vals(count, s_offset, reason, dest, src, max, ps);
+
+  std::string out = model_printf_base(count, s_offset, reason);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) mbsrtowcs(dest, src, max, ps), Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
+}
+
 void Executor::model_puts() {
   ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
 
@@ -2720,8 +2752,7 @@ void Executor::model_setlocale(){
   char reason[17] = "model_setlocale\n";
   int category;
   char * locale;
-  get_val(count, s_offset, category, reason);
-  get_val(count, s_offset, locale, reason);
+  get_vals(count, s_offset, reason, category, locale)
 
   char * out = setlocale(category, locale);
   ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) out, Expr::Int64);
