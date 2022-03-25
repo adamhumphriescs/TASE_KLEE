@@ -2702,7 +2702,7 @@ void Executor::model_wcstoumax() {
 
 // size_t mbsrtowcs (wchar_t* dest, const char** src, size_t max, mbstate_t* ps);
 void Executor::model_mbsrtowcs(){
-      if(!noLog){
+  if(!noLog){
     printf("Entering model_mbsrtowcs at interpCtr %lu \n", interpCtr);
   }
   int count = 0;
@@ -2723,6 +2723,16 @@ void Executor::model_mbsrtowcs(){
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
 }
+// just mapping in in initialization instead...
+// Executor::model_getprogname(){
+//   if(!noLog){
+//     printf("Entering model_getprogrname at interpCtr %lu \n", interpCtr);
+//   }
+//   tase_map_buf((uint64_t) &program_invocation_short_name, strlen(program_invocation_short_name));
+//   ref<ConstantExpr> res = ConstantExpr::create((uint64_t) &program_invocation_short_name[0], Expr::Int64);
+//   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+//   do_ret();
+// }
 
 void Executor::model_puts() {
   ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);

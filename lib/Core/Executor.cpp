@@ -4277,6 +4277,7 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &__printf_chk,  &Executor::model___printf_chk},
   {(uint64_t) &puts_tase,  &Executor::model_puts},
   {(uint64_t) &puts_tase_shim, &Executor::model_puts},
+
   //{(uint64_t) &read,  &Executor::model_read}, //Model doesn't exist yet.  fixme.
   {(uint64_t) &realloc,  &Executor::model_realloc},
   {(uint64_t) &realloc_tase,  &Executor::model_realloc},
@@ -5067,6 +5068,8 @@ void Executor::initializeInterpretationStructures (Function *f) {
     fclose(stats);
     fflush(stdout);
   }
+  // getprogname
+  tase_map_buf((uint64_t) &program_invocation_short_name, strlen(program_invocation_short_name));
 }
 				   
 
