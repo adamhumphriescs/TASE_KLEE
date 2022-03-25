@@ -5070,6 +5070,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
   }
   // getprogname
   tase_map_buf((uint64_t) &program_invocation_short_name, strlen(program_invocation_short_name));
+  printf("program name address: %ul", (uint64_t) &program_invocation_short_name);
 }
 				   
 
