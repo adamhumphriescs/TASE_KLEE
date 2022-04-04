@@ -4086,6 +4086,27 @@ ref<Expr> Executor::tase_helper_read (uint64_t addr, uint8_t byteWidth) {
 }
 
 
+// assume null-terminated
+template<>
+ObjectState * Executor::tase_map(const char *& t){
+  tase_map_buf((uint64_t) &t, sizeof(t));
+  return tase_map_buf((uint64_t) t, strlen(t));
+}
+
+// ptr default
+template<typename T>
+ObjectState * Executor::tase_map(const T*& t){
+  tase_map_buf((uint64_t) &t, sizeof(t));
+  return tase_map_buf((uint64_t) t, sizeof(T));
+}
+
+// default
+template<typename T>
+ObjectState * Executor::tase_map(const T& t){
+  return tase_map_buf((uint64_t) &t, sizeof(t));
+}
+
+
 //Todo -- make this play nice with our alignment requirements
 ObjectState * Executor::tase_map_buf(uint64_t addr, size_t size) {
   MemoryObject * MOres = addExternalObject(*GlobalExecutionStatePtr, (void *) addr, size, false, true);
@@ -5071,8 +5092,9 @@ void Executor::initializeInterpretationStructures (Function *f) {
     fflush(stdout);
   }
   // getprogname
-  tase_map_buf((uint64_t) &program_invocation_short_name, strlen(program_invocation_short_name));
-  printf("program name address: %lu\n", (uint64_t) &program_invocation_short_name);
+  tase_map(program_invocation_short_name);
+  printf("program name ptr address: %lu\n", (uint64_t) &program_invocation_short_name);
+  printf("program name actual address: %lu\n", (uint64_t) program_invocation_short_name);
 }
 				   
 
