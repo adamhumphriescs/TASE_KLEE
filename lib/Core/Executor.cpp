@@ -4934,6 +4934,8 @@ void printCtx(tase_greg_t * registers ) {
   return;
 }
 
+
+extern "C" program_invocation_short_name;
 void Executor::initializeInterpretationStructures (Function *f) {
 
   printf("INITIALIZING INTERPRETATION STRUCTURES \n");
@@ -5071,8 +5073,6 @@ void Executor::initializeInterpretationStructures (Function *f) {
   // getprogname
   tase_map_buf((uint64_t) &program_invocation_short_name, strlen(program_invocation_short_name));
   printf("program name address: %lu\n", (uint64_t) &program_invocation_short_name);
-  uint64_t*ptr=(uint64_t*) 0x4fade58;
-  printf("ptr: %lu\n", *ptr);
 }
 				   
 
