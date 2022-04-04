@@ -4935,7 +4935,7 @@ void printCtx(tase_greg_t * registers ) {
 }
 
 
-extern "C" program_invocation_short_name;
+extern "C" char * program_invocation_short_name;
 void Executor::initializeInterpretationStructures (Function *f) {
 
   printf("INITIALIZING INTERPRETATION STRUCTURES \n");
