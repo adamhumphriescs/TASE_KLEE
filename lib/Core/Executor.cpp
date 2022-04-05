@@ -4955,7 +4955,7 @@ void printCtx(tase_greg_t * registers ) {
 }
 
 
-extern "C" char tase_progname[];
+extern "C" char tase_progname[10];
 void Executor::initializeInterpretationStructures (Function *f) {
 
   printf("INITIALIZING INTERPRETATION STRUCTURES \n");
