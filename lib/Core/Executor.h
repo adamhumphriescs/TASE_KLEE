@@ -137,8 +137,8 @@ public:
     return &arrayCache;
   }
 
-    template<typename T> ObjectState * tase_map(const T& t);
-    template<typename T> ObjectState * tase_map(const T*& t);
+  template<typename T> ObjectState * tase_map(const T& t);
+  template<typename T> ObjectState * tase_map(const T*& t);
   ObjectState * tase_map_buf (uint64_t addr, size_t size);
 
 private:
