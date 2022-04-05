@@ -3493,11 +3493,10 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     ref<Expr> offset;
     if (CE) {
       if (  CE->getZExtValue() + bytes <= mo->address + mo->size) {
-	
-	offset = ConstantExpr::create( CE->getZExtValue() - mo->address, Context::get().getPointerWidth());
+        offset = ConstantExpr::create( CE->getZExtValue() - mo->address, Context::get().getPointerWidth());
       } else  {
-	printf("Illegal offset in execute memory operation \n");
-	std::exit(EXIT_FAILURE);
+        printf("Illegal offset in execute memory operation in %s\n", reason);
+        std::exit(EXIT_FAILURE);
       }
     } else {
       offset = mo->getOffsetExpr(address);
@@ -4956,7 +4955,7 @@ void printCtx(tase_greg_t * registers ) {
 }
 
 
-extern "C" char * program_invocation_short_name;
+extern "C" char * tase_progname;
 void Executor::initializeInterpretationStructures (Function *f) {
 
   printf("INITIALIZING INTERPRETATION STRUCTURES \n");
@@ -5092,9 +5091,9 @@ void Executor::initializeInterpretationStructures (Function *f) {
     fflush(stdout);
   }
   // getprogname
-  tase_map(program_invocation_short_name);
-  printf("program name ptr address: %lu\n", (uint64_t) &program_invocation_short_name);
-  printf("program name actual address: %lu\n", (uint64_t) program_invocation_short_name);
+  tase_map(tase_progname);
+  printf("program name ptr address: %lu\n", (uint64_t) &tase_progname);
+  printf("program name actual address: %lu\n", (uint64_t) tase_progname);
 }
 				   
 
