@@ -3491,7 +3491,11 @@ void Executor::executeMemoryOperation(ExecutionState &state,
       if (  CE->getZExtValue() + bytes <= mo->address + mo->size) {
         offset = ConstantExpr::create( CE->getZExtValue() - mo->address, Context::get().getPointerWidth());
       } else  {
-        printf("Illegal offset in execute memory operation in %s\n", reason.c_str());
+        std::string ss;
+        llvm::raw_string_ostream tmp(ss);
+        address->print(tmp);
+        std::cout << "Could not resolve address to MO: " << tmp.str() << "\n";
+        std::cout << "Illegal offset in execute memory operation in ", reason << std::endl;
         std::exit(EXIT_FAILURE);
       }
     } else {
