@@ -3453,17 +3453,14 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     //------------------New fast path:
     //Cherry-pick in-bounds reads at constant offsets.
 
-    
-    if ( optimizeConstMemOps &&
-	 CE->getZExtValue() + bytes <= mo->address + mo->size) {
+    if (optimizeConstMemOps && CE->getZExtValue() + bytes <= mo->address + mo->size) {
       unsigned offset = CE->getZExtValue() - mo->address;
       const ObjectState *os = op.second;
       
       if (isWrite) {
-	if (os->readOnly) {
-	  terminateStateOnError(state, "memory error: object read only",
-				ReadOnly);
-	} else {
+        if (os->readOnly) {
+          terminateStateOnError(state, "memory error: object read only", ReadOnly);
+        } else {
 	  //Todo: Implement for writes.  Need to actually apply psn, and
 	  //add new method for applying poison on write for constant
 	  //offsets.  For now, it's OK to leave this blank as we fall-through to the
@@ -3472,18 +3469,17 @@ void Executor::executeMemoryOperation(ExecutionState &state,
 	  //ObjectState *wos = state.addressSpace.getWriteable(mo, os);
 	  //wos->write(offset, value);      
 	  //wos->applyPsnOnWrite(offset,value);
-	}
+        }
       } else {
-	ref<Expr> result = os->read(offset, type);
+        ref<Expr> result = os->read(offset, type);
 
-	//ObjectState *wos = state.addressSpace.getWriteable(mo, os);
-	//wos->applyPsnOnRead(offset); //Not needed for const offset
-	if (interpreterOpts.MakeConcreteSymbolic)
-	  result = replaceReadWithSymbolic(state, result);
-	bindLocal(target, state, result);
-	return;
+        //ObjectState *wos = state.addressSpace.getWriteable(mo, os);
+        //wos->applyPsnOnRead(offset); //Not needed for const offset
+        if (interpreterOpts.MakeConcreteSymbolic)
+          result = replaceReadWithSymbolic(state, result);
+        bindLocal(target, state, result);
+        return;
       }
-
     }
     //------------------End new fast path
     
@@ -4491,7 +4487,7 @@ void Executor::loadFnModelMap() {
 void Executor::printDebugInterpHeader() {
 
   printf("------------------------------------------- \n");
-  printf("Entering interpreter for time %lu \n \n \n", interpCtr);
+  printf("Entering interpreter for time %lu and instCtr %lu \n \n \n", interpCtr, instCtr);
   uint64_t rip = target_ctx_gregs[GREG_RIP].u64;
   printf("RIP is %lu in decimal, 0x%lx in hex.\n", rip, rip);
   printf("Initial ctx BEFORE interpretation is \n");
