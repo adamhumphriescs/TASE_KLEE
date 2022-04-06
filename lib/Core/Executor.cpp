@@ -3495,7 +3495,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
         llvm::raw_string_ostream tmp(ss);
         address->print(tmp);
         std::cout << "Could not resolve address to MO: " << tmp.str() << "\n";
-        std::cout << "Illegal offset in execute memory operation in ", reason << std::endl;
+        std::cout << "Illegal offset in execute memory operation in " << reason << std::endl;
         std::exit(EXIT_FAILURE);
       }
     } else {
