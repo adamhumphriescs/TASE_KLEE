@@ -5091,7 +5091,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
     fflush(stdout);
   }
   // getprogname
-  tase_map_buf((uint64_t) tase_progname, sizeof(char)*10);
+  //tase_map_buf((uint64_t) tase_progname, sizeof(char)*10);
   printf("program name ptr address: %lu\n", (uint64_t) &tase_progname);
   printf("program name actual address: %lu\n", (uint64_t) tase_progname);
 }
