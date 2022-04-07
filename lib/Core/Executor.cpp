@@ -5023,10 +5023,10 @@ void Executor::initializeInterpretationStructures (Function *f) {
         std::exit(EXIT_FAILURE);
       }
       if((uint64_t) addrVal != (uint64_t) &target_ctx_gregs){
-        if((sizeVal %2) == 1){
-        //if((sizeVal % 8) != 0){
-          //sizeVal += 8 - (sizeVal % 8);
-          ++sizeVal;
+        //if((sizeVal %2) == 1){
+        if((sizeVal % 8) != 0){
+          sizeVal += 8 - (sizeVal % 8);
+          //++sizeVal;
           printf("rounding up sizeval to even number - %lu \n", sizeVal);
         }
         tase_map_buf(addrVal, sizeVal);
