@@ -499,6 +499,7 @@ private:
   void model_sigaction();
   void model_sigprocmask();
   void model_sigaddset();
+  void model_gethostname();
   //AH: Modeling specific to tls---------------------------
   #ifdef TASE_OPENSSL
   void model_OpenSSLDie();
