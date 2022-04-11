@@ -4091,6 +4091,8 @@ ObjectState * Executor::tase_map(T* const & t, const size_t& size){
   return tase_map_buf((uint64_t) t, sizeof(t) * size);
 }
 
+template<> Executor::tase_map<char>(char* const & t, const size_t& size);
+
 // assume null-terminated
 template<>
 ObjectState * Executor::tase_map(char* const & t){
