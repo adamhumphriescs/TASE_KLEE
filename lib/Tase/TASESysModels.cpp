@@ -734,6 +734,29 @@ void Executor::model_sigprocmask(){
 }
 
 
+void Executor::model_gethostname(){
+    if(!noLog){
+    printf("Entering model_gethostname at %lu \n", interpCtr);
+  }
+
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  char reason[19] = "model_gethostname\n";
+
+  char* name;
+  size_t len;
+  get_vals(count, s_offset, reason, name, len);
+
+  tase_map(name, len);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) gethostname(name, len), Expr::Int64);
+  tase_helper_write((int64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
+}
+
+
 extern int * __errno_location();
 
 void Executor::model___errno_location() {
