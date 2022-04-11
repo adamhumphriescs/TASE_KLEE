@@ -618,7 +618,7 @@ void manage_verification_workers() {
 void worker_exit() {
  #ifdef TASE_OPENSSL
 
-  if (taseManager != true) {
+  if (taseManager != true || dontFork) {
     printf("WARNING: worker_exit called without taseManager \n");
     std::cout.flush();
     std::exit(EXIT_SUCCESS);

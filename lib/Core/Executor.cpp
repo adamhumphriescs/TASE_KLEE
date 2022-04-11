@@ -4008,8 +4008,7 @@ void Executor::model_exit_tase() {
   fprintf(stdout,"%d total LLVM IR instructions interpreted \n", instCtr);
   fflush(stdout);
   fflush(stderr);
-  if(!dontFork)
-    worker_exit();
+  worker_exit();
   std::exit(EXIT_SUCCESS);
 }
 
