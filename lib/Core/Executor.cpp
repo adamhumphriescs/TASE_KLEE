@@ -4086,9 +4086,9 @@ ref<Expr> Executor::tase_helper_read (uint64_t addr, uint8_t byteWidth) {
 
 
 template<typename T>
-ObjectState * Executor::tase_map(T* const & t, size_t size){
+ObjectState * Executor::tase_map(T* const & t, const size_t& size){
   tase_map_buf((uint64_t) &t, sizeof(t));
-  return tase_map_buf((uint64_t) t, size);
+  return tase_map_buf((uint64_t) t, sizeof(t) * size);
 }
 
 // assume null-terminated
