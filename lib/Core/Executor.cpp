@@ -5007,8 +5007,8 @@ void Executor::initializeInterpretationStructures (Function *f) {
   tase_map_buf((uint64_t) &stdin, 8);
   
   //Map in special stdout libc symbol
-  tase_map_buf((uint64_t) &stdout, 8);
-  
+  //tase_map_buf((uint64_t) &stdout, 8);
+  tase_map(stdout);
   //Map in special stderr libc symbol
   tase_map_buf((uint64_t) &stderr, 8);
 
