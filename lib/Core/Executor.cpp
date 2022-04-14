@@ -4084,25 +4084,63 @@ ref<Expr> Executor::tase_helper_read (uint64_t addr, uint8_t byteWidth) {
 }
 
 
+template<typename T1, typename T2, typename... Ts>
+ObjectState * Executor::tase_map(T1 t1, T2 t2, Ts... ts){
+  tase_map(t1);
+  return tase_map(t2, ts);
+}
+
+// for things like ptr into buffer for start/end/current position...
+template<typename T>
+ObjectState * Executor::tase_map(T* const& t){
+  return tase_map_buf((uint64_t) &t, sizeof(T*));
+}
+
 template<typename T>
 ObjectState * Executor::tase_map(T* const & t, const size_t& size){
-  tase_map_buf((uint64_t) &t, sizeof(t));
+  tase_map_buf((uint64_t) &t, sizeof(T*));
   return tase_map_buf((uint64_t) t, sizeof(t) * size);
 }
 
-template ObjectState *  Executor::tase_map<char>(char* const & t, const size_t& size);
+template ObjectState *  Executor::tase_map<char>(char* const & t, const size_t& size); // force instantiation
+template ObjectState *  Executor::tase_map<unsigned char>(unsigned char* const & t, const size_t& size); // force instantiation
 
 // assume null-terminated
 template<>
 ObjectState * Executor::tase_map(char* const & t){
-  return tase_map(t, strlen(t)+1);
+  return t == NULL ? tase_map_buf((uint64_t) &t, sizeof(char*)) : tase_map(t, strlen(t)+1);
+}
+
+
+template<>
+ObjectState * Executor::tase_map(void* const & t){
+  return tase_map_buf((uint64_t) &t, sizeof(void*));
+}
+
+typedef size_t (read_t)(FILE*, unsigned char*, size_t);
+typedef size_t (write_t)(FILE*, const unsigned char *, size_t);
+typedef off_t (seek_t)(FILE*, off_t, int);
+
+template<>
+ObjectState * Executor::tase_map(read_t* const& t){
+  return tase_map_buf((uint64_t)&t, sizeof(read_t*));
+}
+
+template<>
+ObjectState * Executor::tase_map(write_t* const& t){
+  return tase_map_buf((uint64_t)&t, sizeof(write_t*));
+}
+
+template<>
+ObjectState * Executor::tase_map(seek_t* const& t){
+  return tase_map_buf((uint64_tf &t, sizeof(seek_t*)));
 }
 
 // ptr default
 template<typename T>
 ObjectState * Executor::tase_map(const T*& t){
-  tase_map_buf((uint64_t) &t, sizeof(t));
-  return tase_map_buf((uint64_t) t, sizeof(T));
+  auto x = tase_map_buf((uint64_t) &t, sizeof(t));
+  return t == NULL ? x : tase_map_buf((uint64_t) t, sizeof(T));
 }
 
 // default
@@ -4111,6 +4149,20 @@ ObjectState * Executor::tase_map(const T& t){
   return tase_map_buf((uint64_t) &t, sizeof(t));
 }
 
+
+template<>
+ObjectState * Executor::tase_map(FILE* const & t){
+  auto x = tase_map_buf((uint64_t) &t, sizeof(FILE*));
+  return t == NULL ? x : tase_map(*t);
+}
+a
+template<>
+ObjectState * Executor::tase_map(const FILE& t){
+  tase_map(t.flags, t.rpos, t.rend, t.close, t.wend, t.wpos, t.mustbezero_1, t.wbase, t.read, t.write, t.seek);
+  tase_map(t.buf, t.buf_size);
+  return tase_map(t.prev, t.next, t.fd, t.pipe_pid, t.lockcount, t.mode, t.lock, t.lbf, t.cookie, t.off, t.getln_buf,
+           t.mustbezero_2, t.shend, t.shlim, t.shcnt, t.prev_locked, t.next_locked, t.locale);
+}
 
 //Todo -- make this play nice with our alignment requirements
 ObjectState * Executor::tase_map_buf(uint64_t addr, size_t size) {
@@ -5008,7 +5060,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
   
   //Map in special stdout libc symbol
   //tase_map_buf((uint64_t) &stdout, 8);
-  tase_map(stdout);
+  tase_map(stdout)
   //Map in special stderr libc symbol
   tase_map_buf((uint64_t) &stderr, 8);
 
