@@ -4092,7 +4092,7 @@ ObjectState * Executor::tase_map(T1 t1, T2 t2, Ts... ts){
 
 // for things like ptr into buffer for start/end/current position...
 template<typename T>
-ObjectState * Executor::tase_map(T* const& t){
+ObjectState * Executor::tase_map(const T*& t){
   return tase_map_buf((uint64_t) &t, sizeof(T*));
 }
 
@@ -4133,7 +4133,7 @@ ObjectState * Executor::tase_map(write_t* const& t){
 
 template<>
 ObjectState * Executor::tase_map(seek_t* const& t){
-  return tase_map_buf((uint64_tf &t, sizeof(seek_t*)));
+  return tase_map_buf((uint64_t &t, sizeof(seek_t*)));
 }
 
 // ptr default
@@ -4155,7 +4155,7 @@ ObjectState * Executor::tase_map(FILE* const & t){
   auto x = tase_map_buf((uint64_t) &t, sizeof(FILE*));
   return t == NULL ? x : tase_map(*t);
 }
-a
+
 template<>
 ObjectState * Executor::tase_map(const FILE& t){
   tase_map(t.flags, t.rpos, t.rend, t.close, t.wend, t.wpos, t.mustbezero_1, t.wbase, t.read, t.write, t.seek);

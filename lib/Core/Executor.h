@@ -137,6 +137,7 @@ public:
     return &arrayCache;
   }
 
+  template<typename T1, typename T2, typename... Ts> ObjectState * tase_map(T1 t1, T2 t2, Ts... ts);
   template<typename T> ObjectState * tase_map(T* const & t, const size_t& size);
   template<typename T> ObjectState * tase_map(const T& t);
   template<typename T> ObjectState * tase_map(const T*& t);
