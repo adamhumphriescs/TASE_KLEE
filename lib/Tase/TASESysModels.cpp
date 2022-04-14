@@ -580,7 +580,7 @@ void Executor::model_fprintf(){
   get_val(count, s_offset, reason, argout);
 
   std::string out = model_printf_base(count, s_offset, reason);
-  printf("%s", out.c_cstr());
+  printf("fprintf string: %s", out.c_str());
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) fprintf(argout, "%s", out.c_str()), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
