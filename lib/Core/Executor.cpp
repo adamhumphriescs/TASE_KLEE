@@ -4087,7 +4087,7 @@ ref<Expr> Executor::tase_helper_read (uint64_t addr, uint8_t byteWidth) {
 template<typename T1, typename T2, typename... Ts>
 ObjectState * Executor::tase_map(T1 t1, T2 t2, Ts... ts){
   tase_map(t1);
-  return tase_map(t2, ts);
+  return tase_map(t2, ts...);
 }
 
 // for things like ptr into buffer for start/end/current position...
@@ -4103,7 +4103,7 @@ ObjectState * Executor::tase_map(T* const & t, const size_t& size){
 }
 
 template ObjectState *  Executor::tase_map<char>(char* const & t, const size_t& size); // force instantiation
-template ObjectState *  Executor::tase_map<unsigned char>(unsigned char* const & t, const size_t& size); // force instantiation
+//template ObjectState *  Executor::tase_map<unsigned char>(unsigned char* const & t, const size_t& size); // force instantiation
 
 // assume null-terminated
 template<>
@@ -4133,15 +4133,15 @@ ObjectState * Executor::tase_map(write_t* const& t){
 
 template<>
 ObjectState * Executor::tase_map(seek_t* const& t){
-  return tase_map_buf((uint64_t &t, sizeof(seek_t*)));
+  return tase_map_buf((uint64_t) &t, sizeof(seek_t*));
 }
 
 // ptr default
-template<typename T>
-ObjectState * Executor::tase_map(const T*& t){
+//template<typename T>
+/*ObjectState * Executor::tase_map(const T*& t){
   auto x = tase_map_buf((uint64_t) &t, sizeof(t));
   return t == NULL ? x : tase_map_buf((uint64_t) t, sizeof(T));
-}
+}*/
 
 // default
 template<typename T>
