@@ -4156,13 +4156,13 @@ ObjectState * Executor::tase_map(FILE* const & t){
   return t == NULL ? x : tase_map(*t);
 }
 
-template<>
+/*template<>
 ObjectState * Executor::tase_map(const FILE& t){
   tase_map(t.flags, t.rpos, t.rend, t.close, t.wend, t.wpos, t.mustbezero_1, t.wbase, t.read, t.write, t.seek);
   tase_map(t.buf, t.buf_size);
   return tase_map(t.prev, t.next, t.fd, t.pipe_pid, t.lockcount, t.mode, t.lock, t.lbf, t.cookie, t.off, t.getln_buf,
            t.mustbezero_2, t.shend, t.shlim, t.shcnt, t.prev_locked, t.next_locked, t.locale);
-}
+}*/
 
 //Todo -- make this play nice with our alignment requirements
 ObjectState * Executor::tase_map_buf(uint64_t addr, size_t size) {
