@@ -1539,7 +1539,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    orig_stdout_fd=dup(STDOUT_FILENO); //Backup stdout fd so that we can grab control later.
    
    if (!noLog) {
-   
+     uint64_t orig_stdout = (uint64_t) stdout;
      worker_ID_stream << "Monitor";
      std::string IDString;
      IDString = worker_ID_stream.str();
@@ -1550,7 +1550,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
        std::exit(EXIT_FAILURE);
      }
      prev_worker_ID = "Init";
-     printf("worker stdout: %lu\n", (uint64_t) stdout);
+     printf("worker stdout: %lx, orig: %lx\n", (uint64_t) stdout, orig_stdout);
    }
 
    // Load the bytecode...
