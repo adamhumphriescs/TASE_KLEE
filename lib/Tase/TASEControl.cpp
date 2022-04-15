@@ -1417,7 +1417,7 @@ void manage_exploration_workers() {
     release_sem_lock();
 
     stdout = fdopen(STDOUT_FILENO, "w");
-    stdout = fdopen(orig_stdout_fd, "w") ;
+    stdout = fdopen(orig_stdout_fd, "w");
     
     printf("\nTASE: Successfully exiting with %d paths explored \n", *total_branches);
     std::exit(EXIT_SUCCESS);

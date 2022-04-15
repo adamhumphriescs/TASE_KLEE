@@ -1550,6 +1550,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
        std::exit(EXIT_FAILURE);
      }
      prev_worker_ID = "Init";
+     printf("worker stdout: %lu\n", (uint64_t) stdout);
    }
 
    // Load the bytecode...
