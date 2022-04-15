@@ -5060,8 +5060,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
   
   //Map in special stdout libc symbol
   tase_map_buf((uint64_t) &stdout, 8);
-  tase_map_buf((uint64_t) stdout, sizeof(FILE));
-  printf("stdout value: %lx", stdout);
+
   //tase_map(stdout);
   //Map in special stderr libc symbol
   tase_map_buf((uint64_t) &stderr, 8);
