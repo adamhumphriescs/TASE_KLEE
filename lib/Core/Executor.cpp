@@ -5060,11 +5060,11 @@ void Executor::initializeInterpretationStructures (Function *f) {
   
   //Map in special stdout libc symbol
   tase_map_buf((uint64_t) &stdout, 8);
-  tase_map_buf((uint64_t) stdout, sizeof(FILE));
+  //tase_map_buf((uint64_t) stdout, sizeof(FILE));
   //tase_map(stdout);
   //Map in special stderr libc symbol
   tase_map_buf((uint64_t) &stderr, 8);
-
+  printf("stream globals: out/err/in  %lx/%lx/%lx", &stdout, &stderr, &stdin);
   //Map in initialized and uninitialized non-read only globals into klee from .vars file.
   std::string varsFileLocation = "./" + project + ".vars";
   std::ifstream externals(varsFileLocation);
