@@ -497,7 +497,7 @@ void Executor::sprintf_helper(int width, int precision, char* outstr, const std:
   sprintf(outstr, ff.c_str(), width, precision, arg);
 }
 
-template<typename T, int I, typeanme std::enable_if<I == 2, int>::type>
+template<typename T, int I, typename std::enable_if<I == 2, int>::type>
 void Executor::sprintf_helper(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), width, arg);
 }
