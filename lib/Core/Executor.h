@@ -478,6 +478,13 @@ private:
   void model_putchar();
 
   std::string model_printf_base(int& count, uint64_t* &s_offset, char* reason);
+
+  template<bool Width, bool Precision>
+  std::string model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, int width);
+
+  template<bool Width, bool Precision, typename T>
+  void sprintf_helper(int width, int precision, char* outstr, const std::string& ff, const T& arg);
+
   //void model_vfprintf();
   void model_sprintf();
   void model_fprintf();
