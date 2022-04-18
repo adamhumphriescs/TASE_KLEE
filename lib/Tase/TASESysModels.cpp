@@ -493,22 +493,22 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
 
 
 template<typename T>
-void Executor::sprintf_helper<true, true>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
+void Executor::sprintf_helper<T, true, true>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), width, precision, arg);
 }
 
 template<typename T>
-void Executor::sprintf_helper<true, false>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
+void Executor::sprintf_helper<T, true, false>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), width, arg);
 }
 
 template<typename T>
-void Executor::sprintf_helper<false, true>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
+void Executor::sprintf_helper<T, false, true>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), precision, arg);
 }
 
 template<typename T>
-void Executor::sprintf_helper<false, false>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
+void Executor::sprintf_helper<T, false, false>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(),  arg);
 }
 
