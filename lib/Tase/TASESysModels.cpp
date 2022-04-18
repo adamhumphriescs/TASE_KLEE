@@ -427,7 +427,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
       // printf will down-convert (u)int64_t to whatever was specified in fmt string
       int64_t arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper<I>(width, precision, outstr, ff, arg);
+      sprintf_helper<I>(width, precision, &outstr[0], ff, arg);
       //printf("got val: %d\n", arg);
       //fflush(stdout);
     }
@@ -440,7 +440,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       uint64_t arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper<I>(width, precision, outstr, ff, arg);
+      sprintf_helper<I>(width, precision, &outstr[0], ff, arg);
       //printf("got val: %d\n", arg);
       //fflush(stdout);
     }
@@ -456,7 +456,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       double arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper<I>(width, precision, outstr, ff, arg);
+      sprintf_helper<I>(width, precision, &outstr[0], ff, arg);
       //fpcount++;
     }
     break;
@@ -465,14 +465,14 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       char arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper<I>(width, precision, outstr, ff, arg);
+      sprintf_helper<I>(width, precision, &outstr[0], ff, arg);
     }
     break;
     case 's': // char*
     {
       char* arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper<I>(width, precision, outstr, ff, arg);
+      sprintf_helper<I>(width, precision, &outstr[0], ff, arg);
       //printf("got val: %s", arg);
       //fflush(stdout);
     }
