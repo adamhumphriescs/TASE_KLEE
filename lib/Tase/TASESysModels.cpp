@@ -416,8 +416,8 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 */
 
 
-
-std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, int width, int precision, bool gw, bool gp){
+template<bool Width, bool Precision>
+std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, int width, int precision){
   char outstr[255];
 
   switch(type){
@@ -427,7 +427,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
       // printf will down-convert (u)int64_t to whatever was specified in fmt string
       int64_t arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper<gw, gp>(width, precision, outstr, ff.c_str(), arg);
+      sprintf_helper<Width, Precision>(width, precision, outstr, ff.c_str(), arg);
       //printf("got val: %d\n", arg);
       //fflush(stdout);
     }
@@ -440,7 +440,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       uint64_t arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper<gw, gp>(width, precision, outstr, ff.c_str(), arg);
+      sprintf_helper<Width, Precision>(width, precision, outstr, ff.c_str(), arg);
       //printf("got val: %d\n", arg);
       //fflush(stdout);
     }
@@ -456,7 +456,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       double arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper<gw, gp>(width, precision, outstr, ff.c_str(), arg);
+      sprintf_helper<Width, Precision>(width, precision, outstr, ff.c_str(), arg);
       //fpcount++;
     }
     break;
@@ -465,14 +465,14 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       char arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper<gw, gp>(width, precision, outstr, ff.c_str(), arg);
+      sprintf_helper<Width, Precision>(width, precision, outstr, ff.c_str(), arg);
     }
     break;
     case 's': // char*
     {
       char* arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper<gw, gp>(width, precision, outstr, ff.c_str(), arg);
+      sprintf_helper<Width, Precision>(width, precision, outstr, ff.c_str(), arg);
       //printf("got val: %s", arg);
       //fflush(stdout);
     }
@@ -554,7 +554,10 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
       get_val(count, s_offset, reason, precision);
     }
 
-    out += model_printf_helper(count, s_offset, reason, type, ff, width, precision, gw, gp);
+    out += gw ? (gp?  model_printf_helper<true, true>(count, s_offset, reason, type, ff, width, precision)  :
+                      model_printf_helper<true, false>(count, s_offset, reason, type, ff, width, precision)  ) :
+                (gp ? model_printf_helper<false, true>(count, s_offset, reason, type, ff, width, precision)  :
+                      model_printf_helper<false, false>(count, s_offset, reason, type, ff, width, precision)  );
   }
   out += fmt.substr(last - fmt.begin(), fmt.end() - last);
   return out;
