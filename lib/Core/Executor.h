@@ -485,16 +485,16 @@ private:
 
 
   template<typename T, int I, typename std::enable_if<I == 0, bool>::type = true>
-  void sprintf_helper(int width, int precision, char* outstr, const std::string& ff, const T& arg);
+  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, const T& arg);
 
   template<typename T, int I, typename std::enable_if<I == 1, bool>::type = true>
-  void sprintf_helper(int width, int precision, char* outstr, const std::string& ff, const T& arg);
+  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, const T& arg);
 
   template<typename T, int I, typename std::enable_if<I == 2, bool>::type = true>
-  void sprintf_helper(int width, int precision, char* outstr, const std::string& ff, const T& arg);
+  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, const T& arg);
 
   template<typename T, int I, typename std::enable_if<I == 3, bool>::type = true>
-  void sprintf_helper(int width, int precision, char* outstr, const std::string& ff, const T& arg);
+  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, const T& arg);
 
   //void model_vfprintf();
   void model_sprintf();
