@@ -554,10 +554,10 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
       get_val(count, s_offset, reason, precision);
     }
 
-    out += gw ? (gp?  model_printf_helper<3>(count, s_offset, reason, type, ff, out, width, precision)  :
-                      model_printf_helper<2>(count, s_offset, reason, type, ff, out, width, precision)  ) :
-                (gp ? model_printf_helper<1>(count, s_offset, reason, type, ff, out, width, precision)  :
-                      model_printf_helper<0>(count, s_offset, reason, type, ff, out, width, precision)  );
+    out += gw ? (gp?  model_printf_base_helper<3>(count, s_offset, reason, type, ff, out, width, precision)  :
+                      model_printf_base_helper<2>(count, s_offset, reason, type, ff, out, width, precision)  ) :
+                (gp ? model_printf_base_helper<1>(count, s_offset, reason, type, ff, out, width, precision)  :
+                      model_printf_base_helper<0>(count, s_offset, reason, type, ff, out, width, precision)  );
   }
   out += fmt.substr(last - fmt.begin(), fmt.end() - last);
   return out;
