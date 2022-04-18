@@ -492,22 +492,22 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
 }
 
 
-template<typename T, int I, typename std::enable_if_t<I == 3, int>::type>
+template<typename T, int I, typename std::enable_if<I, int>::type = 3>
 void Executor::sprintf_helper(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), width, precision, arg);
 }
 
-template<typename T, int I, typeanme std::enable_if_t<I == 2, int>::type>
+template<typename T, int I, typeanme std::enable_if<I, int>::type = 2>
 void Executor::sprintf_helper(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), width, arg);
 }
 
-template<typename T, int I, typename std::enable_if_t<I == 1, int>::type>
+template<typename T, int I, typename std::enable_if<I, int>::type = 1>
 void Executor::sprintf_helper>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), precision, arg);
 }
 
-template<typename T, int I, typename std::enable_if_t<I == 0, int>::type>
+template<typename T, int I, typename std::enable_if<I, int>::type = 0>
 void Executor::sprintf_helper(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), arg);
 }
