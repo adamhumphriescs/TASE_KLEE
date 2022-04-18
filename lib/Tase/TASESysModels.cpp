@@ -417,7 +417,7 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 
 
 
-std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, bool gw, bool gp, char type, const std::string& ff, int width){
+std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, int width, int precision, bool gw, bool gp){
   char outstr[255];
 
   switch(type){
@@ -465,7 +465,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       char arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper<gw, gp>(outstr, ff.c_str(), width, precision arg);
+      sprintf_helper<gw, gp>(outstr, ff.c_str(), width, precision, arg);
     }
     break;
     case 's': // char*
@@ -554,7 +554,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
       get_val(count, s_offset, reason, precision);
     }
 
-    out += model_printf_helper(count, s_offset, reason, type, gw, gp, ff, width);
+    out += model_printf_helper(count, s_offset, reason, type, ff, width, precision, gw, gp);
   }
   out += fmt.substr(last - fmt.begin(), fmt.end() - last);
   return out;
