@@ -415,6 +415,155 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 }
 */
 
+
+std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff){
+  char outstr[255];
+
+  switch(type){
+    case 'd': //signed int
+    case 'i':
+    {
+      // printf will down-convert (u)int64_t to whatever was specified in fmt string
+      int64_t arg;
+      get_val(count, s_offset, reason, arg);
+      sprintf(outstr, ff.c_str(), arg);
+      //printf("got val: %d\n", arg);
+      //fflush(stdout);
+    }
+    break;
+    case 'u': //unsigned int
+    case 'o':
+    case 'x':
+    case 'X':
+      // same as above but unsigned
+    {
+      uint64_t arg;
+      get_val(count, s_offset, reason, arg);
+      sprintf(outstr, ff.c_str(), arg);
+      //printf("got val: %d\n", arg);
+      //fflush(stdout);
+    }
+    break;
+    case 'f': // fp - the difference in size matters here. Check if x[3] is L or not? for now just ignore - no long doubles allowed!
+    case 'F':
+    case 'e':
+    case 'E':
+    case 'g':
+    case 'G':
+    case 'a':
+    case 'A':
+    {
+      double arg;
+      get_val(count, s_offset, reason, arg);
+      sprintf(outstr, ff.c_str(), arg);
+      //fpcount++;
+    }
+    break;
+
+    case 'c': // char
+    {
+      char arg;
+      get_val(count, s_offset, reason, arg);
+      sprintf(outstr, ff.c_str(), arg);
+    }
+    break;
+    case 's': // char*
+    {
+      char* arg;
+      get_val(count, s_offset, reason, arg);
+      sprintf(outstr, ff.c_str(), arg);
+      //printf("got val: %s", arg);
+      //fflush(stdout);
+    }
+    break;
+
+    case 'n': // ptr to int, stores the # chars printed so far and elides the %n
+      // save out.length() to the pointer
+    {
+      int* arg;
+      get_val(count, s_offset, reason, arg);
+      *arg = out.length();
+    }
+    break;
+  }
+
+  return type == 'n'? "" : out + std::string(outstr);
+}
+
+std::string Executor::model_printf_base_fixedw_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, int width){
+  char outstr[255];
+
+  switch(type){
+    case 'd': //signed int
+    case 'i':
+    {
+      // printf will down-convert (u)int64_t to whatever was specified in fmt string
+      int64_t arg;
+      get_val(count, s_offset, reason, arg);
+      sprintf(outstr, ff.c_str(), width, arg);
+      //printf("got val: %d\n", arg);
+      //fflush(stdout);
+    }
+    break;
+    case 'u': //unsigned int
+    case 'o':
+    case 'x':
+    case 'X':
+      // same as above but unsigned
+    {
+      uint64_t arg;
+      get_val(count, s_offset, reason, arg);
+      sprintf(outstr, ff.c_str(), width, arg);
+      //printf("got val: %d\n", arg);
+      //fflush(stdout);
+    }
+    break;
+    case 'f': // fp - the difference in size matters here. Check if x[3] is L or not? for now just ignore - no long doubles allowed!
+    case 'F':
+    case 'e':
+    case 'E':
+    case 'g':
+    case 'G':
+    case 'a':
+    case 'A':
+    {
+      double arg;
+      get_val(count, s_offset, reason, arg);
+      sprintf(outstr, ff.c_str(), arg);
+      //fpcount++;
+    }
+    break;
+
+    case 'c': // char
+    {
+      char arg;
+      get_val(count, s_offset, reason, arg);
+      sprintf(outstr, ff.c_str(), arg);
+    }
+    break;
+    case 's': // char*
+    {
+      char* arg;
+      get_val(count, s_offset, reason, arg);
+      sprintf(outstr, ff.c_str(), arg);
+      //printf("got val: %s", arg);
+      //fflush(stdout);
+    }
+    break;
+
+    case 'n': // ptr to int, stores the # chars printed so far and elides the %n
+      // save out.length() to the pointer
+    {
+      int* arg;
+      get_val(count, s_offset, reason, arg);
+      *arg = out.length();
+    }
+    break;
+  }
+
+  return type == 'n' ? "" : out + std::string(outstr);
+}
+
 std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* reason){
   char * fmtc;
   get_val(count, s_offset, reason, fmtc);
@@ -433,91 +582,21 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
   std::regex specifier("%([-+#0 ])?([0-9*])?(.[0-9]+|.[*])?(hh|h|l|ll|j|z|t|L)?([diouxXfFeEgGaAcspn])", std::regex::egrep);
   auto match_begin = std::sregex_iterator(fmt.begin(), fmt.end(), specifier);
   auto out = std::string();
-  auto last = fmt.cbegin();
+  uto last = fmt.cbegin();
   for(auto it = match_begin; it != std::sregex_iterator(); ++it){
     auto x = *it;
     out += fmt.substr(last - fmt.begin(), x[0].first - last); // non-format characters up to current match
     last = x[5].second;
 
     char type = x[5].str()[0];
-    char outstr[255];
-    std::string ff = x.str(0); //fmt.substr(x[0].first - fmt.begin(), x[4] - x[0].first); // current format match
-    /*printf("s_offset: %lu\n", s_offset);
-    printf("format section: %s, type %c\n", ff.c_str(), type);
-    printf("type match: %s\n", x[5].str().c_str());
-    fflush(stdout);*/
+    std::string ff = x.str(0);
 
-    switch(type){
-      case 'd': //signed int
-      case 'i':
-        {
-  // printf will down-convert (u)int64_t to whatever was specified in fmt string
-          int64_t arg;
-          get_val(count, s_offset, reason, arg);
-          sprintf(outstr, ff.c_str(), arg);
-          out += std::string(outstr);
-          //printf("got val: %d\n", arg);
-          //fflush(stdout);
-        }
-        break;
-      case 'u': //unsigned int
-      case 'o':
-      case 'x':
-      case 'X':
-        // same as above but unsigned
-        {
-          uint64_t arg;
-          get_val(count, s_offset, reason, arg);
-          sprintf(outstr, ff.c_str(), arg);
-          out += std::string(outstr);
-          //printf("got val: %d\n", arg);
-          //fflush(stdout);
-        }
-        break;
-      case 'f': // fp - the difference in size matters here. Check if x[3] is L or not? for now just ignore - no long doubles allowed!
-      case 'F':
-      case 'e':
-      case 'E':
-      case 'g':
-      case 'G':
-      case 'a':
-      case 'A':
-        {
-          double arg;
-          get_val(count, s_offset, reason, arg);
-          sprintf(outstr, ff.c_str(), arg);
-          out += std::string(outstr);
-          //fpcount++;
-        }
-        break;
-
-      case 'c': // char
-        {
-          char arg;
-          get_val(count, s_offset, reason, arg);
-          sprintf(outstr, ff.c_str(), arg);
-          out += std::string(outstr);
-        }
-        break;
-      case 's': // char*
-        {
-          char* arg;
-          get_val(count, s_offset, reason, arg);
-          sprintf(outstr, ff.c_str(), arg);
-          out += std::string(outstr);
-          //printf("got val: %s", arg);
-          //fflush(stdout);
-        }
-        break;
-
-      case 'n': // ptr to int, stores the # chars printed so far and elides the %n
-        // save out.length() to the pointer
-        {
-          int* arg;
-          get_val(count, s_offset, reason, arg);
-          *arg = out.length();
-        }
-        break;
+    if(x[2].str().find('*')){
+      int width;
+      get_val(count, s_offset, reason, width);
+      out += model_printf_fixedw_helper(count, s_offset, reason, type, ff, width);
+    } else {
+      out += model_printf_helper(count, s_offset, reason, type, ff);
     }
   }
   out += fmt.substr(last - fmt.begin(), fmt.end() - last);
@@ -750,7 +829,7 @@ void Executor::model_gethostname(){
   size_t len;
   get_vals(count, s_offset, reason, name, len);
 
-  tase_map(name, len);
+  //tase_map(name, len);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) gethostname(name, len), Expr::Int64);
   tase_helper_write((int64_t) &target_ctx_gregs[GREG_RAX], resExpr);
