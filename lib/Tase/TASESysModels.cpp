@@ -531,7 +531,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
   std::regex specifier("%([-+#0 ])?([0-9*])?(.[0-9]+|.[*])?(hh|h|l|ll|j|z|t|L)?([diouxXfFeEgGaAcspn])", std::regex::egrep);
   auto match_begin = std::sregex_iterator(fmt.begin(), fmt.end(), specifier);
   auto out = std::string();
-  uto last = fmt.cbegin();
+  auto last = fmt.cbegin();
   for(auto it = match_begin; it != std::sregex_iterator(); ++it){
     auto x = *it;
     out += fmt.substr(last - fmt.begin(), x[0].first - last); // non-format characters up to current match
