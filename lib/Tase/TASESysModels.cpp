@@ -417,7 +417,7 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 
 
 template<bool Width, bool Precision>
-std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, int width, int precision){
+std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, int width, int precision){
   char outstr[255];
 
   switch(type){
@@ -554,10 +554,10 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
       get_val(count, s_offset, reason, precision);
     }
 
-    out += gw ? (gp?  model_printf_helper<true, true>(count, s_offset, reason, type, ff, width, precision)  :
-                      model_printf_helper<true, false>(count, s_offset, reason, type, ff, width, precision)  ) :
-                (gp ? model_printf_helper<false, true>(count, s_offset, reason, type, ff, width, precision)  :
-                      model_printf_helper<false, false>(count, s_offset, reason, type, ff, width, precision)  );
+    out += gw ? (gp?  model_printf_helper<true, true>(count, s_offset, reason, type, ff, out, width, precision)  :
+                      model_printf_helper<true, false>(count, s_offset, reason, type, ff, out, width, precision)  ) :
+                (gp ? model_printf_helper<false, true>(count, s_offset, reason, type, ff, out, width, precision)  :
+                      model_printf_helper<false, false>(count, s_offset, reason, type, ff, out, width, precision)  );
   }
   out += fmt.substr(last - fmt.begin(), fmt.end() - last);
   return out;
