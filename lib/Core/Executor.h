@@ -480,7 +480,7 @@ private:
 
   std::string model_printf_base(int& count, uint64_t* &s_offset, char* reason);
 
-  template<bool Width, bool Precision>
+  template<int I>
   std::string model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, int width, int precision);
 
 
