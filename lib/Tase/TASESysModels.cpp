@@ -503,7 +503,7 @@ void Executor::sprintf_helper(int width, int precision, char* outstr, const std:
 }
 
 template<typename T, int I, typename std::enable_if<I == 1, int>::type>
-void Executor::sprintf_helper>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
+void Executor::sprintf_helper(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), precision, arg);
 }
 
