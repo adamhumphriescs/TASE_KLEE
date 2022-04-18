@@ -492,24 +492,24 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
 }
 
 
-template<typename T>
-void Executor::sprintf_helper<T, true, true>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
+template<typename T, int I>
+void Executor::sprintf_helper<T, std::enable_if<I, int> = 3>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), width, precision, arg);
 }
 
-template<typename T>
-void Executor::sprintf_helper<T, true, false>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
+template<typename T, int I>
+void Executor::sprintf_helper<T, std::enable_if<I, int> = 2>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), width, arg);
 }
 
-template<typename T>
-void Executor::sprintf_helper<T, false, true>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
+template<typename T, int I>
+void Executor::sprintf_helper<T, std::enable_if<I, int> = 1>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
   sprintf(outstr, ff.c_str(), precision, arg);
 }
 
-template<typename T>
-void Executor::sprintf_helper<T, false, false>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
-  sprintf(outstr, ff.c_str(),  arg);
+template<typename T, int I>
+void Executor::sprintf_helper<T, std::enable_if<I, int> = 0>(int width, int precision, char* outstr, const std::string& ff, const T& arg){
+  sprintf(outstr, ff.c_str(), arg);
 }
 
 
@@ -554,10 +554,10 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
       get_val(count, s_offset, reason, precision);
     }
 
-    out += gw ? (gp?  model_printf_helper<true, true>(count, s_offset, reason, type, ff, out, width, precision)  :
-                      model_printf_helper<true, false>(count, s_offset, reason, type, ff, out, width, precision)  ) :
-                (gp ? model_printf_helper<false, true>(count, s_offset, reason, type, ff, out, width, precision)  :
-                      model_printf_helper<false, false>(count, s_offset, reason, type, ff, out, width, precision)  );
+    out += gw ? (gp?  model_printf_helper<3>(count, s_offset, reason, type, ff, out, width, precision)  :
+                      model_printf_helper<2>(count, s_offset, reason, type, ff, out, width, precision)  ) :
+                (gp ? model_printf_helper<1>(count, s_offset, reason, type, ff, out, width, precision)  :
+                      model_printf_helper<0>(count, s_offset, reason, type, ff, out, width, precision)  );
   }
   out += fmt.substr(last - fmt.begin(), fmt.end() - last);
   return out;

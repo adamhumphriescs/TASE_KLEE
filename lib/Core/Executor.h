@@ -482,7 +482,7 @@ private:
   template<bool Width, bool Precision>
   std::string model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, int width, int precision);
 
-  template<typename T, bool Width, bool Precision>
+  template<typename T, int I>
   void sprintf_helper(int width, int precision, char* outstr, const std::string& ff, const T& arg);
 
   //void model_vfprintf();
