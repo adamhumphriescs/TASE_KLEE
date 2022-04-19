@@ -484,17 +484,17 @@ private:
   std::string model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, int width, int precision);
 
 
-  template<typename T, int I, typename std::enable_if<I == 0, bool>::type = true>
-  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, T& arg);
+  template<int I>
+  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...);
 
-  template<typename T, int I, typename std::enable_if<I == 1, bool>::type = true>
-  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, T& arg);
+  template<int I>
+  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...);
 
-  template<typename T, int I, typename std::enable_if<I == 2, bool>::type = true>
-  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, T& arg);
+  template<int I>
+  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...);
 
-  template<typename T, int I, typename std::enable_if<I == 3, bool>::type = true>
-  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, T& arg);
+  template<int I>
+  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...);
 
   //void model_vfprintf();
   void model_sprintf();
