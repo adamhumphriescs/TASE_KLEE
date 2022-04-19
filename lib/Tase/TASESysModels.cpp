@@ -492,23 +492,23 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
 }
 
 
-template<int I>
-void Executor::sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff,...){
+template<>
+void Executor::sprintf_helper<3>(int& width, int& precision, char* outstr, const std::string& ff,...){
   sprintf(outstr, ff.c_str(), width, precision, ...);
 }
 
-template<int I>
-void Executor::sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...){
+template<>
+void Executor::sprintf_helper<2>(int& width, int& precision, char* outstr, const std::string& ff, ...){
   sprintf(outstr, ff.c_str(), width, ...);
 }
 
-template<int I>
-void Executor::sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...){
+template<>
+void Executor::sprintf_helper<1>(int& width, int& precision, char* outstr, const std::string& ff, ...){
   sprintf(outstr, ff.c_str(), precision, ...);
 }
 
-template<int I>
-void Executor::sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...){
+template<>
+void Executor::sprintf_helper<0>(int& width, int& precision, char* outstr, const std::string& ff, ...){
   sprintf(outstr, ff.c_str(), ...);
 }
 

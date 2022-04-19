@@ -487,15 +487,6 @@ private:
   template<int I>
   void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...);
 
-  template<int I>
-  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...);
-
-  template<int I>
-  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...);
-
-  template<int I>
-  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...);
-
   //void model_vfprintf();
   void model_sprintf();
   void model_fprintf();
