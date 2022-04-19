@@ -418,7 +418,7 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 
 template<int I, typename... Ts>
 std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, Ts... ts){
-  printf("model_printf_helper with '%c'", type);
+  printf("model_printf_helper with '%c'\n", type);
   fflush(stdout);
   char outstr[255];
 
@@ -474,6 +474,8 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       char* arg;
       get_val(count, s_offset, reason, arg);
+      printf("printf get_val %s\n", arg);
+      fflush(stdout);
       sprintf_helper(&outstr[0], ff, I+1, ts..., arg);
       //printf("got val: %s", arg);
       //fflush(stdout);
@@ -496,6 +498,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
 
 void Executor::sprintf_helper(char* outstr, const std::string& ff, int count, ...){
   printf("sprintf_helper with format '%s' and %d args", ff.c_str(), count);
+  fflush(stdout);
   va_list args;
   va_start(args, count);
   vsprintf(outstr, ff.c_str(), args);
