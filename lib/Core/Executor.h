@@ -485,7 +485,7 @@ private:
 
 
   template<int I>
-  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff, ...);
+  void sprintf_helper(int& width, int& precision, char* outstr, const std::string& ff int count, ...);
 
   //void model_vfprintf();
   void model_sprintf();
