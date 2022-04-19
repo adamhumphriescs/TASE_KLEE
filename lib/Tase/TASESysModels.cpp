@@ -495,6 +495,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
 
 
 void Executor::sprintf_helper(char* outstr, const std::string& ff, int count, ...){
+  printf("sprintf_helper with format '%s' and %d args", ff.c_str(), count);
   va_list args;
   va_start(args, count);
   vsprintf(outstr, ff.c_str(), args);
