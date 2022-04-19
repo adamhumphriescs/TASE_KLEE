@@ -493,7 +493,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
 
 
 template<>
-void Executor::sprintf_helper<3>(int& width, int& precision, char* outstr, const std::string& ff, int count = 1, ...){
+void Executor::sprintf_helper<3>(int& width, int& precision, char* outstr, const std::string& ff, int count, ...){
   va_list args;
   va_start(args, count);
   vsprintf(outstr, ff.c_str(), width, precision, args);
@@ -501,7 +501,7 @@ void Executor::sprintf_helper<3>(int& width, int& precision, char* outstr, const
 }
 
 template<>
-void Executor::sprintf_helper<2>(int& width, int& precision, char* outstr, const std::string& ff,  int count = 1, ...){
+void Executor::sprintf_helper<2>(int& width, int& precision, char* outstr, const std::string& ff,  int count, ...){
   va_list args;
   va_start(args, count);
   vsprintf(outstr, ff.c_str(), width, args);
@@ -509,7 +509,7 @@ void Executor::sprintf_helper<2>(int& width, int& precision, char* outstr, const
 }
 
 template<>
-void Executor::sprintf_helper<1>(int& width, int& precision, char* outstr, const std::string& ff,  int count = 1, ...){
+void Executor::sprintf_helper<1>(int& width, int& precision, char* outstr, const std::string& ff,  int count, ...){
   va_list args;
   va_start(args, count);
   vsprintf(outstr, ff.c_str(), precision, args);
@@ -517,7 +517,7 @@ void Executor::sprintf_helper<1>(int& width, int& precision, char* outstr, const
 }
 
 template<>
-void Executor::sprintf_helper<0>(int& width, int& precision, char* outstr, const std::string& ff,  int count = 1, ...){
+void Executor::sprintf_helper<0>(int& width, int& precision, char* outstr, const std::string& ff,  int count, ...){
   va_list args;
   va_start(args, count);
   vsprintf(outstr, ff.c_str(), args);
