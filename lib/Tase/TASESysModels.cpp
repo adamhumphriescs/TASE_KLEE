@@ -418,6 +418,8 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 
 template<int I, typename... Ts>
 std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, Ts... ts){
+  printf("model_printf_helper with '%c'", type);
+  fflush(stdout);
   char outstr[255];
 
   switch(type){
@@ -615,7 +617,7 @@ void Executor::model_fprintf(){
 
 void Executor::model_vsnprintf(){
     if(!noLog){
-    printf("Entering model_fprintf at interpCtr %lu \n", interpCtr);
+    printf("Entering model_vsnprintf at interpCtr %lu \n", interpCtr);
   }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
