@@ -480,11 +480,11 @@ private:
 
   std::string model_printf_base(int& count, uint64_t* &s_offset, char* reason);
 
-  template<int I, typename... Ts>
+  template<typename... Ts>
   std::string model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, Ts...);
 
 
-  void sprintf_helper(char* outstr, const std::string& ff, int count, ...);
+  void sprintf_helper(char* outstr, const std::string& ff, ...);
 
   //void model_vfprintf();
   void model_sprintf();

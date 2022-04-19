@@ -416,10 +416,8 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 */
 
 
-template<int I, typename... Ts>
+template<typename... Ts>
 std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, Ts... ts){
-  printf("model_printf_helper with '%c'\n", type);
-  fflush(stdout);
   char outstr[255];
 
   switch(type){
@@ -429,7 +427,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
       // printf will down-convert (u)int64_t to whatever was specified in fmt string
       int64_t arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper(&outstr[0], ff, I+1, ts..., arg);
+      sprintf_helper(&outstr[0], ff, ts..., arg);
       //printf("got val: %d\n", arg);
       //fflush(stdout);
     }
@@ -442,7 +440,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       uint64_t arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper(&outstr[0], ff, I+1, ts..., arg);
+      sprintf_helper(&outstr[0], ff, ts..., arg);
       //printf("got val: %d\n", arg);
       //fflush(stdout);
     }
@@ -458,7 +456,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       double arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper( &outstr[0], ff, I+1, ts..., arg);
+      sprintf_helper( &outstr[0], ff, ts..., arg);
       //fpcount++;
     }
     break;
@@ -467,7 +465,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       char arg;
       get_val(count, s_offset, reason, arg);
-      sprintf_helper(&outstr[0], ff, I+1, ts..., arg);
+      sprintf_helper(&outstr[0], ff, ts..., arg);
     }
     break;
     case 's': // char*
@@ -476,7 +474,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
       get_val(count, s_offset, reason, arg);
       printf("printf get_val %s\n", arg);
       fflush(stdout);
-      sprintf_helper(&outstr[0], ff, I+1, ts..., arg);
+      sprintf_helper(&outstr[0], ff, ts..., arg);
       //printf("got val: %s", arg);
       //fflush(stdout);
     }
@@ -496,11 +494,9 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
 }
 
 
-void Executor::sprintf_helper(char* outstr, const std::string& ff, int count, ...){
-  printf("sprintf_helper with format '%s' and %d args", ff.c_str(), count);
-  fflush(stdout);
+void Executor::sprintf_helper(char* outstr, const std::string& ff, ...){
   va_list args;
-  va_start(args, count);
+  va_start(args, ff);
   vsprintf(outstr, ff.c_str(), args);
   va_end(args);
 }
@@ -548,10 +544,10 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
       get_val(count, s_offset, reason, precision);
     }
 
-    out += gw ? (gp ? model_printf_base_helper<3>(count, s_offset, reason, type, ff, out, width, precision)  :
-                      model_printf_base_helper<2>(count, s_offset, reason, type, ff, out, width, precision)  ) :
-                (gp ? model_printf_base_helper<1>(count, s_offset, reason, type, ff, out, width, precision)  :
-                      model_printf_base_helper<0>(count, s_offset, reason, type, ff, out, width, precision)  );
+    out += gw ? (gp ? model_printf_base_helper(count, s_offset, reason, type, ff, out, width, precision)  :
+                      model_printf_base_helper(count, s_offset, reason, type, ff, out, width)  ) :
+                (gp ? model_printf_base_helper(count, s_offset, reason, type, ff, out, precision)  :
+                      model_printf_base_helper(count, s_offset, reason, type, ff, out)  );
   }
   out += fmt.substr(last - fmt.begin(), fmt.end() - last);
   return out;
