@@ -416,7 +416,7 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 */
 
 
-template<int I, typename Ts...>
+template<int I, typename... Ts>
 std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, Ts...){
   char outstr[255];
 
