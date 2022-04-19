@@ -493,23 +493,31 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
 
 
 template<>
-void Executor::sprintf_helper<3>(int& width, int& precision, char* outstr, const std::string& ff,...){
-  sprintf(outstr, ff.c_str(), width, precision, ...);
+void Executor::sprintf_helper<3>(int& width, int& precision, char* outstr, const std::string& ff, ...){
+  va_list args;
+  va_start(args, 1);
+  vsprintf(outstr, ff.c_str(), width, precision, args);
 }
 
 template<>
 void Executor::sprintf_helper<2>(int& width, int& precision, char* outstr, const std::string& ff, ...){
-  sprintf(outstr, ff.c_str(), width, ...);
+  va_list args;
+  va_start(args, 1);
+  vsprintf(outstr, ff.c_str(), width, args);
 }
 
 template<>
 void Executor::sprintf_helper<1>(int& width, int& precision, char* outstr, const std::string& ff, ...){
-  sprintf(outstr, ff.c_str(), precision, ...);
+  va_list args;
+  va_start(args, 1);
+  vsprintf(outstr, ff.c_str(), precision, args);
 }
 
 template<>
 void Executor::sprintf_helper<0>(int& width, int& precision, char* outstr, const std::string& ff, ...){
-  sprintf(outstr, ff.c_str(), ...);
+  va_list args;
+  va_start(args, 1);
+  vsprintf(outstr, ff.c_str(), args);
 }
 
 
