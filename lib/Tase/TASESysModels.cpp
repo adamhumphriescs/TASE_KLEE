@@ -1035,9 +1035,10 @@ void Executor::model_time() {
   time_t* tloc;
   get_val(count, s_offset, __func__, tloc);
   time_t res = time(tloc);
+
   if (!noLog) {
     char * timeString = ctime(tloc);
-    std::cout << "timeString is " << timeString std::endl;
+    std::cout << "timeString is " << timeString << std::endl;
     std::cout << "Size of timeVal is " << sizeof(time_t) << std::endl;
   }
     
