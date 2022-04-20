@@ -826,7 +826,7 @@ void Executor::model_write() {
     fflush(stdout);
     char printMe [size];
     strncpy (printMe, theBuf, size);
-    printf("Found call to write.  Buf appears to be %s \n", printMe);
+    printf("Found call to write.  Buf appears to be \"%s\" \n", printMe);
   }
   //Assume that the write succeeds 
   uint64_t res = target_ctx_gregs[GREG_RDX].u64;
@@ -838,48 +838,43 @@ void Executor::model_write() {
 }
 
 void Executor::model___printf_chk() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr))
-       ){
-
-    //Ignore varargs for now and just print the second arg
-    printf("Second arg to __printf_chk is %s \n", (char *) target_ctx_gregs[GREG_RSI].u64);
-
-    ref<ConstantExpr> zeroResultExpr = ConstantExpr::create(0, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, zeroResultExpr);  
-    
-    do_ret();
-    
-  } else {
-    concretizeGPRArgs(2, "model___printf_chk");
-    model___printf_chk();
+  if(!noLog){
+    _LOG
   }
+  int count;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
 
+  int flag;
+  char* fmt;
+  get_vals(count, s_offset, __func__, flag, fmt);
+    //Ignore varargs for now and just print the second arg
+  std::cout << "Second arg to __printf_chk is " <<  fmt << std::endl;
+
+  ref<ConstantExpr> zeroResultExpr = ConstantExpr::create(0, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, zeroResultExpr);
+    
+  do_ret();
 }
 
 //https://man7.org/linux/man-pages/man3/isatty.3.html
 //int isatty(int fd);
 
 void Executor::model_isatty() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr))
-       ){
-    int fd = (int) target_ctx_gregs[GREG_RDI].u64;
-    int res = isatty(fd);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr); 
-    do_ret();
-    
-  } else {
-    concretizeGPRArgs(1, "model__isatty");
-    model_isatty();
+  if(!noLog){
+    _LOG
   }
+  int count;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  int fd;
+  get_val(count, s_offset, __func__, fd);
+
+  int res = isatty(fd);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();
 }
 
 
@@ -887,62 +882,44 @@ void Executor::model_isatty() {
 //https://linux.die.net/man/3/fileno
 //int fileno(FILE *stream); 
 void Executor::model_fileno() {
-
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) 
-       ){
-    
-    //return res of call
-    int res = fileno((FILE *) target_ctx_gregs[GREG_RDI].u64);
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-
-    
-    do_ret();//Fake a return
-
-  } else {
-    concretizeGPRArgs(1, "model_fileno");
-    model_fileno();
+  if(!noLog){
+    _LOG
   }
+  int count;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  FILE* file;
+  get_val(count, s_offset, __func__, file);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) fileno(file), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();
 }
 
 //http://man7.org/linux/man-pages/man2/fcntl.2.html
 //int fcntl(int fd, int cmd, ... /* arg */ );
 void Executor::model_fcntl() {
-  if (!noLog) {
-    printf("Entering model_fcntl at interpCtr %lu \n", interpCtr);
+  if(!noLog){
+    _LOG
   }
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) &&
-       (isa<ConstantExpr>(arg3Expr)) 
-       ){
+  int count;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
 
+  int fd;
+  int cmd;
+  int flag;
+  get_vals(count, s_offset, __func__, fd, cmd, flag);
 
-    if ( (int) target_ctx_gregs[GREG_RSI].u64 == F_SETFL && (int) target_ctx_gregs[GREG_RDX].u64 == O_NONBLOCK) {
-      printf("fcntl call to set fd as nonblocking \n");
-      fflush(stdout);
-    } else {
-      printf("fctrl called with unmodeled args \n");
-      fflush(stdout);
-    }
-
-    int res = 0;
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    
-    do_ret();//Fake a return
-
+  if ( cmd == F_SETFL && flag == O_NONBLOCK) {
+    std::cout << "fcntl call to set fd as nonblocking" << std::endl;
   } else {
-    concretizeGPRArgs(3, "model_fcntl");
-    model_fcntl();
+    std::cout << "fcntl called with unmodeled args" << std::endl;
   }
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) 0, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();
 }
 
 
@@ -950,41 +927,30 @@ void Executor::model_fcntl() {
 //int stat(const char *pathname, struct stat *statbuf);
 //Todo: Make option to return symbolic result, and proprerly inspect input
 void Executor::model_stat() {
-  if (!noLog) {
-    printf("Entering model_stat \n");
+  if(!noLog){
+    _LOG
   }
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
+  int count;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
 
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr))
-       ){
+  char* pathname;
+  struct stat* statbuf;
+  get_vals(count, s_offset, __func__, pathname, statbuf);
 
-    //return res of call
-    int res = stat((char *) target_ctx_gregs[GREG_RDI].u64, (struct stat *) target_ctx_gregs[GREG_RSI].u64);
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    
-    do_ret();//Fake a ret
-    
-  } else {
-    concretizeGPRArgs(1, "model_stat");
-    model_stat();
-  }
-  
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) stat(pathname, statbuf), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();
 }
 
 
 //Just returns the current process's pid.  We can make this symbolic if we want later, or force a val
 //that returns the same number regardless of worker forking.
 void Executor::model_getpid() {
-
   int pid = getpid();
   ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) pid, Expr::Int64);
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-  
-  do_ret();//Fake a ret
+  do_ret();
 
 }
 
@@ -992,11 +958,9 @@ void Executor::model_getpid() {
 //http://man7.org/linux/man-pages/man2/getuid.2.html
 //Todo -- determine if we should fix result, see if uid_t is ever > 64 bits
 void Executor::model_getuid() {
-
   uid_t uidResult = getuid();
   ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) uidResult, Expr::Int64);
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-  
   do_ret();//Fake a ret
   
 }

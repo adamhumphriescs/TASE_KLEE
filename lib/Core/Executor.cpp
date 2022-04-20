@@ -4371,7 +4371,7 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &fprintf, &Executor::model_fprintf},
 //  {(uint64_t) &vfprintf,  &Executor::model_vfprintf},
   {(uint64_t) &write,  &Executor::model_write},
-
+  {(uint64_t) &ioctl, &Executor::model_ioctl},
   {(uint64_t) &strtof_tase,  &Executor::model_strtof},
   {(uint64_t) &strtod_tase,  &Executor::model_strtod},
   {(uint64_t) &strtold_tase,  &Executor::model_strtold},
