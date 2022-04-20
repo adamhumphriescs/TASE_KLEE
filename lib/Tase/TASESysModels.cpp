@@ -122,17 +122,31 @@ bool roundUpHeapAllocations = true; //Round the size Arg of malloc, realloc, and
 
 std::map<void *, void *> heap_guard_map; //
 
+template<typename T, bool U>
+struct as_helper;
 
-template<typename T> T as(tase_greg_t t);
-template<typename T> T* as(tase_greg_t t){return (T*) t.u64;}
-template<> uint64_t as(tase_greg_t t){return t.u64;}
-template<> int64_t as(tase_greg_t t){return t.i64;}
-template<> uint32_t as(tase_greg_t t){return t.u32;}
-template<> int32_t as(tase_greg_t t){return t.i32;}
-template<> int16_t as(tase_greg_t t){return t.i16;}
-template<> uint16_t as(tase_greg_t t){return t.u16;}
-template<> double as(tase_greg_t t){return t.dbl;}
-template<> char as(tase_greg_t t){return (char) t.u8;}
+template<typename T, true>
+struct as_helper {
+  static T* operator()(tase_greg_t t){return (typename std::remove_pointer(T)::type*) t.u64;}
+}
+
+template<typename T, false>
+struct as_helper {
+  static T operator()(tase_greg_t t){return _as<T>(t);}
+}
+
+template<typename T> T as(tase_greg_t t){return as_helper<T, std::is_pointer(T)::value>()(t);}
+//template<typename T> T* as(tase_greg_t t){return (T*) t.u64;}
+
+template<typename T> T _as(tase_greg_t t);
+template<> uint64_t _as(tase_greg_t t){return t.u64;}
+template<> int64_t _as(tase_greg_t t){return t.i64;}
+template<> uint32_t _as(tase_greg_t t){return t.u32;}
+template<> int32_t _as(tase_greg_t t){return t.i32;}
+template<> int16_t _as(tase_greg_t t){return t.i16;}
+template<> uint16_t _as(tase_greg_t t){return t.u16;}
+template<> double _as(tase_greg_t t){return t.dbl;}
+template<> char _as(tase_greg_t t){return (char) t.u8;}
 /*
 template<> char * as(tase_greg_t t){return (char*) t.u64;}
 template<> wchar_t* as(tase_greg_t t){return (wchar_t*) t.u64;}
@@ -356,7 +370,7 @@ void Executor::get_val(int& count, uint64_t* &s_offset, const std::string& reaso
   if(count < 6){
     ref<Expr> aref = target_ctx_gregs_OS->read(count < 4 ? (5-count)*8 : (4+count)*8, Expr::Int64);
     if(isa<ConstantExpr>(aref)){
-      t =  as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
+      t = as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     } else {
       ref<Expr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason.c_str());
       tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, aref2);
