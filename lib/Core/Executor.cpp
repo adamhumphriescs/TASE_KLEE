@@ -5056,15 +5056,15 @@ void Executor::initializeInterpretationStructures (Function *f) {
   tase_map_buf((uint64_t) rodata_base_ptr, rodata_size);
 
   //Map in special stdin libc symbol
-  tase_map_buf((uint64_t) &stdin, 8);
+  //tase_map_buf((uint64_t) &stdin, 8);
   
   //Map in special stdout libc symbol
-  tase_map_buf((uint64_t) &stdout, 8);
-  tase_map_buf((uint64_t) stdout, sizeof(FILE));
+  //tase_map_buf((uint64_t) &stdout, 8);
+  //tase_map_buf((uint64_t) stdout, sizeof(FILE));
   //tase_map(stdout);
   //Map in special stderr libc symbol
-  tase_map_buf((uint64_t) &stderr, 8);
-  printf("stream globals: out/err/in  %lx/%lx/%lx", &stdout, &stderr, &stdin);
+  //tase_map_buf((uint64_t) &stderr, 8);
+  //printf("stream globals: out/err/in  %lx/%lx/%lx", &stdout, &stderr, &stdin);
   //Map in initialized and uninitialized non-read only globals into klee from .vars file.
   std::string varsFileLocation = "./" + project + ".vars";
   std::ifstream externals(varsFileLocation);

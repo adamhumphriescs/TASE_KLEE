@@ -2757,6 +2757,7 @@ void Executor::model_wcstoumax() {
 void Executor::model_mbsrtowcs(){
   if(!noLog){
     printf("Entering model_mbsrtowcs at interpCtr %lu \n", interpCtr);
+    fflush("stdout");
   }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
@@ -2769,8 +2770,6 @@ void Executor::model_mbsrtowcs(){
   size_t max;
   mbstate_t* ps;
   get_vals(count, s_offset, reason, dest, src, max, ps);
-
-  std::string out = model_printf_base(count, s_offset, reason);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) mbsrtowcs(dest, src, max, ps), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
