@@ -481,7 +481,7 @@ private:
   std::string model_printf_base(int& count, uint64_t* &s_offset, const std::string& reason);
 
   template<typename... Ts>
-  std::string model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, Ts...);
+  std::string model_printf_base_helper(int& count, uint64_t* &s_offset, std::string& reason, char type, const std::string& ff, const std::string& out, Ts...);
 
 
   void sprintf_helper(char* outstr, const std::string& ff, ...);

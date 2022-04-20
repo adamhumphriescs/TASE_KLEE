@@ -161,8 +161,7 @@ void printBuf(FILE * f,void * buf, size_t count)
 //entirely made up of constant expressions
 void Executor::rewriteConstants(uint64_t base, size_t size) {
   if (modelDebug) {
-    printf("Rewriting constant array \n");
-    fflush(stdout);
+    std::cout << "Rewriting constant array" << std::endl;
   }
 
   //Fast path -- if no taint in buffer, can't have exprs
@@ -177,13 +176,11 @@ void Executor::rewriteConstants(uint64_t base, size_t size) {
 	)
       ) {
     if (modelDebug) {
-      printf("Base does not appear to be in rodata \n");
-      fflush(stdout);
+      std::cout << "Base does not appear to be in rodata" << std::endl;
     }
   } else {
     if (modelDebug) {
-      printf("Found base in rodata.  Returning from rewriteConstants without doing anything \n");
-      fflush(stdout);
+      std::cout << "Found base in rodata.  Returning from rewriteConstants without doing anything" << std::endl;
     }
     return;
   }
@@ -204,13 +201,13 @@ void Executor::rewriteConstants(uint64_t base, size_t size) {
 
   }
   if (modelDebug) {
-    printf("End result: \n");
-    printBuf(stdout,(void *) base, size);
+    std::cout << "End result:" << std::endl;
+    printBuf(stdout, (void *) base, size);
   }
 }
 
 
-void Executor::model_putchar() {
+/*void Executor::model_putchar() {
   ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
   if  ((isa<ConstantExpr>(arg1Expr)) ) {
     //Just pass the call through and print to stdout.
@@ -227,6 +224,21 @@ void Executor::model_putchar() {
     concretizeGPRArgs(1, "model_putchar");
     model_putchar();
   }
+  }*/
+
+void Executor::model_putchar(){
+  if(!noLog){
+    _LOG
+  }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  ++s_offset;
+
+  char c;
+  get_val(count, s_offset, __fname__, c);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) putchar(c), Expr::Int64);
+  tase_helper_write((uint64_t)&target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
 }
 
 //Todo -- figure out the endianness issue with
