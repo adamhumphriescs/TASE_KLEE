@@ -1034,14 +1034,14 @@ void Executor::model_time() {
 
   time_t* tloc;
   get_val(count, s_offset, __func__, tloc);
-
+  time_t res = time(tloc);
   if (!noLog) {
-    char * timeString = ctime(&res);
+    char * timeString = ctime(tloc);
     std::cout << "timeString is " << timeString std::endl;
     std::cout << "Size of timeVal is " << sizeof(time_t) << std::endl;
   }
     
-  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) time(tloc), Expr::Int64);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
   do_ret();
 }
