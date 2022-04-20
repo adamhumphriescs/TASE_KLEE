@@ -235,7 +235,7 @@ void Executor::model_putchar(){
   ++s_offset;
 
   char c;
-  get_val(count, s_offset, __fname__, c);
+  get_val(count, s_offset, __func__, c);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) putchar(c), Expr::Int64);
   tase_helper_write((uint64_t)&target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -580,7 +580,7 @@ void Executor::model_printf(){
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
 
-  std::string out = model_printf_base(count, s_offset, __fname__);
+  std::string out = model_printf_base(count, s_offset, __func__);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) printf("%s", out.c_str()), Expr::Int64);
   tase_helper_write((uint64_t)&target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -596,7 +596,7 @@ void Executor::model_sprintf(){
   ++s_offset;
 
   char* argout;
-  get_val(count, s_offset, __fname__, argout);
+  get_val(count, s_offset, __func__, argout);
 
   std::string out = model_printf_base(count, s_offset, reason);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sprintf(argout, "%s", out.c_str()), Expr::Int64);
@@ -635,7 +635,7 @@ void Executor::model_vsnprintf(){
 
   char * argout;
   size_t size;
-  get_vals(count, s_offset, __fname__, argout, size);
+  get_vals(count, s_offset, __func__, argout, size);
 
   std::string out = model_printf_base(count, s_offset, reason);
   sprintf(argout, "%s", out.substr(0, size-1 <= out.size() ? size-1 : out.size()).c_str());
@@ -654,7 +654,7 @@ void Executor::model_vasprintf(){
   ++s_offset;
 
   char ** argout;
-  get_val(count, s_offset, __fname__, argout);
+  get_val(count, s_offset, __func__, argout);
 
   std::string out = model_printf_base(count, s_offset, reason);
 
@@ -678,7 +678,7 @@ void Executor::model_sigemptyset(){
   ++s_offset;
 
   sigset_t * set;
-  get_val(count, s_offset, __fname__, set);
+  get_val(count, s_offset, __func__, set);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigemptyset(set), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -694,7 +694,7 @@ void Executor::model_sigfillset(){
   ++s_offset;
 
   sigset_t * set;
-  get_val(count, s_offset, __fname__, set);
+  get_val(count, s_offset, __func__, set);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigfillset(set), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -711,7 +711,7 @@ void Executor::model_sigaddset(){
 
   sigset_t * set;
   int signum;
-  get_vals(count, s_offset, __fname__, set, signum);
+  get_vals(count, s_offset, __func__, set, signum);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigaddset(set, signum), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -730,7 +730,7 @@ void Executor::model_sigaction(){
   int signum;
   struct sigaction * set;
   struct sigaction * oldset;
-  get_vals(count, s_offset, __fname__, signum, set, oldset);
+  get_vals(count, s_offset, __func__, signum, set, oldset);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigaction(signum, set, oldset), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -752,7 +752,7 @@ void Executor::model_sigprocmask(){
   int how;
   sigset_t * set;
   sigset_t * oldset;
-  get_vals(count, s_offset, __fname__, how, set, oldset);
+  get_vals(count, s_offset, __func__, how, set, oldset);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigprocmask(how, set, oldset), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -771,7 +771,7 @@ void Executor::model_gethostname(){
 
   char* name;
   size_t len;
-  get_vals(count, s_offset, __fname__, name, len);
+  get_vals(count, s_offset, __func__, name, len);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) gethostname(name, len), Expr::Int64);
   tase_helper_write((int64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -787,7 +787,7 @@ void Executor::model_ioctl(){
   int fd;
   int request;
   int *value;
-  get_vals(count, s_offset, __fname__, fd, request, value);
+  get_vals(count, s_offset, __func__, fd, request, value);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) ioctl(fd, request, value), Expr::Int64);
   tase_helper_write((int64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
