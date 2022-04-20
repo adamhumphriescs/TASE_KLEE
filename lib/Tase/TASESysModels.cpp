@@ -245,82 +245,62 @@ void Executor::model_putchar(){
 //copying 2 bytes at a time in the slow unaligned path
 void Executor::model_memcpy_tase() {
   if (!noLog) {
-    printf("Entering model_memcpy \n");
+    _LOG
   }
-  double T0= util::getWallTime();
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
+  double T0 = util::getWallTime();
 
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) &&
-       (isa<ConstantExpr>(arg3Expr))
-       ){
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  ++s_offset;
+  void* dst;
+  void* src;
+  size_t s;
+  get_vals(count, s_offset, __func__, dst, src, s);
 
-    
-    
-    int zero = 0; //Force kill rcx -- Should be fine because it's caller-saved.
-    ref<ConstantExpr> zeroExpr = ConstantExpr::create((uint64_t) zero, Expr::Int64);
-    tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RCX], zeroExpr);
-    
-    void * dst = (void *) target_ctx_gregs[GREG_RDI].u64;
-    void * src = (void *) target_ctx_gregs[GREG_RSI].u64;
-    size_t s = (size_t) target_ctx_gregs[GREG_RDX].u64;
+  int zero = 0; //Force kill rcx -- Should be fine because it's caller-saved.
+  ref<ConstantExpr> zeroExpr = ConstantExpr::create((uint64_t) zero, Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RCX], zeroExpr);
 
-    if (isBufferEntirelyConcrete((uint64_t) dst, s) && isBufferEntirelyConcrete((uint64_t) src, s)) {
-      rewriteConstants((uint64_t) dst, s);
-      rewriteConstants((uint64_t) src, s);
-      memcpy(dst, src, s);
-    } else {
-      
-      
-      
-      //Fast path aligned case
-      if ((((uint64_t) dst) %2 == 0) && (((uint64_t) src) % 2 == 0) && (((uint64_t) s) %2 == 0)) {
-	for (uint i = 0; i < s; i++) {
+  if (isBufferEntirelyConcrete((uint64_t) dst, s) && isBufferEntirelyConcrete((uint64_t) src, s)) {
+    rewriteConstants((uint64_t) dst, s);
+    rewriteConstants((uint64_t) src, s);
+    memcpy(dst, src, s);
+  } else {
+
+    //Fast path aligned case
+    if ((((uint64_t) dst) %2 == 0) && (((uint64_t) src) % 2 == 0) && (((uint64_t) s) %2 == 0)) {
+      for (uint i = 0; i < s; i++) {
 	  
-	  if (i%2 == 0
-	      && *((uint16_t *) ((uint64_t) src + i) ) != poison_val
-	      && *((uint16_t *) ((uint64_t) dst + i) ) != poison_val
+        if (i%2 == 0
+            && *((uint16_t *) ((uint64_t) src + i) ) != poison_val
+            && *((uint16_t *) ((uint64_t) dst + i) ) != poison_val
 	      )
-	    {
-	      *((uint16_t *) ((uint64_t) dst + i) )  = *((uint16_t *) ((uint64_t) src + i) );
-	      i++;
-	    } else {
-	    
-	    
-	    
-	    ref <Expr> b = tase_helper_read((uint64_t) src + i, 1);
-	    tase_helper_write((uint64_t) dst +i,b );
-	    
-	  }
-	}
+        {
+          *((uint16_t *) ((uint64_t) dst + i) )  = *((uint16_t *) ((uint64_t) src + i) );
+          i++;
+        } else {
 
-	
-      } else {
-	for (uint i = 0; i < s; i++) {
-	  ref <Expr> b = tase_helper_read((uint64_t) src + i, 1);
-	  tase_helper_write((uint64_t) dst +i,b );
-	}
+          ref <Expr> b = tase_helper_read((uint64_t) src + i, 1);
+          tase_helper_write((uint64_t) dst+i, b);
+	    
+        }
+      }
+
+    } else {
+      for (uint i = 0; i < s; i++) {
+        ref <Expr> b = tase_helper_read((uint64_t) src + i, 1);
+        tase_helper_write((uint64_t) dst+i, b);
       }
     }
-    
-    double T1 = util::getWallTime();
-    if (!noLog) {
-      printf("Memcpy took %lf seconds \n", T1-T0);
-    }
-    void * res = dst;
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    
-    do_ret();
-      
-  } else {
-    concretizeGPRArgs(3, "model_memcpy");
-    model_memcpy_tase();
   }
-  
+    
+  double T1 = util::getWallTime();
+  if (!noLog) {
+    std::cout << "Memcpy took " << (T1-T0) << " seconds \n" << std::endl;
+  }
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) dst, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();
 }
 
 
@@ -341,8 +321,7 @@ void Executor::killDeadRegsPreCall() {
 //Utility function to fake x86_64 retq instruction
 //at end of model.
 void Executor::do_ret() {
-  uint64_t retAddr = *((uint64_t *) target_ctx_gregs[GREG_RSP].u64);
-  target_ctx_gregs[GREG_RIP].u64 = retAddr;
+  target_ctx_gregs[GREG_RIP].u64 = *((uint64_t*) target_ctx_gregs[GREG_RSP].u64);
   target_ctx_gregs[GREG_RSP].u64 += 8;
 }
 /*
