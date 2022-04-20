@@ -309,14 +309,10 @@ void Executor::model_memcpy_tase() {
 //symbolic taint.  Used to help avoid interpreting through
 //prohibitive functions.
 void Executor::killDeadRegsPreCall() {
-  
-  uint64_t zero = 0;
-  ref<ConstantExpr> zeroExpr = ConstantExpr::create((uint64_t) zero, Expr::Int64);
-
+  ref<ConstantExpr> zeroExpr = ConstantExpr::create((uint64_t) 0, Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_R14].u64, zeroExpr);
-  
-
 }
+
 
 //Utility function to fake x86_64 retq instruction
 //at end of model.
@@ -577,7 +573,7 @@ void Executor::model_sprintf(){
   char* argout;
   get_val(count, s_offset, __func__, argout);
 
-  std::string out = model_printf_base(count, s_offset, reason);
+  std::string out = model_printf_base(count, s_offset, __func__);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sprintf(argout, "%s", out.c_str()), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -592,12 +588,10 @@ void Executor::model_fprintf(){
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
 
-  char reason[15] = "model_fprintf\n";
-
   FILE* argout;
-  get_val(count, s_offset, reason, argout);
+  get_val(count, s_offset, __func__, argout);
 
-  std::string out = model_printf_base(count, s_offset, reason);
+  std::string out = model_printf_base(count, s_offset, __func__);
   printf("fprintf string: %s", out.c_str());
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) fprintf(argout, "%s", out.c_str()), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -616,7 +610,7 @@ void Executor::model_vsnprintf(){
   size_t size;
   get_vals(count, s_offset, __func__, argout, size);
 
-  std::string out = model_printf_base(count, s_offset, reason);
+  std::string out = model_printf_base(count, s_offset, __func__);
   sprintf(argout, "%s", out.substr(0, size-1 <= out.size() ? size-1 : out.size()).c_str());
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) out.size(), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -635,7 +629,7 @@ void Executor::model_vasprintf(){
   char ** argout;
   get_val(count, s_offset, __func__, argout);
 
-  std::string out = model_printf_base(count, s_offset, reason);
+  std::string out = model_printf_base(count, s_offset, __func__);
 
   char * outstr = (char*) calloc(1, (out.size()+1)*sizeof(char));
   tase_map_buf((uint64_t) outstr, (out.size()+1)*sizeof(char));
@@ -2743,20 +2737,18 @@ void Executor::model_wcstoumax() {
 // size_t mbsrtowcs (wchar_t* dest, const char** src, size_t max, mbstate_t* ps);
 void Executor::model_mbsrtowcs(){
   if(!noLog){
-    printf("Entering model_mbsrtowcs at interpCtr %lu \n", interpCtr);
-    fflush(stdout);
+    _LOG
   }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
 
-  char reason[17] = "model_mbsrtowcs\n";
 
   wchar_t* dest;
   const char** src;
   size_t max;
   mbstate_t* ps;
-  get_vals(count, s_offset, reason, dest, src, max, ps);
+  get_vals(count, s_offset, __func__, dest, src, max, ps);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) mbsrtowcs(dest, src, max, ps), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -2797,14 +2789,16 @@ void Executor::model_puts() {
 }
 
 void Executor::model_setlocale(){
+  if(!noLog){
+    _LOG
+  }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
-  char reason[17] = "model_setlocale\n";
   int category;
   char * locale;
-  get_vals(count, s_offset, reason, category, locale);
+  get_vals(count, s_offset, __func__, category, locale);
 
   char * out = setlocale(category, locale);
   ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) out, Expr::Int64);
