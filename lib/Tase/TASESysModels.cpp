@@ -143,7 +143,7 @@ template<> sigset_t* as(tase_greg_t t){return (sigset_t*) t.u64;}
 template<> struct sigaction* as(tase_greg_t t){return (struct sigaction*) t.u64;}
 template<> mbstate_t* as(tase_greg_t t){return (mbstate_t*) t.u64;}
 template<> void* as(tase_greg_t t){return (void*) t.u64;}
-template<> time_t* as(tase_greg_t t){return (time_t*) t.u64;}
+//template<> time_t* as(tase_greg_t t){return (time_t*) t.u64;}
 
 #define _LOG std::cout << "Entering " << __func__ << " at interpCtr " << interpCtr << std::endl;
 
