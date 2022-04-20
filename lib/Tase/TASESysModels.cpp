@@ -129,7 +129,7 @@ template<typename T> T _as(tase_greg_t t);
 
 template<typename T>
 struct as_helper<T, true> {
-  static T* conv(tase_greg_t t){return (typename std::remove_pointer<T>::type*) t.u64;}
+  static T* conv(tase_greg_t t){return (T) t.u64;}
 };
 
 template<typename T>
