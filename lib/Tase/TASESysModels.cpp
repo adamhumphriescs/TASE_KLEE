@@ -786,10 +786,10 @@ void Executor::model_gethostname(){
   do_ret();
 }
 
-
+// for samba, which calls once with a single int* param in varargs
 void Executor::model_ioctl(){
   if (!noLog) {
-    cout << "Entering model_ioctl" << std::endl;
+    std::cout << "Entering model_ioctl" << std::endl;
   }
 
   char reason[13] = "model_ioctl\n";
