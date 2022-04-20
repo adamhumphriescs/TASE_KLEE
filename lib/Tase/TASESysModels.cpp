@@ -85,6 +85,7 @@ using namespace klee;
 #include <fstream>
 #include <byteswap.h>
 #include <regex>
+#include <sys/ioctl.h>
 
 //#include "../../../musl/arch/x86_64/pthread_arch.h"
 //#include "../../../musl/src/internal/pthread_impl.h"
