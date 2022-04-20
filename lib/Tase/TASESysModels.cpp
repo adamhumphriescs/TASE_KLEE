@@ -143,7 +143,7 @@ template<> sigset_t* as(tase_greg_t t){return (sigset_t*) t.u64;}
 template<> struct sigaction* as(tase_greg_t t){return (struct sigaction*) t.u64;}
 template<> mbstate_t* as(tase_greg_t t){return (mbstate_t*) t.u64;}
 template<> void* as(tase_greg_t t){return (void*) t.u64;}
-
+template<> time_t* as(tase_greg_t t){return (time_t*) t.u64;}
 
 #define _LOG std::cout << "Entering " << __func__ << " at interpCtr " << interpCtr << std::endl;
 
@@ -969,11 +969,9 @@ void Executor::model_getuid() {
 //http://man7.org/linux/man-pages/man2/geteuid.2.html
 //Todo -- determine if we should fix result prior to forking, see if uid_t is ever > 64 bits
 void Executor::model_geteuid() {
-  
   uid_t euidResult = geteuid();
   ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) euidResult, Expr::Int64);
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
   do_ret();//Fake a ret
 
 }
@@ -982,11 +980,9 @@ void Executor::model_geteuid() {
 //http://man7.org/linux/man-pages/man2/getgid.2.html
 //Todo -- determine if we should fix result, see if gid_t is ever > 64 bits
 void Executor::model_getgid() {
-  
   gid_t gidResult = getgid();
   ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) gidResult, Expr::Int64);
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
   do_ret();//Fake a ret
 
 }
@@ -995,9 +991,7 @@ void Executor::model_getgid() {
 //http://man7.org/linux/man-pages/man2/getegid.2.html
 //Todo -- determine if we should fix result, see if gid_t is ever > 64 bits
 void Executor::model_getegid() {
-
   printf("Calling model_getegid() \n");
-  
   gid_t egidResult = getegid();
   ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) egidResult, Expr::Int64);
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
@@ -1010,26 +1004,18 @@ void Executor::model_getegid() {
 //http://man7.org/linux/man-pages/man3/getenv.3.html
 //Todo: This should be generalized, and also technically should inspect the input string's bytes
 void Executor::model_getenv() {
-
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) 
-       ){
-
-    char * res = getenv((char *) target_ctx_gregs[GREG_RDI].u64);
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    
-    do_ret();//Fake a ret
-
-
-  } else {
-
-    concretizeGPRArgs(1, "model_getenv");
-    model_getenv();
-    
+  if(!noLog){
+    _LOG
   }
+  int count;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  char* name;
+  get_val(count, s_offset, __func__, name);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) getenv(name), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();//Fake a ret
 }
 
 
@@ -1039,31 +1025,25 @@ void Executor::model_getenv() {
 //time_t time(time_t *tloc);
 // http://man7.org/linux/man-pages/man2/time.2.html
 void Executor::model_time() {
-  if (!noLog) {
-    printf("Entering call to time at interpCtr %lu \n", interpCtr);
-    fflush(stdout);
+  if(!noLog){
+    _LOG
   }
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) ) {
-    time_t res = time( (time_t *) target_ctx_gregs[GREG_RDI].u64);
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
+  int count;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
 
+  time_t* tloc;
+  get_val(count, s_offset, __func__, tloc);
+
+  if (!noLog) {
     char * timeString = ctime(&res);
-    if (!noLog) {
-      printf("timeString is %s \n", timeString);
-      printf("Size of timeVal is %lu \n", sizeof(time_t));
-    }
-    
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    do_ret();//fake a ret
-    
-  } else {
-    concretizeGPRArgs(1, "model_time");
-    model_time();
+    std::cout << "timeString is " << timeString std::endl;
+    std::cout << "Size of timeVal is " << sizeof(time_t) << std::endl;
   }
-  
+    
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) time(tloc), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();
 }
 
 
