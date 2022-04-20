@@ -485,6 +485,8 @@ private:
 
 
   void sprintf_helper(char* outstr, const std::string& ff, ...);
+  void model_ioctl();
+
 
   //void model_vfprintf();
   void model_sprintf();
