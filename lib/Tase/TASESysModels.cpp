@@ -757,6 +757,10 @@ void Executor::model_ioctl(){
      _LOG
   }
 
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
   int fd;
   int request;
   int *value;
@@ -772,8 +776,7 @@ extern int * __errno_location();
 
 void Executor::model___errno_location() {
   if (modelDebug && !noLog) {
-    printf("Entering model for __errno_location \n");
-
+    _LOG
   }
   //Perform the call
   int * res = __errno_location();
