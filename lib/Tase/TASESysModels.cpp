@@ -787,6 +787,24 @@ void Executor::model_gethostname(){
 }
 
 
+void Executor::model_ioctl(){
+  if (!noLog) {
+    cout << "Entering model_ioctl" << std::endl;
+  }
+
+  char reason[13] = "model_ioctl\n";
+
+  int fd;
+  int request;
+  int *value;
+  get_vals(count, s_offset, reason, fd, request, value);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) ioctl(fd, request, value), Expr::Int64);
+  tase_helper_write((int64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
+}
+
+
+
 extern int * __errno_location();
 
 void Executor::model___errno_location() {
