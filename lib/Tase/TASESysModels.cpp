@@ -125,6 +125,8 @@ std::map<void *, void *> heap_guard_map; //
 template<typename T, bool U>
 struct as_helper;
 
+template<typename T> T _as(tase_greg_t t);
+
 template<typename T>
 struct as_helper<T, true> {
   static T* conv(tase_greg_t t){return (typename std::remove_pointer<T>::type*) t.u64;}
@@ -138,7 +140,6 @@ struct as_helper<T, false> {
 template<typename T> T as(tase_greg_t t){return as_helper<T, std::is_pointer<T>::value>::conv()(t);}
 //template<typename T> T* as(tase_greg_t t){return (T*) t.u64;}
 
-template<typename T> T _as(tase_greg_t t);
 template<> uint64_t _as(tase_greg_t t){return t.u64;}
 template<> int64_t _as(tase_greg_t t){return t.i64;}
 template<> uint32_t _as(tase_greg_t t){return t.u32;}
