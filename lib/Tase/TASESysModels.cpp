@@ -418,8 +418,6 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
       int64_t arg;
       get_val(count, s_offset, reason, arg);
       sprintf_helper(&outstr[0], ff, ts..., arg);
-      //printf("got val: %d\n", arg);
-      //fflush(stdout);
     }
     break;
     case 'u': //unsigned int
@@ -431,8 +429,6 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
       uint64_t arg;
       get_val(count, s_offset, reason, arg);
       sprintf_helper(&outstr[0], ff, ts..., arg);
-      //printf("got val: %d\n", arg);
-      //fflush(stdout);
     }
     break;
     case 'f': // fp - the difference in size matters here. Check if x[3] is L or not? for now just ignore - no long doubles allowed!
@@ -465,8 +461,6 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
       printf("printf get_val %s\n", arg);
       fflush(stdout);
       sprintf_helper(&outstr[0], ff, ts..., arg);
-      //printf("got val: %s", arg);
-      //fflush(stdout);
     }
     break;
 
@@ -808,14 +802,13 @@ void Executor::model___errno_location() {
 
 void Executor::model_exit() {
 
-  printf(" Found call to exit.  TASE should shutdown. \n");
+  std::cout << " Found call to exit.  TASE should shutdown." << std::endl;
   std::cout.flush();
   //Todo: Make a flag to only print round/pass for multipass
   //printf("IMPORTANT: Worker exiting from terminal path in round %d pass %d from model_exit \n", round_count, pass_count);
   std::cout.flush();
   worker_exit();
   std::exit(EXIT_SUCCESS);
-
 }
 
 //http://man7.org/linux/man-pages/man2/write.2.html
