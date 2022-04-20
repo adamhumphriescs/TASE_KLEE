@@ -2757,7 +2757,7 @@ void Executor::model_wcstoumax() {
 void Executor::model_mbsrtowcs(){
   if(!noLog){
     printf("Entering model_mbsrtowcs at interpCtr %lu \n", interpCtr);
-    fflush("stdout");
+    fflush(stdout);
   }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
