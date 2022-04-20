@@ -125,13 +125,13 @@ std::map<void *, void *> heap_guard_map; //
 template<typename T, bool U>
 struct as_helper;
 
-template<typename T, true>
-struct as_helper {
+template<typename T>
+struct as_helper<T, true> {
   static T* operator()(tase_greg_t t){return (typename std::remove_pointer(T)::type*) t.u64;}
 }
 
-template<typename T, false>
-struct as_helper {
+template<typename T>
+struct as_helper<T, false> {
   static T operator()(tase_greg_t t){return _as<T>(t);}
 }
 
