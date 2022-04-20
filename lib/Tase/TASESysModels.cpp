@@ -366,7 +366,7 @@ void Executor::get_val(int& count, uint64_t* &s_offset, const std::string& reaso
     if(isa<ConstantExpr>(aref)){
       t =  as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     } else {
-      ref<Expr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason);
+      ref<Expr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason.c_str());
       tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, aref2);
       t = as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     }
@@ -376,7 +376,7 @@ void Executor::get_val(int& count, uint64_t* &s_offset, const std::string& reaso
     if(isa<ConstantExpr>(aref)){
       t = *((T*)s_offset);
     } else {
-      ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason);
+      ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason.c_str());
       tase_helper_write((uint64_t) s_offset, aref2);
     }
     ++s_offset;
