@@ -388,13 +388,13 @@ private:
 
 
   template<typename... T>
-  void get_vals(int& count, uint64_t* &s_offset, const char* reason);
+  void get_vals(int& count, uint64_t* &s_offset, const std::string& reason);
 
   template<typename T>
-  void get_val(int& count, uint64_t* &s_offset, const char* reason, T& t);
+  void get_val(int& count, uint64_t* &s_offset, const std::string& reason, T& t);
 
   template<typename U, typename... T>
-  void get_vals(int& count, uint64_t* &s_offset, const char* reason, U& u, T&... t);
+  void get_vals(int& count, uint64_t* &s_offset, const std::string& reason, U& u, T&... t);
 
   void model_tase_debug();
   
@@ -478,7 +478,7 @@ private:
   void model___isoc99_sscanf();
   void model_putchar();
 
-  std::string model_printf_base(int& count, uint64_t* &s_offset, char* reason);
+  std::string model_printf_base(int& count, uint64_t* &s_offset, const std::string& reason);
 
   template<typename... Ts>
   std::string model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, Ts...);

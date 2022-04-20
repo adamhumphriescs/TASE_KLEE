@@ -143,6 +143,8 @@ template<> struct sigaction* as(tase_greg_t t){return (struct sigaction*) t.u64;
 template<> mbstate_t* as(tase_greg_t t){return (mbstate_t*) t.u64;}
 
 
+#define _LOG std::cout << "Entering " << __func__ << " at interpCtr " << interpCtr << std::endl;
+
 void printBuf(FILE * f,void * buf, size_t count)
 {
   fprintf(f,"Calling printBuf with count %d \n", count);
@@ -358,7 +360,7 @@ void Executor::model_vfprintf(){
 
 
 template<typename T>
-void Executor::get_val(int& count, uint64_t* &s_offset, const char* reason, T& t){
+void Executor::get_val(int& count, uint64_t* &s_offset, const std::string& reason, T& t){
   if(count < 6){
     ref<Expr> aref = target_ctx_gregs_OS->read(count < 4 ? (5-count)*8 : (4+count)*8, Expr::Int64);
     if(isa<ConstantExpr>(aref)){
@@ -382,13 +384,13 @@ void Executor::get_val(int& count, uint64_t* &s_offset, const char* reason, T& t
 }
 
 template<typename U, typename... T>
-void Executor::get_vals(int& count, uint64_t* &s_offset, const char* reason, U& u, T&... ts){
+void Executor::get_vals(int& count, uint64_t* &s_offset, const std::string& reason, U& u, T&... ts){
   get_val(count, s_offset, reason, u);
   get_vals(count, s_offset, reason, ts...);
 }
 
 template<typename... T>
-void Executor::get_vals(int& count, uint64_t* &s_offset, const char* reason){
+void Executor::get_vals(int& count, uint64_t* &s_offset, const std::string& reason){
   return;
 }
 
@@ -417,7 +419,7 @@ uint64_t * get_val(int fpcount, uint64_t *s_offset, double& t, const char* reaso
 
 
 template<typename... Ts>
-std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, char* reason, char type, const std::string& ff, const std::string& out, Ts... ts){
+std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, Ts... ts){
   char outstr[255];
 
   switch(type){
@@ -503,14 +505,13 @@ void Executor::sprintf_helper(char* outstr, const std::string& ff, ...){
 
 
 
-std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* reason){
+std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, const std::string& reason){
   char * fmtc;
   get_val(count, s_offset, reason, fmtc);
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
-    printf("%s with fmt string: \"%s\"\n", reason, fmtc);
-    fflush(stdout);
+    std::cout << reason << " with fmt string: \"" << fmt << "\"" << std::endl;
   }
 
   // possibly useful alternative for doubles:
@@ -561,14 +562,13 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, char* r
 // printf(const char * fmt, ...)
 void Executor::model_printf(){
   if(!noLog){
-    printf("Entering model_printf at interpCtr %lu \n", interpCtr);
+    _LOG
   }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
 
-  char reason[14] = "model_printf\n";
-  std::string out = model_printf_base(count, s_offset, reason);
+  std::string out = model_printf_base(count, s_offset, __fname__);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) printf("%s", out.c_str()), Expr::Int64);
   tase_helper_write((uint64_t)&target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -577,16 +577,14 @@ void Executor::model_printf(){
 
 void Executor::model_sprintf(){
   if(!noLog){
-    printf("Entering model_sprintf at interpCtr %lu \n", interpCtr);
+    _LOG
   }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
 
-  char reason[15] = "model_sprintf\n";
-
   char* argout;
-  get_val(count, s_offset, reason, argout);
+  get_val(count, s_offset, __fname__, argout);
 
   std::string out = model_printf_base(count, s_offset, reason);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sprintf(argout, "%s", out.c_str()), Expr::Int64);
@@ -597,7 +595,7 @@ void Executor::model_sprintf(){
 
 void Executor::model_fprintf(){
   if(!noLog){
-    printf("Entering model_fprintf at interpCtr %lu \n", interpCtr);
+     _LOG
   }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
@@ -616,18 +614,16 @@ void Executor::model_fprintf(){
 }
 
 void Executor::model_vsnprintf(){
-    if(!noLog){
-    printf("Entering model_vsnprintf at interpCtr %lu \n", interpCtr);
+  if(!noLog){
+     _LOG
   }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
 
-  char reason[17] = "model_vsnprintf\n";
-
   char * argout;
   size_t size;
-  get_vals(count, s_offset, reason, argout, size);
+  get_vals(count, s_offset, __fname__, argout, size);
 
   std::string out = model_printf_base(count, s_offset, reason);
   sprintf(argout, "%s", out.substr(0, size-1 <= out.size() ? size-1 : out.size()).c_str());
@@ -638,17 +634,15 @@ void Executor::model_vsnprintf(){
 
 // sprintf but allocate a c str large enough, pass to char**. varargs...
 void Executor::model_vasprintf(){
-      if(!noLog){
-    printf("Entering model_vasprintf at interpCtr %lu \n", interpCtr);
+  if(!noLog){
+     _LOG
   }
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
   ++s_offset;
 
-  char reason[17] = "model_vasprintf\n";
-
   char ** argout;
-  get_val(count, s_offset, reason, argout);
+  get_val(count, s_offset, __fname__, argout);
 
   std::string out = model_printf_base(count, s_offset, reason);
 
@@ -664,35 +658,31 @@ void Executor::model_vasprintf(){
 
 void Executor::model_sigemptyset(){
   if(!noLog){
-    printf("Entering model_sigemptyset at %lu \n", interpCtr);
+     _LOG
   }
 
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
-  char reason[19] = "model_sigemptyset\n";
-
   sigset_t * set;
-  get_val(count, s_offset, reason, set);
+  get_val(count, s_offset, __fname__, set);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigemptyset(set), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
 }
 
 void Executor::model_sigfillset(){
-    if(!noLog){
-    printf("Entering model_sigfillset at %lu \n", interpCtr);
+  if(!noLog){
+     _LOG
   }
 
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
-  char reason[18] = "model_sigfillset\n";
-
   sigset_t * set;
-  get_val(count, s_offset, reason, set);
+  get_val(count, s_offset, __fname__, set);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigfillset(set), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
@@ -700,18 +690,16 @@ void Executor::model_sigfillset(){
 
 void Executor::model_sigaddset(){
   if(!noLog){
-    printf("Entering model_sigaddset at %lu \n", interpCtr);
+     _LOG
   }
 
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
-  char reason[17] = "model_sigaddset\n";
-
   sigset_t * set;
   int signum;
-  get_vals(count, s_offset, reason, set, signum);
+  get_vals(count, s_offset, __fname__, set, signum);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigaddset(set, signum), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -719,20 +707,18 @@ void Executor::model_sigaddset(){
 }
 
 void Executor::model_sigaction(){
-    if(!noLog){
-    printf("Entering model_sigaction at %lu \n", interpCtr);
+  if(!noLog){
+     _LOG
   }
 
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
-  char reason[17] = "model_sigaction\n";
-
   int signum;
   struct sigaction * set;
   struct sigaction * oldset;
-  get_vals(count, s_offset, reason, signum, set, oldset);
+  get_vals(count, s_offset, __fname__, signum, set, oldset);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigaction(signum, set, oldset), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -744,19 +730,17 @@ void Executor::model_sigaction(){
 //                       sigset_t *restrict oldset);
 void Executor::model_sigprocmask(){
   if(!noLog){
-    printf("Entering model_sigprocmask at %lu \n", interpCtr);
+     _LOG
   }
 
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
-  char reason[19] = "model_sigprocmask\n";
-
   int how;
   sigset_t * set;
   sigset_t * oldset;
-  get_vals(count, s_offset, reason, how, set, oldset);
+  get_vals(count, s_offset, __fname__, how, set, oldset);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) sigprocmask(how, set, oldset), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -765,21 +749,17 @@ void Executor::model_sigprocmask(){
 
 
 void Executor::model_gethostname(){
-    if(!noLog){
-    printf("Entering model_gethostname at %lu \n", interpCtr);
+  if(!noLog){
+    _LOG
   }
 
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
-  char reason[19] = "model_gethostname\n";
-
   char* name;
   size_t len;
-  get_vals(count, s_offset, reason, name, len);
-
-  //tase_map(name, len);
+  get_vals(count, s_offset, __fname__, name, len);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) gethostname(name, len), Expr::Int64);
   tase_helper_write((int64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -789,15 +769,13 @@ void Executor::model_gethostname(){
 // for samba, which calls once with a single int* param in varargs
 void Executor::model_ioctl(){
   if (!noLog) {
-    std::cout << "Entering model_ioctl" << std::endl;
+     _LOG
   }
-
-  char reason[13] = "model_ioctl\n";
 
   int fd;
   int request;
   int *value;
-  get_vals(count, s_offset, reason, fd, request, value);
+  get_vals(count, s_offset, __fname__, fd, request, value);
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) ioctl(fd, request, value), Expr::Int64);
   tase_helper_write((int64_t) &target_ctx_gregs[GREG_RAX], resExpr);
   do_ret();
