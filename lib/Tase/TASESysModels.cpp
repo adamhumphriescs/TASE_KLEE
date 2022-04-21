@@ -719,12 +719,12 @@ void Executor::model_vsnprintf(){
 }
 
 
-struct {
+struct tase_va_list {
   uint32_t gp_offset;
   uint32_t fp_offset;
   uint64_t* overflow;
   uint64_t* reg_save;
-} tase_va_list;
+};
 
 // sprintf but allocate a c str large enough, pass to char**. va_list
 void Executor::model_vasprintf(){
