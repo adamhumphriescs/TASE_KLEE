@@ -484,7 +484,7 @@ private:
 
     std::string model_printf_base(int& count, uint64_t* &s_offset, const std::string& reason);
 
-  std::string model_printf_base_va(uint64_t* &s_offset, const std::string& reason);
+  std::string model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason);
 
   template<typename... Ts>
   std::string model_printf_base_helper(int& count, uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, Ts...);

@@ -599,10 +599,10 @@ struct tase_va_list {
 };
 
 
-std::string Executor::model_printf_base_va(uint64_t* &s_offset, const std::string& reason){
+std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason){
   char * fmtc;
   tase_va_list *lst;
-  get_vals(s_offset, reason, fmtc, lst);
+  get_vals(count, s_offset, reason, fmtc, lst);
 
   // lst.overflow should be a ConstantExpr as seen in Executor.cpp / executeCall under va_start
   s_offset = lst->overflow;
@@ -723,7 +723,7 @@ void Executor::model_vsnprintf(){
   size_t size;
   get_vals(count, s_offset, __func__, argout, size);
 
-  std::string out = model_printf_base_va(s_offset, __func__);
+  std::string out = model_printf_base_va(count, s_offset, __func__);
   sprintf(argout, "%s", out.substr(0, size-1 <= out.size() ? size-1 : out.size()).c_str());
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) out.size(), Expr::Int64);
   tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
@@ -743,7 +743,7 @@ void Executor::model_vasprintf(){
   char ** argout;
   get_val(count, s_offset, __func__, argout);
 
-  std::string out = model_printf_base_va(s_offset, __func__);
+  std::string out = model_printf_base_va(count, s_offset, __func__);
 
   char * outstr = (char*) calloc(1, (out.size()+1)*sizeof(char));
   tase_map_buf((uint64_t) outstr, (out.size()+1)*sizeof(char));
