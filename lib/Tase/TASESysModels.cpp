@@ -335,6 +335,21 @@ void Executor::get_val(int& count, uint64_t* &s_offset, const std::string& reaso
   }
 }
 
+
+template<typename T>
+void Executor::get_val_va(uint64_t* &s_offset, const std::string& reason, T& t){
+  auto rr = reason + "\n";
+  ref<Expr> aref = tase_helper_read((uint64_t) s_offset, 8);
+  if(isa<ConstantExpr>(aref)){
+    t = *((T*)s_offset);
+  } else {
+    ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, rr.c_str());
+    tase_helper_write((uint64_t) s_offset, aref2);
+  }
+  ++s_offset;
+}
+
+
 template<typename U, typename... T>
 void Executor::get_vals(int& count, uint64_t* &s_offset, const std::string& reason, U& u, T&... ts){
   get_val(count, s_offset, reason, u);
@@ -422,7 +437,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       char* arg;
       get_val(count, s_offset, reason, arg);
-      printf("printf get_val<char*>: \"%s\"\n", arg);
+      printf("printf get_val<char*>: %d, \"%s\"\n", ts..., arg);
       fflush(stdout);
       sprintf_helper(&outstr[0], ff, ts..., arg);
     }
@@ -433,6 +448,78 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       int* arg;
       get_val(count, s_offset, reason, arg);
+      *arg = out.length();
+    }
+    break;
+  }
+
+  return type == 'n' ? "" : std::string(outstr);
+}
+
+
+template<typename... Ts>
+std::string Executor::model_printf_base_helper(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, Ts... ts){
+  char outstr[255];
+
+  switch(type){
+    case 'd': //signed int
+    case 'i':
+    {
+      // printf will down-convert (u)int64_t to whatever was specified in fmt string
+      int64_t arg;
+      get_val_va(s_offset, reason, arg);
+      sprintf_helper(&outstr[0], ff, ts..., arg);
+    }
+    break;
+    case 'u': //unsigned int
+    case 'o':
+    case 'x':
+    case 'X':
+      // same as above but unsigned
+    {
+      uint64_t arg;
+      get_val_va(s_offset, reason, arg);
+      sprintf_helper(&outstr[0], ff, ts..., arg);
+    }
+    break;
+    case 'f': // fp - the difference in size matters here. Check if x[3] is L or not? for now just ignore - no long doubles allowed!
+    case 'F':
+    case 'e':
+    case 'E':
+    case 'g':
+    case 'G':
+    case 'a':
+    case 'A':
+    {
+      double arg;
+      get_val_va(s_offset, reason, arg);
+      sprintf_helper( &outstr[0], ff, ts..., arg);
+      //fpcount++;
+    }
+    break;
+
+    case 'c': // char
+    {
+      char arg;
+      get_val_va(s_offset, reason, arg);
+      sprintf_helper(&outstr[0], ff, ts..., arg);
+    }
+    break;
+    case 's': // char*
+    {
+      char* arg;
+      get_val_va(s_offset, reason, arg);
+      printf("printf get_val<char*>: %d, \"%s\"\n", ts..., arg);
+      fflush(stdout);
+      sprintf_helper(&outstr[0], ff, ts..., arg);
+    }
+    break;
+
+    case 'n': // ptr to int, stores the # chars printed so far and elides the %n
+      // save out.length() to the pointer
+    {
+      int* arg;
+      get_val_va(s_offset, reason, arg);
       *arg = out.length();
     }
     break;
@@ -497,6 +584,59 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, const s
                       model_printf_base_helper(count, s_offset, reason, type, ff, out, width)  ) :
                 (gp ? model_printf_base_helper(count, s_offset, reason, type, ff, out, precision)  :
                       model_printf_base_helper(count, s_offset, reason, type, ff, out)  );
+  }
+  out += fmt.substr(last - fmt.begin(), fmt.end() - last);
+  return out;
+}
+
+std::string Executor::model_printf_base_va(uint64_t* &s_offset, const std::string& reason){
+
+
+  char * fmtc;
+  get_val_va(s_offset, reason, fmtc);
+
+  std::string fmt = std::string(fmtc);
+  if(modelDebug){
+    std::cout << reason << " with fmt string: \"" << fmt << "\"" << std::endl;
+  }
+
+  // possibly useful alternative for doubles:
+  // check al
+  // if al is zero, no fp args
+  // else dump xmm 0-7 to array
+
+  std::regex specifier("%([-+#0 ])?([0-9*])?(.[0-9]+|.[*])?(hh|h|l|ll|j|z|t|L)?([diouxXfFeEgGaAcspn])", std::regex::egrep);
+  auto match_begin = std::sregex_iterator(fmt.begin(), fmt.end(), specifier);
+  auto out = std::string();
+  auto last = fmt.cbegin();
+  for(auto it = match_begin; it != std::sregex_iterator(); ++it){
+    auto x = *it;
+    out += fmt.substr(last - fmt.begin(), x[0].first - last); // non-format characters up to current match
+    last = x[5].second;
+
+    char type = x[5].str()[0];
+    std::string ff = x.str(0);
+
+    int width;
+    int precision;
+
+    bool gw = x[2].str().find('*') != std::string::npos;
+    bool gp = x[3].str().find('*') != std::string::npos;
+
+    if(gw){
+      get_val_va(s_offset, reason, width);
+      std::cout << ff << " width: " << width << std::endl;
+    }
+
+    if(gp){
+      get_val_va(s_offset, reason, precision);
+      std::cout << ff << " precision: " << precision << std::endl;
+    }
+
+    out += gw ? (gp ? model_printf_base_helper(s_offset, reason, type, ff, out, width, precision)  :
+                      model_printf_base_helper(s_offset, reason, type, ff, out, width)  ) :
+                (gp ? model_printf_base_helper(s_offset, reason, type, ff, out, precision)  :
+                      model_printf_base_helper(s_offset, reason, type, ff, out)  );
   }
   out += fmt.substr(last - fmt.begin(), fmt.end() - last);
   return out;
@@ -578,6 +718,14 @@ void Executor::model_vsnprintf(){
   do_ret();
 }
 
+
+struct {
+  uint32_t gp_offset;
+  uint32_t fp_offset;
+  uint64_t* overflow;
+  uint64_t* reg_save;
+} tase_va_list;
+
 // sprintf but allocate a c str large enough, pass to char**. va_list
 void Executor::model_vasprintf(){
   if(!noLog){
@@ -588,9 +736,13 @@ void Executor::model_vasprintf(){
   ++s_offset;
 
   char ** argout;
-  get_val(count, s_offset, __func__, argout);
+  tase_va_list lst;
+  get_val(count, s_offset, __func__, argout, lst);
 
-  std::string out = model_printf_base(count, s_offset, __func__);
+  // lst.overflow should be a ConstantExpr as seen in Executor.cpp / executeCall under va_start
+  s_offset = lst.overflow;
+
+  std::string out = model_printf_base_va(s_offset, __func__);
 
   char * outstr = (char*) calloc(1, (out.size()+1)*sizeof(char));
   tase_map_buf((uint64_t) outstr, (out.size()+1)*sizeof(char));
