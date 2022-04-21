@@ -458,7 +458,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
 
 
 template<typename... Ts>
-std::string Executor::model_printf_base_helper(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, Ts... ts){
+std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, Ts... ts){
   char outstr[255];
 
   switch(type){
@@ -633,10 +633,10 @@ std::string Executor::model_printf_base_va(uint64_t* &s_offset, const std::strin
       std::cout << ff << " precision: " << precision << std::endl;
     }
 
-    out += gw ? (gp ? model_printf_base_helper(s_offset, reason, type, ff, out, width, precision)  :
-                      model_printf_base_helper(s_offset, reason, type, ff, out, width)  ) :
-                (gp ? model_printf_base_helper(s_offset, reason, type, ff, out, precision)  :
-                      model_printf_base_helper(s_offset, reason, type, ff, out)  );
+    out += gw ? (gp ? model_printf_base_helper_va(s_offset, reason, type, ff, out, width, precision)  :
+                      model_printf_base_helper_va(s_offset, reason, type, ff, out, width)  ) :
+                (gp ? model_printf_base_helper_va(s_offset, reason, type, ff, out, precision)  :
+                      model_printf_base_helper_va(s_offset, reason, type, ff, out)  );
   }
   out += fmt.substr(last - fmt.begin(), fmt.end() - last);
   return out;
