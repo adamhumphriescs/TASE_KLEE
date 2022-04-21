@@ -737,7 +737,7 @@ void Executor::model_vasprintf(){
 
   char ** argout;
   tase_va_list lst;
-  get_val(count, s_offset, __func__, argout, lst);
+  get_val_va(count, s_offset, __func__, argout, lst);
 
   // lst.overflow should be a ConstantExpr as seen in Executor.cpp / executeCall under va_start
   s_offset = lst.overflow;
