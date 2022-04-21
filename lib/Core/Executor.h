@@ -394,6 +394,9 @@ private:
   template<typename T>
   void get_val(int& count, uint64_t* &s_offset, const std::string& reason, T& t);
 
+  template<typename T>
+  void get_val_va(uint64_t* &s_offset, const std::string& reason, T& t);
+
   template<typename U, typename... T>
   void get_vals(int& count, uint64_t* &s_offset, const std::string& reason, U& u, T&... t);
 
@@ -479,11 +482,15 @@ private:
   void model___isoc99_sscanf();
   void model_putchar();
 
-  std::string model_printf_base(int& count, uint64_t* &s_offset, const std::string& reason);
+    std::string model_printf_base(int& count, uint64_t* &s_offset, const std::string& reason);
+
+  std::string model_printf_base_va(uint64_t* &s_offset, const std::string& reason);
 
   template<typename... Ts>
   std::string model_printf_base_helper(int& count, uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, Ts...);
 
+  template<typename... Ts>
+  std::string model_printf_base_helper_va(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, Ts... ts);
 
   void sprintf_helper(char* outstr, const std::string& ff, ...);
   void model_ioctl();
