@@ -138,7 +138,6 @@ struct as_helper<T, false> {
 };
 
 template<typename T> T as(tase_greg_t t){return as_helper<T, std::is_pointer<T>::value>::conv(t);}
-//template<typename T> T* as(tase_greg_t t){return (T*) t.u64;}
 
 template<> uint64_t _as(tase_greg_t t){return t.u64;}
 template<> int64_t _as(tase_greg_t t){return t.i64;}
@@ -148,24 +147,10 @@ template<> int16_t _as(tase_greg_t t){return t.i16;}
 template<> uint16_t _as(tase_greg_t t){return t.u16;}
 template<> double _as(tase_greg_t t){return t.dbl;}
 template<> char _as(tase_greg_t t){return (char) t.u8;}
-/*
-template<> char * as(tase_greg_t t){return (char*) t.u64;}
-template<> wchar_t* as(tase_greg_t t){return (wchar_t*) t.u64;}
-template<> char ** as(tase_greg_t t){return (char**) t.u64;}
-template<> const char** as(tase_greg_t t){return (const char**) t.u64;}
-template<> int* as(tase_greg_t t){return (int*) t.u64;}
-template<> int64_t* as(tase_greg_t t){return (int64_t*) t.u64;}
-template<> FILE* as(tase_greg_t t){return (FILE*) t.u64;}
-template<> sigset_t* as(tase_greg_t t){return (sigset_t*) t.u64;}
-template<> struct sigaction* as(tase_greg_t t){return (struct sigaction*) t.u64;}
-template<> mbstate_t* as(tase_greg_t t){return (mbstate_t*) t.u64;}
-template<> void* as(tase_greg_t t){return (void*) t.u64;}
-*/
-//template<> time_t* as(tase_greg_t t){return (time_t*) t.u64;}
 
 #define _LOG std::cout << "Entering " << __func__ << " at interpCtr " << interpCtr << std::endl;
 
-void printBuf(FILE * f,void * buf, size_t count)
+void printBuf(FILE * f, void * buf, size_t count)
 {
   fprintf(f,"Calling printBuf with count %d \n", count);
   fflush(f);
@@ -227,24 +212,6 @@ void Executor::rewriteConstants(uint64_t base, size_t size) {
 }
 
 
-/*void Executor::model_putchar() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  if  ((isa<ConstantExpr>(arg1Expr)) ) {
-    //Just pass the call through and print to stdout.
-    union BITS {
-      uint64_t asuint64_t;
-      char  aschar;
-    } b;
-    b.asuint64_t = target_ctx_gregs[GREG_RDI].u64;
-
-    printf("TASE: The following char was passed to putchar: %c \n", b.aschar);
-    do_ret();
-
-  } else {
-    concretizeGPRArgs(1, "model_putchar");
-    model_putchar();
-  }
-  }*/
 
 void Executor::model_putchar(){
   if(!noLog){
@@ -340,40 +307,18 @@ void Executor::do_ret() {
   target_ctx_gregs[GREG_RIP].u64 = *((uint64_t*) target_ctx_gregs[GREG_RSP].u64);
   target_ctx_gregs[GREG_RSP].u64 += 8;
 }
-/*
-void Executor::model_vfprintf(){
-  if (modelDebug && !noLog) {
-    printf("Entering model_vfprintf at RIP 0x%lx \n", target_ctx_gregs[GREG_RIP].u64);
-  }
-  int res = 1;
-  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-  do_ret();//fake a ret
-}
-*/
-// vprintf(const char* fmt, va_list args)
-/*void Executor::model_vprintf() {
-  const char * fmt = (const char*) target_ctx_gregs[GREG_RDX].u64;
-  va_list lst = (va_list) target_ctx_gregs[GREG_RSI].u64;
-  // parse format string to get types list
-  // use va_arg / va_end to access lst elements
-  // cast them to appropriate type using the fmt string specifiers
-  // check if all constexprs
-  // call printf on concrete args
 
-
-  do_ret();
-}*/
 
 
 template<typename T>
 void Executor::get_val(int& count, uint64_t* &s_offset, const std::string& reason, T& t){
+  auto rr = reason + "\n";
   if(count < 6){
     ref<Expr> aref = target_ctx_gregs_OS->read(count < 4 ? (5-count)*8 : (4+count)*8, Expr::Int64);
     if(isa<ConstantExpr>(aref)){
       t = as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     } else {
-      ref<Expr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason.c_str());
+      ref<Expr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, rr.c_str());
       tase_helper_write((uint64_t) &target_ctx_gregs[count < 4 ? 5-count : 4+count].i64, aref2);
       t = as<T>(target_ctx_gregs[count < 4 ? 5-count : 4+count]);
     }
@@ -383,7 +328,7 @@ void Executor::get_val(int& count, uint64_t* &s_offset, const std::string& reaso
     if(isa<ConstantExpr>(aref)){
       t = *((T*)s_offset);
     } else {
-      ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, reason.c_str());
+      ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, rr.c_str());
       tase_helper_write((uint64_t) s_offset, aref2);
     }
     ++s_offset;
@@ -477,7 +422,7 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     {
       char* arg;
       get_val(count, s_offset, reason, arg);
-      printf("printf get_val %s\n", arg);
+      printf("printf get_val<char*>: \"%s\"\n", arg);
       fflush(stdout);
       sprintf_helper(&outstr[0], ff, ts..., arg);
     }
@@ -540,10 +485,12 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, const s
 
     if(gw){
       get_val(count, s_offset, reason, width);
+      std::cout << ff << " width: " << width << std::endl;
     }
 
     if(gp){
       get_val(count, s_offset, reason, precision);
+      std::cout << ff << " precision: " << precision << std::endl;
     }
 
     out += gw ? (gp ? model_printf_base_helper(count, s_offset, reason, type, ff, out, width, precision)  :
@@ -631,7 +578,7 @@ void Executor::model_vsnprintf(){
   do_ret();
 }
 
-// sprintf but allocate a c str large enough, pass to char**. varargs...
+// sprintf but allocate a c str large enough, pass to char**. va_list
 void Executor::model_vasprintf(){
   if(!noLog){
      _LOG
