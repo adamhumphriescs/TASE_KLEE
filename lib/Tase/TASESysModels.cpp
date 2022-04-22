@@ -603,7 +603,7 @@ std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, cons
   char * fmtc;
   get_val(count, s_offset, reason, fmtc);
 
-  ObjectState *os = bindObjectInState(*GlobalExecutionPtr, GlobalExecutionPtr->stack.back().varargs, true);
+  ObjectState *os = bindObjectInState(*GlobalExecutionStatePtr, GlobalExecutionStatePtr->stack.back().varargs, true);
   s_offset = os->read(8, Expr::Int64);
   // lst.overflow should be a ConstantExpr as seen in Executor.cpp / executeCall under va_start
   //s_offset = lst->overflow;
