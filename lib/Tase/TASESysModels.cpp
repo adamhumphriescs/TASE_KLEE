@@ -643,12 +643,12 @@ std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, cons
     bool gp = x[3].str().find('*') != std::string::npos;
 
     if(gw){
-      get_val_va(s_offset, reason, width);
+      get_val(s_offset, reason, width);
       std::cout << ff << " width: " << width << std::endl;
     }
 
     if(gp){
-      get_val_va(s_offset, reason, precision);
+      get_val(s_offset, reason, precision);
       std::cout << ff << " precision: " << precision << std::endl;
     }
 
