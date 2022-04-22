@@ -336,18 +336,18 @@ void Executor::get_val(int& count, uint64_t* &s_offset, const std::string& reaso
 }
 
 
-template<typename T>
-void Executor::get_val_va(uint64_t* &s_offset, const std::string& reason, T& t){
-  auto rr = reason + "\n";
-  ref<Expr> aref = tase_helper_read((uint64_t) s_offset, 8);
-  if(isa<ConstantExpr>(aref)){
-    t = *((T*)s_offset);
-  } else {
-    ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, rr.c_str());
-    tase_helper_write((uint64_t) s_offset, aref2);
-  }
-  ++s_offset;
-}
+// template<typename T>
+// void Executor::get_val_va(uint64_t* &s_offset, const std::string& reason, T& t){
+//   auto rr = reason + "\n";
+//   ref<Expr> aref = tase_helper_read((uint64_t) s_offset, 8);
+//   if(isa<ConstantExpr>(aref)){
+//     t = *((T*)s_offset);
+//   } else {
+//     ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, rr.c_str());
+//     tase_helper_write((uint64_t) s_offset, aref2);
+//   }
+//   ++s_offset;
+// }
 
 
 template<typename U, typename... T>
@@ -457,8 +457,20 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
 }
 
 
+template<typename T>
+void Executor::sanitize_va_arg(T& t){
+  ref<Expr> aref = tase_helper_read((uint64_t) &t, sizeof(T));
+  if(isa<ConstantExpr>(aref)){
+    return;
+  } else {
+    ref<ConstantExpr> aref2 = toConstant(*GlobalExecutionStatePtr, aref, "sanitize_va_arg\n");
+    tase_helper_write((uint64_t) &t, aref2);
+  }
+}
+
+
 template<typename... Ts>
-std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, Ts... ts){
+std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, va_list lst, Ts... ts){
   char outstr[255];
 
   switch(type){
@@ -466,8 +478,9 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     case 'i':
     {
       // printf will down-convert (u)int64_t to whatever was specified in fmt string
-      int64_t arg;
-      get_val_va(s_offset, reason, arg);
+      int64_t arg = va_arg(lst, int64_t);
+      sanitize_va_arg(arg);
+      //get_val_va(s_offset, reason, arg);
       sprintf_helper(&outstr[0], ff, ts..., arg);
     }
     break;
@@ -477,8 +490,9 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     case 'X':
       // same as above but unsigned
     {
-      uint64_t arg;
-      get_val_va(s_offset, reason, arg);
+      uint64_t arg = va_arg(lst, uint64_t);
+      sanitize_va_arg(arg);
+      //get_val_va(s_offset, reason, arg);
       sprintf_helper(&outstr[0], ff, ts..., arg);
     }
     break;
@@ -491,8 +505,9 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     case 'a':
     case 'A':
     {
-      double arg;
-      get_val_va(s_offset, reason, arg);
+      double arg = va_arg(lst, double);
+      sanitize_va_arg(arg);
+      //get_val_va(s_offset, reason, arg);
       sprintf_helper( &outstr[0], ff, ts..., arg);
       //fpcount++;
     }
@@ -500,15 +515,17 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
 
     case 'c': // char
     {
-      char arg;
-      get_val_va(s_offset, reason, arg);
+      char arg = va_arg(lst, char);
+      sanitize_va_arg(arg);
+      //get_val_va(s_offset, reason, arg);
       sprintf_helper(&outstr[0], ff, ts..., arg);
     }
     break;
     case 's': // char*
     {
-      char* arg;
-      get_val_va(s_offset, reason, arg);
+      char* arg = va_arg(lst, char*);
+      sanitize_va_arg(arg);
+      //get_val_va(s_offset, reason, arg);
       printf("printf get_val<char*>: %d, \"%s\"\n", ts..., arg);
       fflush(stdout);
       sprintf_helper(&outstr[0], ff, ts..., arg);
@@ -518,8 +535,9 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     case 'n': // ptr to int, stores the # chars printed so far and elides the %n
       // save out.length() to the pointer
     {
-      int* arg;
-      get_val_va(s_offset, reason, arg);
+      int* arg = va_arg(lst, int*);
+      sanitize_va_arg(arg);
+      //get_val_va(s_offset, reason, arg);
       *arg = out.length();
     }
     break;
@@ -602,8 +620,6 @@ std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, cons
   tase_va_list* lst;
   get_vals(count, s_offset, reason, fmtc, lst);
 
-  s_offset = lst->overflow;
-
   std::string fmt = std::string(fmtc);
   if(modelDebug){
     std::cout << reason << " with fmt string: \"" << fmt << "\"" << std::endl;
@@ -642,10 +658,10 @@ std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, cons
       std::cout << ff << " precision: " << precision << std::endl;
     }
 
-    out += gw ? (gp ? model_printf_base_helper_va(s_offset, reason, type, ff, out, width, precision)  :
-                      model_printf_base_helper_va(s_offset, reason, type, ff, out, width)  ) :
-                (gp ? model_printf_base_helper_va(s_offset, reason, type, ff, out, precision)  :
-                      model_printf_base_helper_va(s_offset, reason, type, ff, out)  );
+    out += gw ? (gp ? model_printf_base_helper_va(s_offset, reason, type, ff, out, lst, width, precision)  :
+                      model_printf_base_helper_va(s_offset, reason, type, ff, out, lst, width)  ) :
+                (gp ? model_printf_base_helper_va(s_offset, reason, type, ff, out, lst, precision)  :
+                      model_printf_base_helper_va(s_offset, reason, type, ff, out, lst)  );
   }
   out += fmt.substr(last - fmt.begin(), fmt.end() - last);
   return out;
