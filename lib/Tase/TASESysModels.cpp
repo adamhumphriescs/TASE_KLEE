@@ -470,7 +470,7 @@ void Executor::sanitize_va_arg(T& t){
 
 
 template<typename... Ts>
-std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, va_list lst, Ts... ts){
+std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, va_list* lst, Ts... ts){
   char outstr[255];
 
   switch(type){
@@ -478,7 +478,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     case 'i':
     {
       // printf will down-convert (u)int64_t to whatever was specified in fmt string
-      int64_t arg = va_arg(lst, int64_t);
+      int64_t arg = va_arg(*lst, int64_t);
       sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       sprintf_helper(&outstr[0], ff, ts..., arg);
@@ -490,7 +490,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     case 'X':
       // same as above but unsigned
     {
-      uint64_t arg = va_arg(lst, uint64_t);
+      uint64_t arg = va_arg(*lst, uint64_t);
       sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       sprintf_helper(&outstr[0], ff, ts..., arg);
@@ -505,7 +505,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     case 'a':
     case 'A':
     {
-      double arg = va_arg(lst, double);
+      double arg = va_arg(*lst, double);
       sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       sprintf_helper( &outstr[0], ff, ts..., arg);
@@ -515,7 +515,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
 
     case 'c': // char
     {
-      char arg = va_arg(lst, char);
+      char arg = va_arg(*lst, char);
       sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       sprintf_helper(&outstr[0], ff, ts..., arg);
@@ -523,7 +523,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     break;
     case 's': // char*
     {
-      char* arg = va_arg(lst, char*);
+      char* arg = va_arg(*lst, char*);
       sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       printf("printf get_val<char*>: %d, \"%s\"\n", ts..., arg);
@@ -535,7 +535,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     case 'n': // ptr to int, stores the # chars printed so far and elides the %n
       // save out.length() to the pointer
     {
-      int* arg = va_arg(lst, int*);
+      int* arg = va_arg(*lst, int*);
       sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       *arg = out.length();
@@ -611,7 +611,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, const s
 
 std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason){
   char * fmtc;
-  va_list lst;
+  va_list* lst;
   get_vals(count, s_offset, reason, fmtc, lst);
 
   std::string fmt = std::string(fmtc);
