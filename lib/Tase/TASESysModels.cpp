@@ -593,7 +593,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, const s
 
 struct tase_va_list {
   uint32_t gp_offset;
-  uint32_t fp_offset;
+  uint64_t fp_offset;
   uint64_t* overflow;
   uint64_t* reg_save;
 };
