@@ -601,11 +601,12 @@ struct tase_va_list {
 
 std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason){
   char * fmtc;
-  tase_va_list *lst;
-  get_vals(count, s_offset, reason, fmtc, lst);
+  get_val(count, s_offset, reason, fmtc);
 
+  ObjectState *os = bindObjectInState(*GlobalExecutionPtr, GlobalExecutionPtr->stack.back().varargs, true);
+  s_offset = os->read(8, Expr::Int64);
   // lst.overflow should be a ConstantExpr as seen in Executor.cpp / executeCall under va_start
-  s_offset = lst->overflow;
+  //s_offset = lst->overflow;
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
