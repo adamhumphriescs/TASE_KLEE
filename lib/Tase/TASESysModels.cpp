@@ -600,7 +600,7 @@ struct tase_va_list {
 std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason){
   char * fmtc;
   tase_va_list* lst;
-  get_val(count, s_offset, reason, fmtc, lst);
+  get_vals(count, s_offset, reason, fmtc, lst);
 
   s_offset = lst->overflow;
 
