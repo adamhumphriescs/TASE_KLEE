@@ -493,7 +493,7 @@ private:
   std::string model_printf_base_helper(int& count, uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, Ts...);
 
   template<typename... Ts>
-  std::string model_printf_base_helper_va(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, Ts... ts);
+  std::string model_printf_base_helper_va(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, va_list lst, Ts... ts);
 
   void sprintf_helper(char* outstr, const std::string& ff, ...);
   void model_ioctl();
