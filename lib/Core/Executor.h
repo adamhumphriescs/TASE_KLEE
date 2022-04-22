@@ -400,6 +400,9 @@ private:
   template<typename U, typename... T>
   void get_vals(int& count, uint64_t* &s_offset, const std::string& reason, U& u, T&... t);
 
+  template<typename T>
+  void Executor::sanitize_va_arg(T& t);
+
   void model_tase_debug();
   
   void model_ktest_start();
