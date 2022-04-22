@@ -590,23 +590,19 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, const s
 }
 
 
-
 struct tase_va_list {
   uint32_t gp_offset;
-  uint64_t fp_offset;
+  uint32_t fp_offset;
   uint64_t* overflow;
-  uint64_t* reg_save;
+  uint64_t* reg;
 };
-
 
 std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason){
   char * fmtc;
-  get_val(count, s_offset, reason, fmtc);
+  tase_va_list* lst;
+  get_val(count, s_offset, reason, fmtc, lst);
 
-  ObjectState *os = bindObjectInState(*GlobalExecutionStatePtr, GlobalExecutionStatePtr->stack.back().varargs, true);
-  s_offset = os->read(8, Expr::Int64);
-  // lst.overflow should be a ConstantExpr as seen in Executor.cpp / executeCall under va_start
-  //s_offset = lst->overflow;
+  s_offset = lst->overflow;
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
