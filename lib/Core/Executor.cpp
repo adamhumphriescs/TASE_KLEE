@@ -1396,6 +1396,7 @@ void Executor::executeCall(ExecutionState &state,
                            KInstruction *ki,
                            Function *f,
                            std::vector< ref<Expr> > &arguments) {
+  printf("Execute Call\n");
   Instruction *i = ki->inst;
   if (f && f->isDeclaration()) {
     switch(f->getIntrinsicID()) {
@@ -3402,7 +3403,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                       const std::string& reason) {
 
   Expr::Width type = (isWrite ? value->getWidth() : 
-                     getWidthForLLVMType(target->inst->getType()));
+                      getWidthForLLVMType(target->inst->getType()));
   unsigned bytes = Expr::getMinBytesForWidth(type);
   
   if (SimplifySymIndices) {
@@ -3441,9 +3442,9 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     std::cout << "Reason: " << reason << "\n";
     std::cout << "address was " << (CE ? "" : "not ") << "a ConstExpr" << std::endl;
     /*std::string ss2;
-    llvm::raw_string_ostream tmp2(ss2);
-    state.dumpStack(tmp2);
-    std::cout << "STACK:\n" << tmp2.str() << std::endl;*/
+      llvm::raw_string_ostream tmp2(ss2);
+      state.dumpStack(tmp2);
+      std::cout << "STACK:\n" << tmp2.str() << std::endl;*/
     //address->dump();
   }
 
@@ -3461,14 +3462,14 @@ void Executor::executeMemoryOperation(ExecutionState &state,
         if (os->readOnly) {
           terminateStateOnError(state, "memory error: object read only", ReadOnly);
         } else {
-	  //Todo: Implement for writes.  Need to actually apply psn, and
-	  //add new method for applying poison on write for constant
-	  //offsets.  For now, it's OK to leave this blank as we fall-through to the
-	  //older slower logic.
+          //Todo: Implement for writes.  Need to actually apply psn, and
+          //add new method for applying poison on write for constant
+          //offsets.  For now, it's OK to leave this blank as we fall-through to the
+          //older slower logic.
 	  
-	  //ObjectState *wos = state.addressSpace.getWriteable(mo, os);
-	  //wos->write(offset, value);      
-	  //wos->applyPsnOnWrite(offset,value);
+          //ObjectState *wos = state.addressSpace.getWriteable(mo, os);
+          //wos->write(offset, value);
+          //wos->applyPsnOnWrite(offset,value);
         }
       } else {
         ref<Expr> result = os->read(offset, type);
@@ -3507,30 +3508,30 @@ void Executor::executeMemoryOperation(ExecutionState &state,
       //Should inequality be strictly less than?
       if (  CE->getZExtValue() + bytes <= mo->address + mo->size) {
 
-	inBounds = true;
+        inBounds = true;
       } else { 
-	//Code duplication: Remove me
-	solver->setTimeout(coreSolverTimeout);
-	bool success = solver->mustBeTrue(state, 
-					  mo->getBoundsCheckOffset(offset, bytes),
-					  inBounds);
-	solver->setTimeout(0);
-	if (!success) {
-	  state.pc = state.prevPC;
-	  terminateStateEarly(state, "Query timed out (bounds check).");
-	  return;
-	}
+        //Code duplication: Remove me
+        solver->setTimeout(coreSolverTimeout);
+        bool success = solver->mustBeTrue(state,
+                                          mo->getBoundsCheckOffset(offset, bytes),
+                                          inBounds);
+        solver->setTimeout(0);
+        if (!success) {
+          state.pc = state.prevPC;
+          terminateStateEarly(state, "Query timed out (bounds check).");
+          return;
+        }
       }
     } else {
       solver->setTimeout(coreSolverTimeout);
       bool success = solver->mustBeTrue(state, 
-					mo->getBoundsCheckOffset(offset, bytes),
-					inBounds);
+                                        mo->getBoundsCheckOffset(offset, bytes),
+                                        inBounds);
       solver->setTimeout(0);
       if (!success) {
-	state.pc = state.prevPC;
-	terminateStateEarly(state, "Query timed out (bounds check).");
-	return;
+        state.pc = state.prevPC;
+        terminateStateEarly(state, "Query timed out (bounds check).");
+        return;
       }
     }
     
@@ -3541,17 +3542,17 @@ void Executor::executeMemoryOperation(ExecutionState &state,
           terminateStateOnError(state, "memory error: object read only",
                                 ReadOnly);
         } else {
-	  ObjectState *wos = state.addressSpace.getWriteable(mo, os);
-	  wos->write(offset, value);
-	  wos->applyPsnOnWrite(offset,value);
+          ObjectState *wos = state.addressSpace.getWriteable(mo, os);
+          wos->write(offset, value);
+          wos->applyPsnOnWrite(offset,value);
         }          
       } else {
-	ref<Expr> result = os->read(offset, type);
-	ObjectState *wos = state.addressSpace.getWriteable(mo, os);
-	wos->applyPsnOnRead(offset);
-	if (interpreterOpts.MakeConcreteSymbolic)
-	  result = replaceReadWithSymbolic(state, result);
-	bindLocal(target, state, result);        
+        ref<Expr> result = os->read(offset, type);
+        ObjectState *wos = state.addressSpace.getWriteable(mo, os);
+        wos->applyPsnOnRead(offset);
+        if (interpreterOpts.MakeConcreteSymbolic)
+          result = replaceReadWithSymbolic(state, result);
+        bindLocal(target, state, result);
       }
       
       return;
@@ -3587,12 +3588,12 @@ void Executor::executeMemoryOperation(ExecutionState &state,
         } else {
           ObjectState *wos = bound->addressSpace.getWriteable(mo, os);
           wos->write(mo->getOffsetExpr(address), value);
-	  wos->applyPsnOnWrite(mo->getOffsetExpr(address), value);
+          wos->applyPsnOnWrite(mo->getOffsetExpr(address), value);
         }
       } else {
         ref<Expr> result = os->read(mo->getOffsetExpr(address), type);
-	ObjectState *wos = bound->addressSpace.getWriteable(mo, os);
-	wos->applyPsnOnRead(mo->getOffsetExpr(address));  //Todo: ABH - should this be on os instead of wos?
+        ObjectState *wos = bound->addressSpace.getWriteable(mo, os);
+        wos->applyPsnOnRead(mo->getOffsetExpr(address));  //Todo: ABH - should this be on os instead of wos?
         bindLocal(target, *bound, result);
       }
     }
