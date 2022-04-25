@@ -470,7 +470,7 @@ void Executor::sanitize_va_arg(T& t){
 
 
 template<typename... Ts>
-std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, va_list_tag* lst, Ts... ts){
+std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std::string& reason, char type, const std::string& ff, const std::string& out, __va_list_tag* lst, Ts... ts){
   char outstr[255];
 
   switch(type){
@@ -611,7 +611,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, const s
 
 std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason){
   char * fmtc;
-  va_list_tag* lst;
+  __va_list_tag* lst;
   get_vals(count, s_offset, reason, fmtc, lst);
 
   std::string fmt = std::string(fmtc);
