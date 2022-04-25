@@ -148,6 +148,7 @@ template<> uint16_t _as(tase_greg_t t){return t.u16;}
 template<> double _as(tase_greg_t t){return t.dbl;}
 template<> char _as(tase_greg_t t){return (char) t.u8;}
 
+
 #define _LOG std::cout << "Entering " << __func__ << " at interpCtr " << interpCtr << std::endl;
 
 void printBuf(FILE * f, void * buf, size_t count)
@@ -608,11 +609,19 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, const s
 }
 
 
+struct va_type {
+  unsigned int gp_offset;
+  unsigned int fp_offset;
+  void* overflow_arg_area;
+  void* reg_save_area;
+};
 
 std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason){
   char * fmtc;
-  __va_list_tag* lst;
-  get_vals(count, s_offset, reason, fmtc, lst);
+  va_list lst;
+  va_type* x;
+  get_vals(count, s_offset, reason, fmtc, x);
+  std::memcpy((void*)&lst[0],(void*) x, sizeof(va_type));
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
