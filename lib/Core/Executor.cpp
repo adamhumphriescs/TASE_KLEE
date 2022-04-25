@@ -1407,7 +1407,9 @@ void Executor::executeCall(ExecutionState &state,
         
       // va_arg is handled by caller and intrinsic lowering, see comment for
       // ExecutionState::varargs
-    case Intrinsic::vastart:  {
+      case Intrinsic::vastart:  {
+      printf("va_start encountered\n");
+      fflush(stdout);
       StackFrame &sf = state.stack.back();
 
       // varargs can be zero if no varargs were provided
@@ -1488,6 +1490,8 @@ void Executor::executeCall(ExecutionState &state,
         return;
       }
     } else {
+      printf("setting up varargs\n");
+      fflush(stdout);
       Expr::Width WordSize = Context::get().getPointerWidth();
 
       if (callingArgs < funcArgs) {
