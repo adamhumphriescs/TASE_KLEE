@@ -616,7 +616,7 @@ struct {
   void* reg_save_area;
 } va_type[1];
 
-template<> _as<va_type>(tase_greg_t t){return (va_type) t;}
+template<> va_type _as<va_type>(tase_greg_t t){return (va_type) t;}
 
 // alternative - specialize get_val to T arr[1] type to get the anonymous struct type?
 std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason){
