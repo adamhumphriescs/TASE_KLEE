@@ -1543,7 +1543,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      worker_ID_stream << "Monitor";
      std::string IDString;
      IDString = worker_ID_stream.str();
-     FILE * tmpFile = freopen(IDString.c_str(),"w", stdout); // changes part of the FILE but in-place?
+     FILE * tmpFile = freopen(IDString.c_str(),"w", stdout); // changes part of the FILE but in-place?wf
      if (tmpFile == NULL) {
        printf("FATAL ERROR redirecting stdout \n");
        fflush(stdout);
