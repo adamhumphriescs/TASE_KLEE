@@ -621,13 +621,10 @@ typedef arr_type<va_list>::type va_val;
 
 std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason){
   char * fmtc;
-  va_list lst1;
+  va_list lst;
   va_val* x;
   get_vals(count, s_offset, reason, fmtc, x);
   lst1[0] = *x;
-
-  va_list lst;
-  va_copy(lst1, lst);
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
