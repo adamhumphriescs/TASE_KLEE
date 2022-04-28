@@ -480,7 +480,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     {
       // printf will down-convert (u)int64_t to whatever was specified in fmt string
       int64_t arg = va_arg(lst, int64_t);
-      sanitize_va_arg(arg);
+ //     sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       sprintf_helper(&outstr[0], ff, ts..., arg);
     }
@@ -492,7 +492,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
       // same as above but unsigned
     {
       uint64_t arg = va_arg(lst, uint64_t);
-      sanitize_va_arg(arg);
+ //     sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       sprintf_helper(&outstr[0], ff, ts..., arg);
     }
@@ -507,7 +507,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     case 'A':
     {
       double arg = va_arg(lst, double);
-      sanitize_va_arg(arg);
+//      sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       sprintf_helper( &outstr[0], ff, ts..., arg);
       //fpcount++;
@@ -517,7 +517,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     case 'c': // char
     {
       char arg = va_arg(lst, char);
-      sanitize_va_arg(arg);
+ //     sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       sprintf_helper(&outstr[0], ff, ts..., arg);
     }
@@ -525,7 +525,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
     case 's': // char*
     {
       char* arg = va_arg(lst, char*);
-      sanitize_va_arg(arg);
+ //     sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       printf("printf get_val<char*>: %d, \"%s\"\n", ts..., arg);
       fflush(stdout);
@@ -537,7 +537,7 @@ std::string Executor::model_printf_base_helper_va(uint64_t* &s_offset, const std
       // save out.length() to the pointer
     {
       int* arg = va_arg(lst, int*);
-      sanitize_va_arg(arg);
+//      sanitize_va_arg(arg);
       //get_val_va(s_offset, reason, arg);
       *arg = out.length();
     }
