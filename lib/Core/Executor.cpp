@@ -3913,17 +3913,13 @@ KFunction * findInterpFunction (tase_greg_t * registers, KModule * kmod) {
   KFunction * KInterpFunction;
   uint64_t nativePC = registers[GREG_RIP].u64;
 
-  std::map<uint64_t, KFunction *>::iterator it;
-  it = IR_KF_Map.find(nativePC);
+  auto it = IR_KF_Map.find(nativePC);
   if (it != IR_KF_Map.end()) {
     KInterpFunction = it->second;
   } else {
-    
     std::stringstream converter;
-    converter << std::hex << nativePC;  
-    std::string hexNativePCString(converter.str());
-    std::string functionName =   "interp_fn_" + hexNativePCString;
-    llvm::Function * interpFn = interpModule->getFunction(functionName);
+    converter << std::hex << nativePC;
+    llvm::Function * interpFn = interpModule->getFunction("interp_fn_" + converter.str());
     KInterpFunction = kmod->functionMap[interpFn];
     IR_KF_Map.insert(std::make_pair(nativePC, KInterpFunction));
   }
@@ -4612,10 +4608,6 @@ void Executor::klee_interp_internal () {
   bool hasMadeProgress = false;
   run_interp_traps++;
 
-  //printf("printf_tase: 0x%lx\n", &printf_tase);
-  //auto test = fnModelMap.find((uint64_t) &printf_tase);
-  //printf("printf_tase found: %s\n", test == fnModelMap.end() ? "false" : "true");
-  //printf("fnModelMap size: %u\n", fnModelMap.size());
   while (true) {
     run_interp_insts++;
     interpCtr++;
@@ -4634,35 +4626,16 @@ void Executor::klee_interp_internal () {
     // jump right back into a modeled fn.  The sb_modeled label immediately XENDs, which will
     // cause a segfault if the process isn't executing a transaction.
 
-    //dont_model is used to force execution in interpreter when a register is tainted (but no args are symbolic) for a modeled fn 
-    // if (isSpecialInst(rip) && !dont_model) {
-    //   hasMadeProgress=true;
-    //   model_inst();
-    // } else if (resumeNativeExecution() && !dont_model && hasMadeProgress) {
-    //   break;
-    // } else {
-    //   dont_model = false;
-    //   hasMadeProgress= true;
-    //   tryKillFlags(target_ctx_gregs);
-
-    //   if (skipInstrumentationInstruction(target_ctx_gregs)) {
-
-    //   } else {
-    //     runCoreInterpreter(target_ctx_gregs);
-    //   }
-    //}
-
+    //dont_model is used to force execution in interpreter when a register is tainted (but no args are symbolic) for a modeled fn
     auto mod = fnModelMap.find(rip);
     if(modelDebug){
-      printf("Model found: %s\n", mod == fnModelMap.end() ? "false" : "true");
-      printf("Dont model: %s\n", dont_model ? "true" : "false");
-      fflush(stdout);
+      std::cout << "Model found: " << (mod == fnModelMap.end() ? "false" : "true") << "\n";
+      std::cout << "Dont model: " << (dont_model ? "true" : "false") << "\n";
     }
 
     if(!dont_model && mod != fnModelMap.end()){
       if(taseDebug){
-        printf("INTERPRETER: FOUND SPECIAL MODELED INST at rip 0x%lx \n", rip);
-        fflush(stdout);
+        std::cout << "INTERPRETER: FOUND SPECIAL MODELED INST at rip " << std::hex << rip << std::dec << "\n";
       }
       hasMadeProgress = true;
       void (klee::Executor::*fp)() = mod->second;
@@ -4677,7 +4650,7 @@ void Executor::klee_interp_internal () {
       if(((*(uint64_t*)target_ctx_gregs[GREG_RIP].u64) & 0x00ffffffffffffff) == 0x00000000053d8d4c){
         target_ctx_gregs[GREG_RIP].u64 += trap_off;
         if(modelDebug){
-          printf("Skipping LEA...\n");
+          std::cout << "Skipping LEA...\n";
         }
       } else {
         runCoreInterpreter(target_ctx_gregs);
@@ -4692,8 +4665,7 @@ void Executor::klee_interp_internal () {
         if (taseDebug) {
           ref<Expr> FinalRIPExpr = target_ctx_gregs_OS->read(GREG_RIP * 8, Expr::Int64);
           if (!(isa<ConstantExpr>(FinalRIPExpr))) {
-            printf("ERROR: Failed to concretize RIP \n");
-            std::cout.flush();
+            std::cout << "ERROR: Failed to concretize RIP \n" << std::endl;
             std::exit(EXIT_FAILURE);
           }
         }
@@ -4705,15 +4677,13 @@ void Executor::klee_interp_internal () {
     if (forceNativeRet) {
       if (gprsAreConcrete() && execMode != INTERP_ONLY) {
         if (taseDebug) {
-          printf("Trying to return to native execution \n");
-          fflush(stdout);
+          std::cout << "Trying to return to native execution" << std::endl;
         }
 	//This case is for attempts to execute natively that repeatedly result in
 	//page faults.  We have to interpret in that case to map the page in.
         if (tran_max == 0 && target_ctx_gregs[GREG_RIP].u64 == init_trap_RIP) {
           if (taseDebug) {
-            printf("Repeated faults detected for prohib function \n");
-            fflush(stdout);
+            std::cout << "Repeated faults detected for prohib function" << std::endl;
           }
           dont_model = true;
           forceNativeRet = false;
@@ -4729,11 +4699,10 @@ void Executor::klee_interp_internal () {
   numReturns++;
 
   if (taseDebug) {
-    printf("Returning to native execution for time %d \n", numReturns);
-    printf("Prior to return to native execution, ctx is ... \n");
+    std::cout << "Returning to native execution for time " << numReturns << "\n";
+    std::cout << "Prior to return to native execution, ctx is ..." << "\n";
     printCtx(target_ctx_gregs);
-    printf("--------RETURNING TO TARGET --- ------------ \n" );
-    std::cout.flush();
+    std::cout << "--------RETURNING TO TARGET --- ------------" << std::endl;
   }
   
   return;

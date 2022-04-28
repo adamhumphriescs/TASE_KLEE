@@ -619,13 +619,15 @@ struct arr_type<T[1]> {typedef T type;};
 
 typedef arr_type<va_list>::type va_val;
 
-// alternative - specialize get_val to T arr[1] type to get the anonymous struct type?
 std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason){
   char * fmtc;
-  va_list lst;
+  va_list lst1;
   va_val* x;
   get_vals(count, s_offset, reason, fmtc, x);
   lst[0] = *x;
+
+  va_list lst;
+  va_copy(lst1, lst);
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
@@ -671,6 +673,7 @@ std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, cons
                       model_printf_base_helper_va(s_offset, reason, type, ff, out, lst)  );
   }
   out += fmt.substr(last - fmt.begin(), fmt.end() - last);
+  va_end(lst);
   return out;
 }
 
