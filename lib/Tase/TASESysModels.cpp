@@ -615,7 +615,7 @@ template<typename T>
 struct arr_type;
 
 template<typename T>
-struct arr_type<T[1]> {typedef T type;}
+struct arr_type<T[1]> {typedef T type;};
 
 typedef arr_type<va_list>::type va_val;
 
