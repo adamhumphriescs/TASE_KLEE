@@ -624,7 +624,7 @@ std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, cons
   va_list lst1;
   va_val* x;
   get_vals(count, s_offset, reason, fmtc, x);
-  lst[0] = *x;
+  lst1[0] = *x;
 
   va_list lst;
   va_copy(lst1, lst);
@@ -658,7 +658,7 @@ std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, cons
     bool gp = x[3].str().find('*') != std::string::npos;
 
     if(gw){
-      get_val(count, s_offset, reason, width);
+      get_val(count, s_offset, reason, width);1
       std::cout << ff << " width: " << width << std::endl;
     }
 
