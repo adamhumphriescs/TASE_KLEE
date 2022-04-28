@@ -658,7 +658,7 @@ std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, cons
     bool gp = x[3].str().find('*') != std::string::npos;
 
     if(gw){
-      get_val(count, s_offset, reason, width);1
+      get_val(count, s_offset, reason, width);
       std::cout << ff << " width: " << width << std::endl;
     }
 
