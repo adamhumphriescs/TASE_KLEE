@@ -609,22 +609,23 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, const s
 }
 
 
-struct {
-  uint32_t gp_offset;
-  uint32_t fp_offset;
-  void* overflow_arg_area;
-  void* reg_save_area;
-} va_type[1];
 
-template<> va_type _as<va_type>(tase_greg_t t){return (va_type) t;}
+
+template<typename T>
+struct arr_type;
+
+template<typename T>
+struct arr_type<T[1]> {typedef T type;}
+
+typedef arr_type<va_list>::type va_val;
 
 // alternative - specialize get_val to T arr[1] type to get the anonymous struct type?
 std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, const std::string& reason){
   char * fmtc;
   va_list lst;
-  va_type x;
+  va_val* x;
   get_vals(count, s_offset, reason, fmtc, x);
-  lst[0] = (va_list) x[0]; // error?
+  lst[0] = *x;
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
