@@ -982,7 +982,7 @@ void Executor::model___printf_chk() {
   if(!noLog){
     _LOG
   }
-  int count;
+  int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
@@ -1005,7 +1005,7 @@ void Executor::model_isatty() {
   if(!noLog){
     _LOG
   }
-  int count;
+  int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
@@ -1026,7 +1026,7 @@ void Executor::model_fileno() {
   if(!noLog){
     _LOG
   }
-  int count;
+  int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
@@ -1043,7 +1043,7 @@ void Executor::model_fcntl() {
   if(!noLog){
     _LOG
   }
-  int count;
+  int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
@@ -1071,7 +1071,7 @@ void Executor::model_stat() {
   if(!noLog){
     _LOG
   }
-  int count;
+  int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
@@ -1148,7 +1148,7 @@ void Executor::model_getenv() {
   if(!noLog){
     _LOG
   }
-  int count;
+  int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
@@ -1169,7 +1169,7 @@ void Executor::model_time() {
   if(!noLog){
     _LOG
   }
-  int count;
+  int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
 
