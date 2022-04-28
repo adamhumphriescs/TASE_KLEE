@@ -624,7 +624,7 @@ std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, cons
   va_list lst;
   va_val* x;
   get_vals(count, s_offset, reason, fmtc, x);
-  lst1[0] = *x;
+  lst[0] = *x;
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
