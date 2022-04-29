@@ -625,6 +625,7 @@ std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, cons
   va_val* x;
   get_vals(count, s_offset, reason, fmtc, x);
   lst[0] = *x;
+  std::cout << "va_list: " << x->gp_offset << ", " << x->fp_offset << ", " << std::hex << (uint64_t) x->reg_save_area << ", " << (uint64_t) x->overflow_arg_area << std::dec << std::endl;
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
