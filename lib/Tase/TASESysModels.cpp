@@ -625,7 +625,13 @@ std::string Executor::model_printf_base_va(int& count, uint64_t* &s_offset, cons
   va_val* x;
   get_vals(count, s_offset, reason, fmtc, x);
   lst[0] = *x;
-  std::cout << "va_list: " << *(std::reinterpret_cast<int32_t*>(y)) << ", " << (std::reinterpret_cast<int32_t*>(y)+1)  <<  << ", " << std::hex <<  *(std::reinterpret_cast<size_t*>(y)+1) << ", " << *(std::reinterpret_cast<size_t*>(y)+2) << std::dec << std::endl;
+  struct {
+    int32_t a;
+    int32_t b;
+    uint64_t c;
+    uint64_t d;} t;
+  std::memcpy((void*) &t, (void*) x, sizeof(x));
+  std::cout << "va_list: " << t.a << ", " << t.b << ", " << std::hex << t.c << ", " << t.d << std::dec << std::endl;
 
   std::string fmt = std::string(fmtc);
   if(modelDebug){
