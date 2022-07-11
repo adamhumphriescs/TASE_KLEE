@@ -1496,8 +1496,8 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
 
      project=currDir;
 
-     //Also, load the bitcode from ./build/bitcode
-     InputFile = path + "/build/bitcode/" + project + ".interp.bc";     
+     //Also, load the bitcode
+     InputFile = path + "bitcode/" + project + ".interp.bc";     
    }
    
    
