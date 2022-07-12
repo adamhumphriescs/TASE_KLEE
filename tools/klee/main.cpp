@@ -1556,10 +1556,11 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    // Load the bytecode...
    std::string errorMsg;
    LLVMContext ctx;
+   std::cout << "Attempting to load bitcode from " << InputFile << std::endl;
+   std::cout.flush();
    interpModule = klee::loadModule(ctx, InputFile, errorMsg);
    if (taseDebug){
-     printf("Module has been loaded...\n");
-     std::cout.flush();
+     std::cout << "Bitcode module has been loaded..." << std::endl;
    }
    
    if (!interpModule) {
