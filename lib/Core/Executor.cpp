@@ -4112,11 +4112,6 @@ ObjectState * Executor::tase_map(char* const & t){
   return t == NULL ? tase_map_buf((uint64_t) &t, sizeof(char*)) : tase_map(t, strlen(t)+1);
 }
 
-template<typename T>
-ObjectState * Executor::tase_map(const T& t){
-  return tase_map_buf((uint64_t) &t, sizeof(T));
-}
-
 template<>
 ObjectState * Executor::tase_map(void* const & t){
   return tase_map_buf((uint64_t) &t, sizeof(void*));
@@ -4153,6 +4148,8 @@ template<typename T>
 ObjectState * Executor::tase_map(const T& t){
   return tase_map_buf((uint64_t) &t, sizeof(t));
 }
+
+template ObjectState * Executor::tase_map<uint64_t>(conts uint64_t&);
 
 
 template<>
