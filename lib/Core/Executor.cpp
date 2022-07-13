@@ -4112,7 +4112,7 @@ ObjectState * Executor::tase_map(char* const & t){
   return t == NULL ? tase_map_buf((uint64_t) &t, sizeof(char*)) : tase_map(t, strlen(t)+1);
 }
 
-template Executor::tase_map<uint64_t>;
+template ObjectState * Executor::tase_map<uint64_t>;
 
 template<>
 ObjectState * Executor::tase_map(void* const & t){
