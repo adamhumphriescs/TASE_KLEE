@@ -73,6 +73,8 @@
 #include <malloc.h>
 #include <fcntl.h>
 
+extern uint64_t saved_rax;
+
 int trace_ID;
 double target_start_time;
 double target_end_time;
