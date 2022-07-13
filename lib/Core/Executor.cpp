@@ -5052,6 +5052,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
       ss >> std::hex >> addrVal >> sizeVal;
       if(!ss){
         std::cout << "Error reading externals file within initializeInterpretationStructures() at line " << lines << std::endl;
+	std::cout << '"' << line << '"' << std::endl;
         worker_exit();
         std::exit(EXIT_FAILURE);
       }
