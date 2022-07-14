@@ -108,7 +108,6 @@ using namespace klee;
 #include <sys/stat.h>
 #include <netdb.h>
 #include <fcntl.h>
-#include "tase_interp.h"
 #include "tase_shims.h"
 //#include "../../../test/proj_defs.h"
 #include "tase/TASEControl.h"

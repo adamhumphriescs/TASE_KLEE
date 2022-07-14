@@ -16,12 +16,10 @@ set(KLEE_LIBS
 )
 
 target_link_libraries(klee
-	#${CMAKE_SOURCE_DIR}/../build_klee/lib/proj.a
-	${CMAKE_SOURCE_DIR}/../build_klee/lib/checksum.a
-	${CMAKE_SOURCE_DIR}/../build_klee/lib/libtase.a
+	${CMAKE_BINARY_DIR}/lib/checksum.a
+	${CMAKE_BINARY_DIR}/lib/libtase.a
 	${KLEE_LIBS} )
-#target_link_libraries(klee ${KLEE_LIBS} ) 
+
 install(TARGETS klee RUNTIME DESTINATION bin)
 
-# The KLEE binary depends on the runtimes
 add_dependencies(klee BuildKLEERuntimes)

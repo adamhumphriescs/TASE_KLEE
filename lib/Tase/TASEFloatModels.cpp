@@ -65,8 +65,8 @@
 using namespace llvm;
 using namespace klee;
 
-#include "../../../test/proj_defs.h"
-#include "../../../test/tase/include/tase/tase_interp.h"
+//#include "../../../test/proj_defs.h"
+#include "tase_interp.h"
 #include <iostream>
 #include "klee/CVAssignment.h"
 #include "klee/util/ExprUtil.h"

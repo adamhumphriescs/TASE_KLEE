@@ -32,8 +32,8 @@
 
 struct KTest;
 
-#include "../../../test/proj_defs.h"
-#include "../../../test/tase/include/tase/tase_interp.h"
+//#include "../../../test/proj_defs.h"
+#include "tase_interp.h"
 #include <signal.h>
 #include <type_traits>
 #include <sys/ioctl.h>

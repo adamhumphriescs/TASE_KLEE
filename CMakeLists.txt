@@ -158,8 +158,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
 #This is a hack for TASE to grab some of the openssl headers if needed for
 #SSL verification
-set(KLEE_COMPONENT_EXTRA_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/../openssl/include")
-list(APPEND KLEE_COMPONENT_EXTRA_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/../test/tase/include/tase/")
+set(OPENSSL_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../openssl/include/" CACHE STRING "openssl header include directory (default ../openssl/include/)")
+set(TASE_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}../tase/" CACHE STRING "tase header include directory (default ../tase/)")
+
+set(KLEE_COMPONENT_EXTRA_INCLUDE_DIRS "${OPENSSL_INCLUDE_DIR}")
+
+list(APPEND KLEE_COMPONENT_EXTRA_INCLUDE_DIRS "${TASE_INCLUDE_DIR}")
 set(KLEE_COMPONENT_CXX_DEFINES "")
 set(KLEE_COMPONENT_CXX_FLAGS "-fPIC")
 set(KLEE_SOLVER_LIBRARIES "")
