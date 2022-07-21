@@ -4631,6 +4631,8 @@ void Executor::klee_interp_internal () {
     if(modelDebug){
       std::cout << "Model found: " << (mod == fnModelMap.end() ? "false" : "true") << "\n";
       std::cout << "Dont model: " << (dont_model ? "true" : "false") << "\n";
+      std::cout << "resumeNative: " << (resumeNativeExecution() ? "true" : "false") << "\n";
+      std::cout << "hasMadeProgress: " << (hasMadeProgress ? "true" : "false" << std::endl;
     }
 
     if(!dont_model && mod != fnModelMap.end()){
@@ -4646,12 +4648,17 @@ void Executor::klee_interp_internal () {
       dont_model = false;
       hasMadeProgress = true;
       tryKillFlags(target_ctx_gregs);
-
-      if(((*(uint64_t*)target_ctx_gregs[GREG_RIP].u64) & 0x00ffffffffffffff) == 0x00000000053d8d4c){
-        target_ctx_gregs[GREG_RIP].u64 += trap_off;
+      std::cout << "Checking for skippable instrs" << std::endl;
+      if( ((*(uint64_t*)target_ctx_gregs[GREG_RIP].u64) & 0x00ffffffffffffff) == 0x00000000053d8d4c ){
+        target_ctx_gregs[GREG_RIP].u64 += trap_off; // 12
         if(modelDebug){
-          std::cout << "Skipping LEA...\n";
+          std::cout << "Skipping LEA and jmp..." << std::endl;
         }
+      } else if ( (*(uint64_t*)target_ctx_gregs[GREG_RIP].u64) & 0x0000ffffffffffff = 0x0000363c751101c4 ) {
+	target_ctx_gregs[GREG_RIP].u64 += 36;
+	if(modelDebug){
+	  std::cout << "Skipping eager instrumentation..." << std::endl;
+	}
       } else {
         runCoreInterpreter(target_ctx_gregs);
       }

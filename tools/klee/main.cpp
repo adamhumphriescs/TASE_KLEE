@@ -1431,7 +1431,8 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
     
    } else {
      int sbArg = 1;
-     enter_tase(&begin_target_inner + trap_off, sbArg);
+     //     enter_tase(&begin_target_inner + trap_off, sbArg);
+     enter_tase(&begin_target_inner, sbArg);
      if (taseDebug) {
        printf("TASE - returned from enter_tase... \n");
        std::cout.flush();
