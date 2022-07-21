@@ -4633,7 +4633,7 @@ void Executor::klee_interp_internal () {
       std::cout << "Dont model: " << (dont_model ? "true" : "false") << "\n";
       std::cout << "resumeNative: " << (resumeNativeExecution() ? "true" : "false") << "\n";
       std::cout << "hasMadeProgress: " << (hasMadeProgress ? "true" : "false") << std::endl;
-      std::cout << "RIP: " << *(uint64_t*)target_ctx_gregs[GREG_RIP].u64 << std::endl;
+      std::cout << "RIP: " << std::hex <<  *(uint64_t*)target_ctx_gregs[GREG_RIP].u64 << std::dec << std::endl;
     }
 
     if(!dont_model && mod != fnModelMap.end()){
