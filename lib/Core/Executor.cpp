@@ -1395,7 +1395,6 @@ void Executor::executeCall(ExecutionState &state,
                            KInstruction *ki,
                            Function *f,
                            std::vector< ref<Expr> > &arguments) {
-  printf("Execute Call\n");
   Instruction *i = ki->inst;
   if (f && f->isDeclaration()) {
     switch(f->getIntrinsicID()) {
@@ -4628,7 +4627,7 @@ void Executor::klee_interp_internal () {
 
     //dont_model is used to force execution in interpreter when a register is tainted (but no args are symbolic) for a modeled fn
     auto mod = fnModelMap.find(rip);
-    if(modelDebug){
+    if( modelDebug ){
       std::cout << "Model found: " << (mod == fnModelMap.end() ? "false" : "true") << "\n";
       std::cout << "Dont model: " << (dont_model ? "true" : "false") << "\n";
       std::cout << "resumeNative: " << (resumeNativeExecution() ? "true" : "false") << "\n";
@@ -4636,28 +4635,34 @@ void Executor::klee_interp_internal () {
       std::cout << "RIP: " << std::hex <<  *(uint64_t*)target_ctx_gregs[GREG_RIP].u64 << std::dec << std::endl;
     }
 
-    if(!dont_model && mod != fnModelMap.end()){
-      if(taseDebug){
+    if( !dont_model && mod != fnModelMap.end() ){
+      if( taseDebug ){
         std::cout << "INTERPRETER: FOUND SPECIAL MODELED INST at rip " << std::hex << rip << std::dec << "\n";
       }
       hasMadeProgress = true;
       void (klee::Executor::*fp)() = mod->second;
       (this->*fp)();
-    } else if(!dont_model && resumeNativeExecution() && hasMadeProgress){
+    } else if( !dont_model && resumeNativeExecution() && hasMadeProgress ){
       break;
     } else {
       dont_model = false;
       hasMadeProgress = true;
       tryKillFlags(target_ctx_gregs);
-      std::cout << "Checking for skippable instrs" << std::endl;
+      
+      if( taseDebug ) {
+	std::cout << "Checking for skippable instrs" << std::endl;
+      }
+
       if( ((*(uint64_t*)target_ctx_gregs[GREG_RIP].u64) & 0x00ffffffffffffff) == 0x00000000053d8d4c ){
         target_ctx_gregs[GREG_RIP].u64 += trap_off; // 12
-        if(modelDebug){
+
+        if( modelDebug ) {
           std::cout << "Skipping LEA and jmp..." << std::endl;
         }
       } else if ( (*(uint64_t*)target_ctx_gregs[GREG_RIP].u64) == 0x4566363c751101c4 ) {
 	target_ctx_gregs[GREG_RIP].u64 += 18;
-	if(modelDebug){
+
+	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation..." << std::endl;
 	}
       } else {
@@ -4670,9 +4675,9 @@ void Executor::klee_interp_internal () {
       if (!(isa<ConstantExpr>(RIPExpr))) {
         forkOnPossibleRIPValues(RIPExpr, rip_init);
 
-        if (taseDebug) {
+        if ( taseDebug ) {
           ref<Expr> FinalRIPExpr = target_ctx_gregs_OS->read(GREG_RIP * 8, Expr::Int64);
-          if (!(isa<ConstantExpr>(FinalRIPExpr))) {
+          if ( !(isa<ConstantExpr>(FinalRIPExpr)) ) {
             std::cout << "ERROR: Failed to concretize RIP \n" << std::endl;
             std::exit(EXIT_FAILURE);
           }
