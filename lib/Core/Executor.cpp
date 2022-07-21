@@ -4654,7 +4654,7 @@ void Executor::klee_interp_internal () {
         if(modelDebug){
           std::cout << "Skipping LEA and jmp..." << std::endl;
         }
-      } else if ( (*(uint64_t*)target_ctx_gregs[GREG_RIP].u64) & 0x0000ffffffffffff = 0x0000363c751101c4 ) {
+      } else if ( (*(uint64_t*)target_ctx_gregs[GREG_RIP].u64) & 0x0000ffffffffffff == 0x0000363c751101c4 ) {
 	target_ctx_gregs[GREG_RIP].u64 += 36;
 	if(modelDebug){
 	  std::cout << "Skipping eager instrumentation..." << std::endl;
