@@ -4632,7 +4632,7 @@ void Executor::klee_interp_internal () {
       std::cout << "Model found: " << (mod == fnModelMap.end() ? "false" : "true") << "\n";
       std::cout << "Dont model: " << (dont_model ? "true" : "false") << "\n";
       std::cout << "resumeNative: " << (resumeNativeExecution() ? "true" : "false") << "\n";
-      std::cout << "hasMadeProgress: " << (hasMadeProgress ? "true" : "false" << std::endl;
+      std::cout << "hasMadeProgress: " << (hasMadeProgress ? "true" : "false") << std::endl;
     }
 
     if(!dont_model && mod != fnModelMap.end()){
