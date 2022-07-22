@@ -4653,15 +4653,29 @@ void Executor::klee_interp_internal () {
 	std::cout << "Checking for skippable instrs" << std::endl;
       }
 
-      if( ((*(uint64_t*)target_ctx_gregs[GREG_RIP].u64) & 0x00ffffffffffffff) == 0x00000000053d8d4c ){
+
+      uint64_t cc = *(uint64_t*)target_ctx_gregs[GREG_RIP].u6;
+      if( (cc & 0x00ffffffffffffff) == 0x00000000053d8d4c ){
         target_ctx_gregs[GREG_RIP].u64 += trap_off; // 12
 
         if( modelDebug ) {
           std::cout << "Skipping LEA and jmp..." << std::endl;
         }
-      } else if ( (*(uint64_t*)target_ctx_gregs[GREG_RIP].u64) == 0x4566363c751101c4 ) {
+      } else if ( cc == 0x4566363c751101c4 ) {
 	target_ctx_gregs[GREG_RIP].u64 += 18;
 
+	if( modelDebug ){
+	  std::cout << "Skipping eager instrumentation..." << std::endl;
+	}
+      } else if ( cc == 0x1583b025048b489e ) {
+	target_ctx_gregs[GREG_RIP].u64 += 9;
+	
+	if( modelDebug ){
+	  std::cout << "Skipping eager instrumentation..." << std::endl;
+	}
+      } else if ( cc & 0x00ffffffffffffff == 0x0000000001bf419f ) {
+	target_ctx_gregs[GREG_RIP].u64 += 7;
+	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation..." << std::endl;
 	}
