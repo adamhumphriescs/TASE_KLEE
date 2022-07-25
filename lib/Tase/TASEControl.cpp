@@ -637,7 +637,7 @@ void worker_exit() {
   *total_workers = *total_workers -1 ;
   release_sem_lock();
 
-  if (taseManager != true) {
+  if (taseManager != true || dontFork) {
     printf("WARNING: worker_exit called without taseManager \n");
     std::cout.flush();
     std::exit(EXIT_SUCCESS);

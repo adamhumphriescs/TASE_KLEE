@@ -4665,19 +4665,19 @@ void Executor::klee_interp_internal () {
 	target_ctx_gregs[GREG_RIP].u64 += 18;
 
 	if( modelDebug ){
-	  std::cout << "Skipping eager instrumentation..." << std::endl;
+	  std::cout << "Skipping eager instrumentation (A)..." << std::endl;
 	}
       } else if ( cc == 0x1583b025048b489e ) {
 	target_ctx_gregs[GREG_RIP].u64 += 9;
 	
 	if( modelDebug ){
-	  std::cout << "Skipping eager instrumentation..." << std::endl;
+	  std::cout << "Skipping eager instrumentation (B)..." << std::endl;
 	}
       } else if ( cc & 0x00ffffffffffffff == 0x0000000001bf419f ) {
 	target_ctx_gregs[GREG_RIP].u64 += 7;
 	
 	if( modelDebug ){
-	  std::cout << "Skipping eager instrumentation..." << std::endl;
+	  std::cout << "Skipping eager instrumentation (C)..." << std::endl;
 	}
       } else {
         runCoreInterpreter(target_ctx_gregs);
