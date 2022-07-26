@@ -4663,7 +4663,7 @@ void Executor::klee_interp_internal () {
           std::cout << "Skipping LEA and jmp..." << std::endl;
         }
       } else if ( cc == 0x4566363c751101c4 ) {
-	uint64_t cd = *(((uint64_t*)target_ctx_gregs[GREG_RIP].u64)++);
+	uint64_t cd = *(((uint64_t*)target_ctx_gregs[GREG_RIP].u64)+1);
 	target_ctx_gregs[GREG_RIP].u64 += cd == 0x4c24348b4cf7eb0f ? 27 : 18; // vpcmpeqw/por/movq/leaq/jmpq vs vpcmpeqw/por/je
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (A" << (cd == 0x4c24348b4cf7eb0f ? "0" : "1") << ")..." << std::endl;
