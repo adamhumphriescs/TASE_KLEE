@@ -1,5 +1,6 @@
 
 
+
 //===-- Executor.cpp ------------------------------------------------------===//
 //
 //                     The KLEE Symbolic Virtual Machine
@@ -4662,19 +4663,19 @@ void Executor::klee_interp_internal () {
           std::cout << "Skipping LEA and jmp..." << std::endl;
         }
       } else if ( cc == 0x4566363c751101c4 ) {
-	target_ctx_gregs[GREG_RIP].u64 += 18;  // vpcmpeqw/por/je
-
+	uint64_t cd = *(++((uint64_t*)target_ctx_gregs[GREG_RIP].u64));
+	target_ctx_gregs[GREG_RIP].u64 += cd == 0x4c24348b4cf7eb0f ? 27 : 18; // vpcmpeqw/por/movq/leaq/jmpq vs vpcmpeqw/por/je
 	if( modelDebug ){
-	  std::cout << "Skipping eager instrumentation (A)..." << std::endl;
+	  std::cout << "Skipping eager instrumentation (A" << (cd == 0x4c24348b4cf7eb0f ? "0" : "1") << ")..." << std::endl;
 	}
       } else if ( cc == 0x1583b025048b489e ) {
-	target_ctx_gregs[GREG_RIP].u64 += 9; // 
+	target_ctx_gregs[GREG_RIP].u64 += 9; // sahf/mov
 	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (B)..." << std::endl;
 	}
       } else if ( cc & 0x00ffffffffffffff == 0x0000000001bf419f ) {
-	target_ctx_gregs[GREG_RIP].u64 += 7; //
+	target_ctx_gregs[GREG_RIP].u64 += 7; // mov/lahf
 	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (C)..." << std::endl;
