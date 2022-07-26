@@ -4662,19 +4662,19 @@ void Executor::klee_interp_internal () {
           std::cout << "Skipping LEA and jmp..." << std::endl;
         }
       } else if ( cc == 0x4566363c751101c4 ) {
-	target_ctx_gregs[GREG_RIP].u64 += 18;
+	target_ctx_gregs[GREG_RIP].u64 += 18;  // vpcmpeqw/por/je
 
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (A)..." << std::endl;
 	}
       } else if ( cc == 0x1583b025048b489e ) {
-	target_ctx_gregs[GREG_RIP].u64 += 9;
+	target_ctx_gregs[GREG_RIP].u64 += 9; // 
 	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (B)..." << std::endl;
 	}
       } else if ( cc & 0x00ffffffffffffff == 0x0000000001bf419f ) {
-	target_ctx_gregs[GREG_RIP].u64 += 7;
+	target_ctx_gregs[GREG_RIP].u64 += 7; //
 	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (C)..." << std::endl;
