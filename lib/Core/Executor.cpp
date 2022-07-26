@@ -4654,7 +4654,7 @@ void Executor::klee_interp_internal () {
       }
 
 
-      uint64_t cc = *(uint64_t*)target_ctx_gregs[GREG_RIP].u6;
+      uint64_t cc = *(uint64_t*)target_ctx_gregs[GREG_RIP].u64;
       if( (cc & 0x00ffffffffffffff) == 0x00000000053d8d4c ){
         target_ctx_gregs[GREG_RIP].u64 += trap_off; // 12
 
