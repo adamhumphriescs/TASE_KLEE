@@ -1604,27 +1604,27 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    }
 
    printf("InputArgv: \n");
+   std::string pname = std::string(&tase_progname[0], strlen(tase_progname));
+   std::cout << "  " << tase_progname << std::endl;
    for(auto& x : InputArgv){
-     printf("  %s\n", x.c_str());
+     std::cout << "  " << x << std::endl;
    }
-   fflush(stdout);
+
    std::vector<size_t> argsizes;
    pArgc = InputArgv.size() + 1;
    pArgv = new char *[pArgc];
    for (unsigned i=0; i<InputArgv.size()+1; i++) {
-     std::string &arg = (i==0 ? InputFile : InputArgv[i-1]);
-     printf("Arg: %s\n", arg.c_str());
+     std::string &arg = ( i == 0 ? pname : InputArgv[i-1] );
+     std::cout << "Arg: " << arg << std::endl;
      unsigned size = arg.size() + 1;
      char *pArg = new char[size];
      argsizes.push_back((size_t) size);
      std::copy(arg.begin(), arg.end(), pArg);
      pArg[size - 1] = 0;
-     
      pArgv[i] = pArg;
    }
    ///////////////////// End of Arg Parsing Section
 
-   printf("should have seen Args here");
    printf("Creating interpreter... \n");
    Interpreter::InterpreterOptions IOpts;
    KleeHandler *handler = new KleeHandler(pArgc, pArgv);
