@@ -4082,7 +4082,7 @@ ref<Expr> Executor::tase_helper_read (uint64_t addr, uint8_t byteWidth) {
 
 
 template<typename T1, typename T2, typename... Ts>
-ObjectState * Executor::tase_map(const std::string& name, T1 t1, T2 t2, Ts... ts){
+bool Executor::tase_map(const std::string& name, T1 t1, T2 t2, Ts... ts){
   bool a = tase_map(t1, name) & tase_map(name, t2, ts...);
   if ( !a } {
     std::cout << "error mapping buffer: " << name << std::endl;
@@ -4182,7 +4182,7 @@ template bool Executor::tase_map<uint64_t>(const uint64_t&, const std::string& n
 
 template<>
 bool Executor::tase_map(FILE* const & t, const std::string& name){
-  auto a = tase_map_buf((uint64_t) &t, sizeof(FILE*), name)
+  auto a = tase_map_buf((uint64_t) &t, sizeof(FILE*), name);
     a &= (t == NULL ? x : tase_map(*t, name));
   if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
