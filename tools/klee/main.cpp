@@ -1773,7 +1773,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      for(int i = 0; i < pArgc; ++i){
        //exe->tase_map_buf((uint64_t) pArgv[i], argsizes[i]);
        printf("mapping arg: %s, size: %d", pArgv[i], strlen(pArgv[i]+1));
-       exe->tase_map(pArgv[i], name="pArgv[" + std::to_string(i) + ")");
+       exe->tase_map(pArgv[i], "pArgv[" + std::to_string(i) + ")");
      }
 
      transferToTarget(pArgc, pArgv);
