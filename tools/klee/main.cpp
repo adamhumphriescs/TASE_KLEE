@@ -1772,7 +1772,9 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      exe->tase_map(saved_rax, "saved_rax");
      for(int i = 0; i < pArgc; ++i){
        printf("mapping arg: %s, size: %d\n", pArgv[i], strlen(pArgv[i]+1));
-       exe->tase_map(pArgv[i], strlen(pArgv[i]) + 1, "pArgv[" + std::to_string(i) + "]");
+       if ( i > 1 ) {
+         exe->tase_map(pArgv[i], strlen(pArgv[i]) + 1, "pArgv[" + std::to_string(i) + "]");
+       }
      }
 
      transferToTarget(pArgc, pArgv);
