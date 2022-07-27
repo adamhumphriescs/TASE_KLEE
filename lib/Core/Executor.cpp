@@ -3438,16 +3438,12 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   }
   
   if (!success) {
-    while (!done && 
-
-
     std::string ss;
     llvm::raw_string_ostream tmp(ss);
     address->print(tmp);
     std::cout << "Could not resolve address to MO: " << std::hex << std::stoull(tmp.str().c_str(), nullptr, 0) << std::dec << "\n";
     std::cout << "Reason: " << reason << "\n";
     std::cout << "address was " << (CE ? "" : "not ") << "a ConstExpr" << std::endl;
-    
   } else {
     const MemoryObject *mo = op.first;
 
