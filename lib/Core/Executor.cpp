@@ -4111,7 +4111,7 @@ template<>
 bool Executor::tase_map(char* const & t, const std::string& name){
   auto a = t == NULL ? tase_map_buf((uint64_t) &t, sizeof(char*), name) : tase_map(t, strlen(t)+1, name);
   if ( !a ) {
-    std::cout << "Error mapping buffer: " << name << std::endl;
+    std::cout << "Error mapping buffer: " << name << " - " << ( t == NULL ? "NULL" : "non-NULL" ) << std::endl;
   }
   return a;
 }
