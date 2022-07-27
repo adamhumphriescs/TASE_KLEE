@@ -835,7 +835,7 @@ void Executor::initializeGlobalObject(ExecutionState &state, ObjectState *os,
 
 MemoryObject * Executor::addExternalObject(ExecutionState &state, 
                                            void *addr, unsigned size, 
-                                           bool isReadOnly, bool forTASE, const std::string& name) {
+                                           bool isReadOnly, const std::string& name, bool forTASE) {
   MemoryObject *mo = memory->allocateFixed((uint64_t) (unsigned long) addr, 
                                            size, 0);
   mo->setName(name);
@@ -4083,7 +4083,7 @@ ref<Expr> Executor::tase_helper_read (uint64_t addr, uint8_t byteWidth) {
 
 template<typename T1, typename T2, typename... Ts>
 ObjectState * Executor::tase_map(const std::string& name, T1 t1, T2 t2, Ts... ts){
-  bool a = tase_map(t1, name=name) & tase_map(name, t2, ts...);
+  bool a = tase_map(t1, name) & tase_map(name, t2, ts...);
   if ( !a } {
     std::cout << "error mapping buffer: " << name << std::endl;
   }
@@ -4094,7 +4094,7 @@ ObjectState * Executor::tase_map(const std::string& name, T1 t1, T2 t2, Ts... ts
 // for things like ptr into buffer for start/end/current position...
 template<typename T>
 bool Executor::tase_map(const T*& t, const std::string& name){
-  bool a = tase_map_buf((uint64_t) &t, sizeof(T*), name=name);
+  bool a = tase_map_buf((uint64_t) &t, sizeof(T*), name);
   if( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
   }
@@ -4103,7 +4103,7 @@ bool Executor::tase_map(const T*& t, const std::string& name){
 
 template<typename T>
 bool Executor::tase_map(T* const & t, const size_t& size, const std::string& name){
-  bool a = tase_map_buf((uint64_t) &t, sizeof(T*), name=name) & tase_map_buf((uint64_t) t, sizeof(t) * size, name=name);
+  bool a = tase_map_buf((uint64_t) &t, sizeof(T*), name) & tase_map_buf((uint64_t) t, sizeof(t) * size, name);
   std::cout << "Error mapping buffer: " << name << std::endl;
 }
 
@@ -4113,7 +4113,7 @@ template bool  Executor::tase_map<char>(char* const & t, const size_t& size, con
 // assume null-terminated
 template<>
 bool Executor::tase_map(char* const & t, const std::string& name){
-  auto a = t == NULL ? tase_map_buf((uint64_t) &t, sizeof(char*), name=name) : tase_map(t, strlen(t)+1, name=name);
+  auto a = t == NULL ? tase_map_buf((uint64_t) &t, sizeof(char*), name) : tase_map(t, strlen(t)+1, name);
   if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
   }
@@ -4122,7 +4122,7 @@ bool Executor::tase_map(char* const & t, const std::string& name){
 
 template<>
 bool Executor::tase_map(void* const & t, const std::string& name){
-  bool a = tase_map_buf((uint64_t) &t, sizeof(void*), name=name);
+  bool a = tase_map_buf((uint64_t) &t, sizeof(void*), name);
   if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
   }
@@ -4135,7 +4135,7 @@ typedef off_t (seek_t)(FILE*, off_t, int);
 
 template<>
 bool Executor::tase_map(read_t* const& t, const std::string& name){
-  bool a = tase_map_buf((uint64_t)&t, sizeof(read_t*), name=name);
+  bool a = tase_map_buf((uint64_t)&t, sizeof(read_t*), name);
   if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
   }
@@ -4144,7 +4144,7 @@ bool Executor::tase_map(read_t* const& t, const std::string& name){
 
 template<>
 bool Executor::tase_map(write_t* const& t, const std::string& name){
-  bool a = tase_map_buf((uint64_t)&t, sizeof(write_t*), name=name);
+  bool a = tase_map_buf((uint64_t)&t, sizeof(write_t*), name);
     if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
   }
@@ -4153,7 +4153,7 @@ bool Executor::tase_map(write_t* const& t, const std::string& name){
 
 template<>
 bool Executor::tase_map(seek_t* const& t, const std::string& name){
-  bool a = tase_map_buf((uint64_t) &t, sizeof(seek_t*), name=name);
+  bool a = tase_map_buf((uint64_t) &t, sizeof(seek_t*), name);
     if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
   }
@@ -4170,7 +4170,7 @@ bool Executor::tase_map(seek_t* const& t, const std::string& name){
 // default
 template<typename T>
 bool Executor::tase_map(const T& t, const std::string& name){
-  bool a = tase_map_buf((uint64_t) &t, sizeof(t), name=name);
+  bool a = tase_map_buf((uint64_t) &t, sizeof(t), name);
     if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
   }
@@ -4182,8 +4182,8 @@ template bool Executor::tase_map<uint64_t>(const uint64_t&, const std::string& n
 
 template<>
 bool Executor::tase_map(FILE* const & t, const std::string& name){
-  auto a = tase_map_buf((uint64_t) &t, sizeof(FILE*), name=name)
-  a &= (t == NULL ? x : tase_map(*t));
+  auto a = tase_map_buf((uint64_t) &t, sizeof(FILE*), name)
+    a &= (t == NULL ? x : tase_map(*t, name));
   if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
   }
@@ -5068,7 +5068,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
   
   uint64_t stackBase = (uint64_t) &target_ctx.target_stack;
   uint64_t stackSize = STACK_SIZE;
-  tase_map_buf((uint64_t) stackBase, stackSize, name="stack");
+  tase_map_buf((uint64_t) stackBase, stackSize, "stack");
   std::cout << "Stack: " << std::hex << stackBase << " to " << (stackBase + stackSize + 1) << std::dec << std::endl;
   
   target_ctx_gregs_MO = addExternalObject(*GlobalExecutionStatePtr, (void *) target_ctx_gregs, TASE_NGREG * TASE_GREG_SIZE, false );
@@ -5088,7 +5088,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
   rodata_size = (uint64_t) ((uint64_t) (&__GNU_EH_FRAME_HDR) - (uint64_t) (&_IO_stdin_used)) ;
 
   rodata_size += (0x2949c + 0x2949c); //Hack to map in eh_frame_hdr and eh_frame also
-  tase_map_buf((uint64_t) rodata_base_ptr, rodata_size, name="rodata");
+  tase_map_buf((uint64_t) rodata_base_ptr, rodata_size, "rodata");
 
   //Map in special stdin libc symbol
   //tase_map_buf((uint64_t) &stdin, 8);
@@ -5124,7 +5124,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
           //++sizeVal;
           printf("rounding up sizeval to even number - %lu \n", sizeVal);
         }
-        tase_map_buf(addrVal, sizeVal, name="global");
+        tase_map_buf(addrVal, sizeVal, "global");
         std::cout << "Global: " << std::hex << addrVal << " size " << std::dec << sizeVal << std::endl;
       }
       lines++;
@@ -5160,12 +5160,12 @@ void Executor::initializeInterpretationStructures (Function *f) {
   if (envSize % 2 == 1)
     envSize++;
 
-  tase_map_buf(baseEnvAddr, envSize, name="env");
+  tase_map_buf(baseEnvAddr, envSize, "env");
   
   //Add mappings for stderr and stdout
   //Todo -- remove dependency on _edata location
   //printf("Mapping edata at 0x%lx \n", (uint64_t) &edata);
-  tase_map_buf((uint64_t) &edata, 16, name="edata");
+  tase_map_buf((uint64_t) &edata, 16, "edata");
 
   //Get rid of the dummy function used for initialization
   GlobalExecutionStatePtr->popFrame();
