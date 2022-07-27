@@ -4108,7 +4108,7 @@ template bool  Executor::tase_map<char>(char* const & t, const size_t& size, con
 
 // assume null-terminated
 template<>
-bool Executor::tase_map(char* const & t, const std::string& name){
+bool Executor::tase_map<char>(char* const & t, const std::string& name){
   auto a = t == NULL ? tase_map_buf((uint64_t) &t, sizeof(char*), name) : tase_map(t, strlen(t)+1, name);
   if ( !a ) {
     std::cout << "Error mapping buffer: " << name << " - " << ( t == NULL ? "NULL" : "non-NULL" ) << std::endl;
@@ -4117,7 +4117,7 @@ bool Executor::tase_map(char* const & t, const std::string& name){
 }
 
 template<>
-bool Executor::tase_map(void* const & t, const std::string& name){
+bool Executor::tase_map<void>(void* const & t, const std::string& name){
   bool a = tase_map_buf((uint64_t) &t, sizeof(void*), name);
   if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
@@ -4130,7 +4130,7 @@ typedef size_t (write_t)(FILE*, const unsigned char *, size_t);
 typedef off_t (seek_t)(FILE*, off_t, int);
 
 template<>
-bool Executor::tase_map(read_t* const& t, const std::string& name){
+bool Executor::tase_map<read_t>(read_t* const& t, const std::string& name){
   bool a = tase_map_buf((uint64_t)&t, sizeof(read_t*), name);
   if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
@@ -4139,7 +4139,7 @@ bool Executor::tase_map(read_t* const& t, const std::string& name){
 }
 
 template<>
-bool Executor::tase_map(write_t* const& t, const std::string& name){
+bool Executor::tase_map<write_t>(write_t* const& t, const std::string& name){
   bool a = tase_map_buf((uint64_t)&t, sizeof(write_t*), name);
     if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
@@ -4148,7 +4148,7 @@ bool Executor::tase_map(write_t* const& t, const std::string& name){
 }
 
 template<>
-bool Executor::tase_map(seek_t* const& t, const std::string& name){
+bool Executor::tase_map<seek_t>(seek_t* const& t, const std::string& name){
   bool a = tase_map_buf((uint64_t) &t, sizeof(seek_t*), name);
     if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
@@ -4177,7 +4177,7 @@ template bool Executor::tase_map<uint64_t>(const uint64_t&, const std::string& n
 
 
 template<>
-bool Executor::tase_map(FILE* const & t, const std::string& name){
+bool Executor::tase_map<FILE>(FILE* const & t, const std::string& name){
   auto a = tase_map_buf((uint64_t) &t, sizeof(FILE*), name);
     a &= (t == NULL ? a : tase_map(*t, name));
   if ( !a ) {
