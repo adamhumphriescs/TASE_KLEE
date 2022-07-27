@@ -4100,7 +4100,7 @@ bool Executor::tase_map(const T*& t, const std::string& name){
 template<typename T>
 bool Executor::tase_map(T* const & t, const size_t& size, const std::string& name){
   bool a = tase_map_buf((uint64_t) &t, sizeof(T*), name) & tase_map_buf((uint64_t) t, sizeof(t) * size, name);
-  std::cout << "Error mapping buffer: " << name << std::endl;
+  std::cout << "Error mapping buffer: " << name << " - generic pointer" << std::endl;
 }
 
 template bool  Executor::tase_map<char>(char* const & t, const size_t& size, const std::string& name); // force instantiation
