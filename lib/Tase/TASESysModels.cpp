@@ -2077,7 +2077,7 @@ void Executor::model_gethostbyname() {
       fflush(stdout);
       
       printf("Mapping in buf at 0x%lx with size 0x%lx for h_addr_list", baseAddr, size);
-      MemoryObject * listMO = addExternalObject(*GlobalExecutionStatePtr, (void *) baseAddr, size, false, name="gethostbyname struct2");
+      MemoryObject * listMO = addExternalObject(*GlobalExecutionStatePtr, (void *) baseAddr, size, false, "gethostbyname struct2");
       const ObjectState * listOSConst = GlobalExecutionStatePtr->addressSpace.findObject(listMO);
       ObjectState * listOS = GlobalExecutionStatePtr->addressSpace.getWriteable(listMO, listOSConst);
       listOS->concreteStore = (uint8_t *) baseAddr;
@@ -2986,7 +2986,7 @@ void Executor::model___pthread_self() {
   static int pthread_self_calls = 0;
   if (pthread_self_calls == 0) {
     dummy_pthread_struct = (struct pthread *) calloc(sizeof( struct pthread), 1);
-    tase_map_buf( (uint64_t) dummy_pthread_struct, sizeof( struct pthread), name="dummy pthread struct");
+    tase_map_buf( (uint64_t) dummy_pthread_struct, sizeof( struct pthread), "dummy pthread struct");
     printf("TASE INFO: Initializing dummy pthread struct for target \n");
   } else {
     printf("TASE INFO: Returning dummy pthread struct in call to __pthread_self \n");    
