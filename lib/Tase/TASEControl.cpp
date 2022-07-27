@@ -631,7 +631,7 @@ void worker_exit() {
     std::cout.flush();
     std::exit(EXIT_SUCCESS);
   }
-    #else
+  #else
 
   get_sem_lock();
   *total_workers = *total_workers -1 ;

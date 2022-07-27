@@ -5037,6 +5037,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
   uint64_t stackBase = (uint64_t) &target_ctx.target_stack;
   uint64_t stackSize = STACK_SIZE;
   tase_map_buf((uint64_t) stackBase, stackSize);
+  std::cout << "Stack: " << stackBase << " to " << (stackBase + stackSize + 1) << std::endl;
   
   target_ctx_gregs_MO = addExternalObject(*GlobalExecutionStatePtr, (void *) target_ctx_gregs, TASE_NGREG * TASE_GREG_SIZE, false );
   const ObjectState *targetCtxOS = GlobalExecutionStatePtr->addressSpace.findObject(target_ctx_gregs_MO);
