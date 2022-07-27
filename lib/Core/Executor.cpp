@@ -4200,7 +4200,7 @@ bool Executor::tase_map(const FILE& t){
 
 //Todo -- make this play nice with our alignment requirements
  bool Executor::tase_map_buf(uint64_t addr, size_t size, const std::string& name) {
-  MemoryObject * MOres = addExternalObject(*GlobalExecutionStatePtr, (void *) addr, size, false, true, name=name);
+   MemoryObject * MOres = addExternalObject(*GlobalExecutionStatePtr, (void *) addr, size, false, name, true);
   //  const ObjectState * OSConst = GlobalExecutionStatePtr->addressSpace.findObject(MOres);
   //  ObjectState * OSres = GlobalExecutionStatePtr->addressSpace.getWriteable(MOres, OSConst);
   //  OSres->concreteStore = (uint8_t *) addr;
