@@ -138,7 +138,7 @@ extern int numEntries;
 #endif
 extern void  exit_tase();
 
-extern char * tase_progname;
+extern char tase_progname[];
 
 //AH: END OF TASE ADDITIONS
 //-----------------------------------
@@ -1605,7 +1605,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      pEnvp = envp;
    }
 
-   printf("InputArgv: \n");
+   std::cout << "InputArgv: " << std::endl;
    std::string pname = std::string(&tase_progname[0], strlen(tase_progname));
    std::cout << "  " << tase_progname << std::endl;
    for(auto& x : InputArgv){
