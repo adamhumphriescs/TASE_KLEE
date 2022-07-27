@@ -1767,7 +1767,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      }
 
      auto exe = static_cast<klee::Executor*>(interpreter);
-     exe->tase_map(saved_rax, name="saved_rax");
+     exe->tase_map(saved_rax, "saved_rax");
      //exe->tase_map_buf((uint64_t) &pArgc, sizeof(pArgc));
      //exe->tase_map_buf((uint64_t) pArgv, sizeof(pArgv)*pArgc);
      for(int i = 0; i < pArgc; ++i){
