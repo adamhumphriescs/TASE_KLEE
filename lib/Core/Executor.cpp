@@ -4080,7 +4080,7 @@ ref<Expr> Executor::tase_helper_read (uint64_t addr, uint8_t byteWidth) {
 template<typename T1, typename T2, typename... Ts>
 bool Executor::tase_map(const std::string& name, T1 t1, T2 t2, Ts... ts){
   bool a = tase_map(t1, name) & tase_map(name, t2, ts...);
-  if ( !a } {
+  if ( !a ) {
     std::cout << "error mapping buffer: " << name << std::endl;
   }
 
