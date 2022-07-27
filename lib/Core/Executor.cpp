@@ -835,10 +835,10 @@ void Executor::initializeGlobalObject(ExecutionState &state, ObjectState *os,
 
 MemoryObject * Executor::addExternalObject(ExecutionState &state, 
                                            void *addr, unsigned size, 
-                                           bool isReadOnly, bool forTASE) {
+                                           bool isReadOnly, bool forTASE, const std::string& name) {
   MemoryObject *mo = memory->allocateFixed((uint64_t) (unsigned long) addr, 
                                            size, 0);
-
+  mo->setName(name);
   ObjectState *os = bindObjectInState(state, mo, false, NULL, forTASE);
   
   //printf("Mapping external buf: mo->address is 0x%lx, size is 0x%x \n", mo->address, size);
@@ -3438,20 +3438,17 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   }
   
   if (!success) {
+    while (!done && 
+
+
     std::string ss;
     llvm::raw_string_ostream tmp(ss);
     address->print(tmp);
     std::cout << "Could not resolve address to MO: " << std::hex << std::stoull(tmp.str().c_str(), nullptr, 0) << std::dec << "\n";
     std::cout << "Reason: " << reason << "\n";
     std::cout << "address was " << (CE ? "" : "not ") << "a ConstExpr" << std::endl;
-    /*std::string ss2;
-      llvm::raw_string_ostream tmp2(ss2);
-      state.dumpStack(tmp2);
-      std::cout << "STACK:\n" << tmp2.str() << std::endl;*/
-    //address->dump();
-  }
-
-  if (success) {
+    
+  } else {
     const MemoryObject *mo = op.first;
 
     //------------------New fast path:
@@ -4085,35 +4082,51 @@ ref<Expr> Executor::tase_helper_read (uint64_t addr, uint8_t byteWidth) {
 
 
 template<typename T1, typename T2, typename... Ts>
-ObjectState * Executor::tase_map(T1 t1, T2 t2, Ts... ts){
-  tase_map(t1);
-  return tase_map(t2, ts...);
+ObjectState * Executor::tase_map(const std::string& name, T1 t1, T2 t2, Ts... ts){
+  bool a = tase_map(t1, name=name) & tase_map(name, t2, ts...);
+  if ( !a } {
+    std::cout << "error mapping buffer: " << name << std::endl;
+  }
+
+  return a;
 }
 
 // for things like ptr into buffer for start/end/current position...
 template<typename T>
-ObjectState * Executor::tase_map(const T*& t){
-  return tase_map_buf((uint64_t) &t, sizeof(T*));
+bool Executor::tase_map(const T*& t, const std::string& name){
+  bool a = tase_map_buf((uint64_t) &t, sizeof(T*), name=name);
+  if( !a ) {
+    std::cout << "Error mapping buffer: " << name << std::endl;
+  }
+  return a;
 }
 
 template<typename T>
-ObjectState * Executor::tase_map(T* const & t, const size_t& size){
-  tase_map_buf((uint64_t) &t, sizeof(T*));
-  return tase_map_buf((uint64_t) t, sizeof(t) * size);
+bool Executor::tase_map(T* const & t, const size_t& size, const std::string& name){
+  bool a = tase_map_buf((uint64_t) &t, sizeof(T*), name=name) & tase_map_buf((uint64_t) t, sizeof(t) * size, name=name);
+  std::cout << "Error mapping buffer: " << name << std::endl;
 }
 
-template ObjectState *  Executor::tase_map<char>(char* const & t, const size_t& size); // force instantiation
+template bool  Executor::tase_map<char>(char* const & t, const size_t& size, const std::string& name); // force instantiation
 //template ObjectState *  Executor::tase_map<unsigned char>(unsigned char* const & t, const size_t& size); // force instantiation
 
 // assume null-terminated
 template<>
-ObjectState * Executor::tase_map(char* const & t){
-  return t == NULL ? tase_map_buf((uint64_t) &t, sizeof(char*)) : tase_map(t, strlen(t)+1);
+bool Executor::tase_map(char* const & t, const std::string& name){
+  auto a = t == NULL ? tase_map_buf((uint64_t) &t, sizeof(char*), name=name) : tase_map(t, strlen(t)+1, name=name);
+  if ( !a ) {
+    std::cout << "Error mapping buffer: " << name << std::endl;
+  }
+  return a;
 }
 
 template<>
-ObjectState * Executor::tase_map(void* const & t){
-  return tase_map_buf((uint64_t) &t, sizeof(void*));
+bool Executor::tase_map(void* const & t, const std::string& name){
+  bool a = tase_map_buf((uint64_t) &t, sizeof(void*), name=name);
+  if ( !a ) {
+    std::cout << "Error mapping buffer: " << name << std::endl;
+  }
+  return a;
 }
 
 typedef size_t (read_t)(FILE*, unsigned char*, size_t);
@@ -4121,44 +4134,64 @@ typedef size_t (write_t)(FILE*, const unsigned char *, size_t);
 typedef off_t (seek_t)(FILE*, off_t, int);
 
 template<>
-ObjectState * Executor::tase_map(read_t* const& t){
-  return tase_map_buf((uint64_t)&t, sizeof(read_t*));
+bool Executor::tase_map(read_t* const& t, const std::string& name){
+  bool a = tase_map_buf((uint64_t)&t, sizeof(read_t*), name=name);
+  if ( !a ) {
+    std::cout << "Error mapping buffer: " << name << std::endl;
+  }
+  return a;
 }
 
 template<>
-ObjectState * Executor::tase_map(write_t* const& t){
-  return tase_map_buf((uint64_t)&t, sizeof(write_t*));
+bool Executor::tase_map(write_t* const& t, const std::string& name){
+  bool a = tase_map_buf((uint64_t)&t, sizeof(write_t*), name=name);
+    if ( !a ) {
+    std::cout << "Error mapping buffer: " << name << std::endl;
+  }
+  return a;
 }
 
 template<>
-ObjectState * Executor::tase_map(seek_t* const& t){
-  return tase_map_buf((uint64_t) &t, sizeof(seek_t*));
+bool Executor::tase_map(seek_t* const& t, const std::string& name){
+  bool a = tase_map_buf((uint64_t) &t, sizeof(seek_t*), name=name);
+    if ( !a ) {
+    std::cout << "Error mapping buffer: " << name << std::endl;
+  }
+  return a;
 }
 
 // ptr default
 //template<typename T>
-/*ObjectState * Executor::tase_map(const T*& t){
+/*bool Executor::tase_map(const T*& t){
   auto x = tase_map_buf((uint64_t) &t, sizeof(t));
   return t == NULL ? x : tase_map_buf((uint64_t) t, sizeof(T));
 }*/
 
 // default
 template<typename T>
-ObjectState * Executor::tase_map(const T& t){
-  return tase_map_buf((uint64_t) &t, sizeof(t));
+bool Executor::tase_map(const T& t, const std::string& name){
+  bool a = tase_map_buf((uint64_t) &t, sizeof(t), name=name);
+    if ( !a ) {
+    std::cout << "Error mapping buffer: " << name << std::endl;
+  }
+  return a;
 }
 
-template ObjectState * Executor::tase_map<uint64_t>(const uint64_t&);
+template bool Executor::tase_map<uint64_t>(const uint64_t&, const std::string& name);
 
 
 template<>
-ObjectState * Executor::tase_map(FILE* const & t){
-  auto x = tase_map_buf((uint64_t) &t, sizeof(FILE*));
-  return t == NULL ? x : tase_map(*t);
+bool Executor::tase_map(FILE* const & t, const std::string& name){
+  auto a = tase_map_buf((uint64_t) &t, sizeof(FILE*), name=name)
+  a &= (t == NULL ? x : tase_map(*t));
+  if ( !a ) {
+    std::cout << "Error mapping buffer: " << name << std::endl;
+  }
+  return a;
 }
 
 /*template<>
-ObjectState * Executor::tase_map(const FILE& t){
+bool Executor::tase_map(const FILE& t){
   tase_map(t.flags, t.rpos, t.rend, t.close, t.wend, t.wpos, t.mustbezero_1, t.wbase, t.read, t.write, t.seek);
   tase_map(t.buf, t.buf_size);
   return tase_map(t.prev, t.next, t.fd, t.pipe_pid, t.lockcount, t.mode, t.lock, t.lbf, t.cookie, t.off, t.getln_buf,
@@ -4166,13 +4199,12 @@ ObjectState * Executor::tase_map(const FILE& t){
 }*/
 
 //Todo -- make this play nice with our alignment requirements
-ObjectState * Executor::tase_map_buf(uint64_t addr, size_t size) {
-  MemoryObject * MOres = addExternalObject(*GlobalExecutionStatePtr, (void *) addr, size, false, true);
-  const ObjectState * OSConst = GlobalExecutionStatePtr->addressSpace.findObject(MOres);
-  ObjectState * OSres = GlobalExecutionStatePtr->addressSpace.getWriteable(MOres, OSConst);
-  OSres->concreteStore = (uint8_t *) addr;
-
-  return OSres;
+ bool Executor::tase_map_buf(uint64_t addr, size_t size, const std::string& name) {
+  MemoryObject * MOres = addExternalObject(*GlobalExecutionStatePtr, (void *) addr, size, false, true, name=name);
+  //  const ObjectState * OSConst = GlobalExecutionStatePtr->addressSpace.findObject(MOres);
+  //  ObjectState * OSres = GlobalExecutionStatePtr->addressSpace.getWriteable(MOres, OSConst);
+  //  OSres->concreteStore = (uint8_t *) addr;
+  return true;
 }
 
 //Todo: See if we can make this faster with the poison checking scheme.
@@ -5036,7 +5068,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
   
   uint64_t stackBase = (uint64_t) &target_ctx.target_stack;
   uint64_t stackSize = STACK_SIZE;
-  tase_map_buf((uint64_t) stackBase, stackSize);
+  tase_map_buf((uint64_t) stackBase, stackSize, name="stack");
   std::cout << "Stack: " << std::hex << stackBase << " to " << (stackBase + stackSize + 1) << std::dec << std::endl;
   
   target_ctx_gregs_MO = addExternalObject(*GlobalExecutionStatePtr, (void *) target_ctx_gregs, TASE_NGREG * TASE_GREG_SIZE, false );
@@ -5056,7 +5088,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
   rodata_size = (uint64_t) ((uint64_t) (&__GNU_EH_FRAME_HDR) - (uint64_t) (&_IO_stdin_used)) ;
 
   rodata_size += (0x2949c + 0x2949c); //Hack to map in eh_frame_hdr and eh_frame also
-  tase_map_buf((uint64_t) rodata_base_ptr, rodata_size);
+  tase_map_buf((uint64_t) rodata_base_ptr, rodata_size, name="rodata");
 
   //Map in special stdin libc symbol
   //tase_map_buf((uint64_t) &stdin, 8);
@@ -5092,7 +5124,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
           //++sizeVal;
           printf("rounding up sizeval to even number - %lu \n", sizeVal);
         }
-        tase_map_buf(addrVal, sizeVal);
+        tase_map_buf(addrVal, sizeVal, name="global");
         std::cout << "Global: " << std::hex << addrVal << " size " << std::dec << sizeVal << std::endl;
       }
       lines++;
@@ -5128,12 +5160,12 @@ void Executor::initializeInterpretationStructures (Function *f) {
   if (envSize % 2 == 1)
     envSize++;
 
-  tase_map_buf(baseEnvAddr, envSize);
+  tase_map_buf(baseEnvAddr, envSize, name="env");
   
   //Add mappings for stderr and stdout
   //Todo -- remove dependency on _edata location
   //printf("Mapping edata at 0x%lx \n", (uint64_t) &edata);
-  tase_map_buf((uint64_t) &edata, 16);
+  tase_map_buf((uint64_t) &edata, 16, name="edata");
 
   //Get rid of the dummy function used for initialization
   GlobalExecutionStatePtr->popFrame();

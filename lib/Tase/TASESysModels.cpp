@@ -773,7 +773,7 @@ void Executor::model_vasprintf(){
   std::string out = model_printf_base_va(count, s_offset, __func__);
 
   char * outstr = (char*) calloc(1, (out.size()+1)*sizeof(char));
-  tase_map_buf((uint64_t) outstr, (out.size()+1)*sizeof(char));
+  tase_map_buf((uint64_t) outstr, (out.size()+1)*sizeof(char), name="vasprintf outstr");
   argout = &outstr;
   strcpy(outstr, out.c_str());
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) out.size(), Expr::Int64);
@@ -935,7 +935,7 @@ void Executor::model___errno_location() {
     if (modelDebug && !noLog) {
       printf("Creating MO to back errno at 0x%lx with size 0x%lx \n", (uint64_t) res, sizeof(int));
     }
-    MemoryObject * newMO = addExternalObject(*GlobalExecutionStatePtr, (void *) res, sizeof(int), false);
+    MemoryObject * newMO = addExternalObject(*GlobalExecutionStatePtr, (void *) res, sizeof(int), false, name="Errno struct");
     const ObjectState * newOSConst = GlobalExecutionStatePtr->addressSpace.findObject(newMO);
     ObjectState *newOS = GlobalExecutionStatePtr->addressSpace.getWriteable(newMO,newOSConst);
     newOS->concreteStore = (uint8_t *) res;
@@ -1226,7 +1226,7 @@ void Executor::model_gmtime() {
 	printf("Creating MO to back tm at 0x%lx with size 0x%lx \n", (uint64_t) res, sizeof(struct tm));
       }
 
-      MemoryObject * newMO = addExternalObject(*GlobalExecutionStatePtr, (void *) res, sizeof(struct tm), false);
+      MemoryObject * newMO = addExternalObject(*GlobalExecutionStatePtr, (void *) res, sizeof(struct tm), false, name="gmtime struct");
       const ObjectState * newOSConst = GlobalExecutionStatePtr->addressSpace.findObject(newMO);
       ObjectState *newOS = GlobalExecutionStatePtr->addressSpace.getWriteable(newMO,newOSConst);
       newOS->concreteStore = (uint8_t *) res;
@@ -1341,13 +1341,13 @@ void Executor::model_calloc() {
 
 
     if (bufferGuard) {
-      tase_map_buf((uint64_t) returnedBuf, initNmemb * size + 6);
+      tase_map_buf((uint64_t) returnedBuf, initNmemb * size + 6, name="calloc return buffer");
       //Poison edges around buffer
       * ((uint16_t *) (res)) = poison_val;
       void * endAddr =(void *)( (uint64_t) res + 2 + 8 + (initNmemb * size)  + 8);
       *((uint16_t *) (endAddr)) = poison_val;
     } else {
-      tase_map_buf((uint64_t) returnedBuf, numBytes);
+      tase_map_buf((uint64_t) returnedBuf, numBytes, name="calloc return buffer");
     }
 
 
@@ -1402,7 +1402,7 @@ void Executor::model_realloc() {
 	}
 	heap_guard_map.insert(std::pair<void *, void *>(returnedBuf, res));
 
-	tase_map_buf((uint64_t) returnedBuf, sizeIn + 6);
+	tase_map_buf((uint64_t) returnedBuf, sizeIn + 6, name="realloc return buffer");
 	//Poison edges around buffer
 	* ((uint16_t *) (res)) = poison_val;
 	void * endAddr =(void *)( (uint64_t) res + 2 + 8 + (sizeIn)  + 8);
@@ -1426,7 +1426,7 @@ void Executor::model_realloc() {
 	}
 	heap_guard_map.insert(std::pair<void *, void *>(returnedBuf, res));
 
-	tase_map_buf((uint64_t) returnedBuf, sizeIn + 6);
+	tase_map_buf((uint64_t) returnedBuf, sizeIn + 6, name="realloc return buffer");
 	//Poison edges around buffer
 	* ((uint16_t *) (res)) = poison_val;
 	void * endAddr =(void *)( (uint64_t) res + 2 + 8 + (sizeIn)  + 8);
@@ -1482,7 +1482,7 @@ void Executor::model_realloc() {
 
       //Treat the realloc(0,size) call like a call to malloc(size)
       if (ptr == NULL) {
-	tase_map_buf((uint64_t) res, size);
+	tase_map_buf((uint64_t) res, size, name="realloc return buffer");
 	
 	do_ret();
 	return;
@@ -1501,7 +1501,7 @@ void Executor::model_realloc() {
 	    
 	  GlobalExecutionStatePtr->addressSpace.unbindObject(MO);
 	    
-	  MemoryObject * newMO = addExternalObject(*GlobalExecutionStatePtr, (void *) res, size, false);
+	  MemoryObject * newMO = addExternalObject(*GlobalExecutionStatePtr, (void *) res, size, false, "realloc struct");
 	  const ObjectState * newOSConst = GlobalExecutionStatePtr->addressSpace.findObject(newMO);
 	  ObjectState *newOS = GlobalExecutionStatePtr->addressSpace.getWriteable(newMO,newOSConst);
 	  newOS->concreteStore = (uint8_t *) res;
@@ -1534,7 +1534,7 @@ void Executor::model_realloc() {
 	    //Todo: carefully copy out/ copy in symbolic data if present
 	    GlobalExecutionStatePtr->addressSpace.unbindObject(MO);
 	      
-	    MemoryObject * newMO = addExternalObject(*GlobalExecutionStatePtr, (void *) res, size, false);
+	    MemoryObject * newMO = addExternalObject(*GlobalExecutionStatePtr, (void *) res, size, false, "realloc struct2");
 	    const ObjectState * newOSConst = GlobalExecutionStatePtr->addressSpace.findObject(newMO);
 	    ObjectState *newOS = GlobalExecutionStatePtr->addressSpace.getWriteable(newMO,newOSConst);
 	    newOS->concreteStore = (uint8_t *) res;
@@ -1603,14 +1603,14 @@ void Executor::model_malloc() {
       //printf("Calling tase_map_buf on addr 0x%lx with size 0x%lx \n", (uint64_t) returnedBuf, initSizeArg);
       //Todo -- Should we force-align both the poison buffer and pads to 8 bytes for all, giving
       //a total of 32 bytes of padding?
-      tase_map_buf((uint64_t) returnedBuf, initSizeArg +6) ; //6 added to bring us up to alignment
+      tase_map_buf((uint64_t) returnedBuf, initSizeArg +6, name="malloc return buffer") ; //6 added to bring us up to alignment
       //Poison edges around buffer
       * ((uint16_t *) (buf)) = poison_val;
       void * endAddr =(void *)( (uint64_t) buf + 2 + 8 + (initSizeArg)  + 8);
       *((uint16_t *) (endAddr)) = poison_val;
       //printf("First Addr with poison in bufferGuard is 0x%lx \n", (uint64_t) endAddr);
     } else {
-      tase_map_buf((uint64_t) returnedBuf, sizeArg);
+      tase_map_buf((uint64_t) returnedBuf, sizeArg, name="malloc return buffer");
     }
     
     ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) returnedBuf, Expr::Int64);
@@ -2057,7 +2057,7 @@ void Executor::model_gethostbyname() {
     } else {
       printf("Creating MO to back hostent at 0x%lx with size 0x%lx \n", (uint64_t) res, sizeof(hostent));
       fflush(stdout);
-      MemoryObject * newMO = addExternalObject(*GlobalExecutionStatePtr, (void *) res, sizeof(hostent), false);
+      MemoryObject * newMO = addExternalObject(*GlobalExecutionStatePtr, (void *) res, sizeof(hostent), false, name="gethostbyname struct");
       const ObjectState * newOSConst = GlobalExecutionStatePtr->addressSpace.findObject(newMO);
       ObjectState *newOS = GlobalExecutionStatePtr->addressSpace.getWriteable(newMO,newOSConst);
       newOS->concreteStore = (uint8_t *) res;
@@ -2077,7 +2077,7 @@ void Executor::model_gethostbyname() {
       fflush(stdout);
       
       printf("Mapping in buf at 0x%lx with size 0x%lx for h_addr_list", baseAddr, size);
-      MemoryObject * listMO = addExternalObject(*GlobalExecutionStatePtr, (void *) baseAddr, size, false);
+      MemoryObject * listMO = addExternalObject(*GlobalExecutionStatePtr, (void *) baseAddr, size, false, name="gethostbyname struct2");
       const ObjectState * listOSConst = GlobalExecutionStatePtr->addressSpace.findObject(listMO);
       ObjectState * listOS = GlobalExecutionStatePtr->addressSpace.getWriteable(listMO, listOSConst);
       listOS->concreteStore = (uint8_t *) baseAddr;
@@ -2986,7 +2986,7 @@ void Executor::model___pthread_self() {
   static int pthread_self_calls = 0;
   if (pthread_self_calls == 0) {
     dummy_pthread_struct = (struct pthread *) calloc(sizeof( struct pthread), 1);
-    tase_map_buf( (uint64_t) dummy_pthread_struct, sizeof( struct pthread));
+    tase_map_buf( (uint64_t) dummy_pthread_struct, sizeof( struct pthread), name="dummy pthread struct");
     printf("TASE INFO: Initializing dummy pthread struct for target \n");
   } else {
     printf("TASE INFO: Returning dummy pthread struct in call to __pthread_self \n");    

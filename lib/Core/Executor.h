@@ -139,12 +139,12 @@ public:
     return &arrayCache;
   }
 
-  template<typename T1, typename T2, typename... Ts> ObjectState * tase_map(T1 t1, T2 t2, Ts... ts);
-  template<typename T> ObjectState * tase_map(T* const & t, const size_t& size);
-  template<typename T> ObjectState * tase_map(const T& t);
-  template<typename T> ObjectState * tase_map(const T*& t);
+  template<typename T1, typename T2, typename... Ts> bool tase_map(const std::string& name, T1 t1, T2 t2, Ts... ts);
+  template<typename T> bool tase_map(T* const & t, const size_t& size, const std::string& name);
+  template<typename T> bool tase_map(const T& t, const std::string& name);
+  template<typename T> bool tase_map(const T*& t, const std::string& name);
 
-  ObjectState * tase_map_buf (uint64_t addr, size_t size);
+  bool tase_map_buf (uint64_t addr, size_t size, const std::string& name);
 
 private:
   static const char *TerminateReasonNames[];
@@ -262,7 +262,7 @@ private:
   // Given a concrete object in our [klee's] address space, add it to 
   // objects checked code can reference.
   MemoryObject *addExternalObject(ExecutionState &state, void *addr, 
-                                  unsigned size, bool isReadOnly, bool forTASE = false);
+                                  unsigned size, bool isReadOnly, bool forTASE = false, const std::string& name = "");
 
   void initializeGlobalObject(ExecutionState &state, ObjectState *os, 
 			      const llvm::Constant *c,
