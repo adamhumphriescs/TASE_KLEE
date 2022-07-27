@@ -5044,7 +5044,6 @@ void printCtx(tase_greg_t * registers ) {
 }
 
 
-extern "C" char tase_progname[10];
 void Executor::initializeInterpretationStructures (Function *f) {
 
   printf("INITIALIZING INTERPRETATION STRUCTURES \n");
@@ -5184,9 +5183,6 @@ void Executor::initializeInterpretationStructures (Function *f) {
     fclose(stats);
     fflush(stdout);
   }
-  // getprogname
-  //tase_map_buf((uint64_t) tase_progname, sizeof(char)*10);
-  printf("program name ptr address: %lx\n", (uint64_t) &tase_progname);
 }
 				   
 
