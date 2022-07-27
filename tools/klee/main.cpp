@@ -138,6 +138,8 @@ extern int numEntries;
 #endif
 extern void  exit_tase();
 
+extern char * tase_progname;
+
 //AH: END OF TASE ADDITIONS
 //-----------------------------------
 
