@@ -4178,7 +4178,7 @@ template bool Executor::tase_map<uint64_t>(const uint64_t&, const std::string& n
 
 
 template<>
-bool Executor::tase_map<FILE>(FILE* const & t, const std::string& name){
+bool Executor::tase_map(FILE* const & t, const std::string& name){
   auto a = tase_map_buf((uint64_t) &t, sizeof(FILE*), name);
     a &= (t == NULL ? a : tase_map(*t, name));
   if ( !a ) {
