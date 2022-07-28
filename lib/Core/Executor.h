@@ -261,7 +261,7 @@ private:
 
   // Given a concrete object in our [klee's] address space, add it to 
   // objects checked code can reference.
-  ObjectState* addExternalObject(ExecutionState &state, void *addr, 
+  MemoryObject* addExternalObject(ExecutionState &state, void *addr, 
                                   unsigned size, bool isReadOnly, const std::string& name = "", bool forTASE = false);
 
   bool addExternalObjectCheck(ExecutionState &state, void *addr, 

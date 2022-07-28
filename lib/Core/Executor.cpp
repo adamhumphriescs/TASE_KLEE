@@ -833,7 +833,7 @@ void Executor::initializeGlobalObject(ExecutionState &state, ObjectState *os,
   }
 }
 
-ObjectState * Executor::addExternalObject(ExecutionState &state, 
+MemoryObject* Executor::addExternalObject(ExecutionState &state, 
                                            void *addr, unsigned size, 
                                            bool isReadOnly, const std::string& name, bool forTASE) {
   
@@ -848,7 +848,7 @@ ObjectState * Executor::addExternalObject(ExecutionState &state,
   // os->write8(i, ((uint8_t*)addr)[i]);
   if(isReadOnly)
     os->setReadOnly(true);  
-  return os;
+  return mo;
 }
 
 
