@@ -1764,8 +1764,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      }
 
      if (taseDebug) {
-       printf("Calling transferToTarget() \n");
-       std::cout.flush();
+       std::cout << "Calling transferToTarget()" << std::endl;
      }
 
      auto exe = static_cast<klee::Executor*>(interpreter);
@@ -1774,6 +1773,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
        printf("mapping arg: %s, size: %d\n", pArgv[i], strlen(pArgv[i]+1));
        if ( i > 1 ) {
          exe->tase_map(pArgv[i], strlen(pArgv[i]) + 1, "pArgv[" + std::to_string(i) + "]");
+	 std::cout << "mapped: " << std::hex << (uint64_t) pArgv[i] << std::dec << std::endl;
        }
      }
 
