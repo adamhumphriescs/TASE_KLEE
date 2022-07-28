@@ -4741,7 +4741,7 @@ void Executor::klee_interp_internal () {
 	  std::cout << "Skipping eager instrumentation (C)..." << std::endl;
 	}
       } else if ( cc[0] == 0x42c400000001bf41 && ( cc[1] & 0x0000000000ffffff ) == 0x0000000000f6f783 ) {
-	target_ctx_gregs[GREG_RIP].u64 += 9; // movl/shrx
+	target_ctx_gregs[GREG_RIP].u64 += 11; // movl/shrx
 
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (D)..." << std::endl;
