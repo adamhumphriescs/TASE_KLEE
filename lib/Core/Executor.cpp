@@ -833,7 +833,26 @@ void Executor::initializeGlobalObject(ExecutionState &state, ObjectState *os,
   }
 }
 
-bool Executor::addExternalObject(ExecutionState &state, 
+ObjectState * Executor::addExternalObject(ExecutionState &state, 
+                                           void *addr, unsigned size, 
+                                           bool isReadOnly, const std::string& name, bool forTASE) {
+  
+  MemoryObject *mo = memory->allocateFixed((uint64_t) (unsigned long) addr, 
+                                           size, 0);
+  mo->setName(name);
+  ObjectState *os = bindObjectInState(state, mo, false, NULL, forTASE);
+  
+  //printf("Mapping external buf: mo->address is 0x%lx, size is 0x%x \n", mo->address, size);
+  os->concreteStore = (uint8_t *) mo->address;
+  //for(unsigned i = 0; i < size; i++)
+  // os->write8(i, ((uint8_t*)addr)[i]);
+  if(isReadOnly)
+    os->setReadOnly(true);  
+  return os;
+}
+
+
+bool Executor::addExternalObjectCheck(ExecutionState &state, 
                                            void *addr, unsigned size, 
                                            bool isReadOnly, const std::string& name, bool forTASE) {
 
@@ -841,8 +860,7 @@ bool Executor::addExternalObject(ExecutionState &state,
   if ( CE && state.addressSpace.resolveOne(CE, op) ) {
     return false;
   }
-  
-  MemoryObject *mo = memory->allocateFixed((uint64_t) (unsigned long) addr, 
+ MemoryObject *mo = memory->allocateFixed((uint64_t) (unsigned long) addr, 
                                            size, 0);
   mo->setName(name);
   ObjectState *os = bindObjectInState(state, mo, false, NULL, forTASE);
@@ -856,6 +874,7 @@ bool Executor::addExternalObject(ExecutionState &state,
   return true;
 }
 
+  
 
 extern void *__dso_handle __attribute__ ((__weak__));
 
@@ -4205,7 +4224,7 @@ bool Executor::tase_map(const FILE& t){
 
 //Todo -- make this play nice with our alignment requirements
  bool Executor::tase_map_buf(uint64_t addr, size_t size, const std::string& name) {
-   return addExternalObject(*GlobalExecutionStatePtr, (void *) addr, size, false, name, true);
+   return addExternalObjectCheck(*GlobalExecutionStatePtr, (void *) addr, size, false, name, true);
    //MemoryObject * MOres = addExternalObject(*GlobalExecutionStatePtr, (void *) addr, size, false, name, true);
   //  const ObjectState * OSConst = GlobalExecutionStatePtr->addressSpace.findObject(MOres);
   //  ObjectState * OSres = GlobalExecutionStatePtr->addressSpace.getWriteable(MOres, OSConst);
