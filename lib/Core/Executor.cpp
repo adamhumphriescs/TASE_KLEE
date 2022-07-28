@@ -4723,12 +4723,13 @@ void Executor::klee_interp_internal () {
           std::cout << "Skipping LEA and jmp..." << std::endl;
         }
       } else if ( cc == 0x4566363c751101c4 ) {
-	uint64_t cd = *(((uint64_t*)target_ctx_gregs[GREG_RIP].u64)+1);
-	target_ctx_gregs[GREG_RIP].u64 += 11; // vpcmpeqw/por (11)
-	
-	target_ctx_gregs[GREG_RIP].u64 += ( cd & 0xffffffffff000000 ) == 0x4c24348b4c000000 ? 16 : 7; // vpcmpeqw/por/movq/leaq/jmpq (27) vs vpcmpeqw/por/je (18)
+	cc = *(((uint64_t*)target_ctx_gregs[GREG_RIP].u64)+1);
+	uint64_t offset = 11; // vpcmpeqw/por (11)
+        offset += ( cc & 0x0000000000ffffff ) == 0x0000000000f7eb0f ? ( ( cc & 0xffffffffff000000 ) == 0x4c24348b4c000000 ? 16 : 7 ) : 0; // vpcmpeqw/por/movq/leaq/jmpq (27) vs vpcmpeqw/por/je (18)
+
+	target_ctx_gregs[GREG_RIP].u64 += offset;
 	if( modelDebug ){
-	  std::cout << "Skipping eager instrumentation (A" << (cd == 0x4c24348b4cf7eb0f ? "0" : "1") << ")..." << std::endl;
+	  std::cout << "Skipping eager instrumentation (A " << offset <<  " )..." << std::endl;
 	}
       } else if ( cc == 0x1583b025048b489e ) {
 	target_ctx_gregs[GREG_RIP].u64 += 9; // sahf/mov
