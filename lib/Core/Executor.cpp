@@ -855,7 +855,7 @@ MemoryObject* Executor::addExternalObject(ExecutionState &state,
 bool Executor::addExternalObjectCheck(ExecutionState &state, 
                                            void *addr, unsigned size, 
                                            bool isReadOnly, const std::string& name, bool forTASE) {
-
+  ObjectPair op;
   ConstantExpr * CE = dyn_cast<ConstantExpr> (address);
   if ( CE && state.addressSpace.resolveOne(CE, op) ) {
     return false;
