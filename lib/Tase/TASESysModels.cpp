@@ -1672,15 +1672,21 @@ void Executor::model_free() {
   } else {
     free(freePtr);
   }
-	
+  if ( modelDebug ) {
+    std::cout << "ptr freed, unbinding object" << std::endl;
+  }
+  
   ObjectPair OP;
   ref<ConstantExpr> addrExpr = ConstantExpr::create((uint64_t) freePtr, Expr::Int64);
   if (GlobalExecutionStatePtr->addressSpace.resolveOne(addrExpr, OP)) {
     if ( modelDebug ) {
-      std::cout << "Unbinding object in free" << std::endl;
+      std::cout << "object found" << std::endl;
     }
 	
     GlobalExecutionStatePtr->addressSpace.unbindObject(OP.first);
+    if ( modelDebug ) {
+      std::cout << "object unbound" << std::endl;
+    }
   } else {
     std::cout << "ERROR: Found free called without buffer corresponding to ptr" << std::endl;
     std::exit(EXIT_FAILURE);
