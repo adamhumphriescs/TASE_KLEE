@@ -1633,54 +1633,60 @@ void Executor::model_malloc() {
 
 
 void Executor::model_free() {
+  if(!noLog){
+    _LOG
+  }
+
   static int freeCtr = 0;
   freeCtr++;
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  if (isa<ConstantExpr>(arg1Expr)) {
 
-    if (!skipFree) {
-    
-    
-      void * freePtr = (void *) target_ctx_gregs[GREG_RDI].u64;
-      //printf("Calling model_free on addr 0x%lx \n", (uint64_t) freePtr);
-      if (bufferGuard) {
-	printf("Attempting to free a heap object with buffer guards enabled\n");
-	fflush(stdout);
-	
-	auto lookup = heap_guard_map.find(freePtr);
-	if (lookup != heap_guard_map.end()) {
-	  void * translatedAddr = (void *) ((uint64_t) (lookup->second));
-	  free (translatedAddr);
-	  heap_guard_map.erase(freePtr);
-	} else {
-	  
-	  free(freePtr);
-	}
-      } else {
-	free(freePtr);
-      }
-	
-      ObjectPair OP;
-      ref<ConstantExpr> addrExpr = ConstantExpr::create((uint64_t) freePtr, Expr::Int64);
-      if (GlobalExecutionStatePtr->addressSpace.resolveOne(addrExpr, OP)) {
-	//printf("Unbinding object in free \n");
-	//std::cout.flush();
-	GlobalExecutionStatePtr->addressSpace.unbindObject(OP.first);
+  if ( skipFree ) {
+    do_ret();
+    return;
+  }
+  
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  ++s_offset;
+  
+  void * freePtr;
+  get_val(count, s_offset, __func__, freePtr);
+
+  if ( modelDebug ) {
+    std::cout << "Calling model_free on addr " << std::hex << (uint64_t) freePtr << std::dec << std::endl;
+  }
       
-      } else {
-	printf("ERROR: Found free called without buffer corresponding to ptr \n");
-	std::cout.flush();
-	std::exit(EXIT_FAILURE);
-      }
-
+  if ( bufferGuard ) {
+    if ( modelDebug ) {
+      std::cout << "Attempting to free a heap object with buffer guards enabled" << std::endl;
     }
-    
-    do_ret();//Fake a return
-    
+	
+    auto lookup = heap_guard_map.find(freePtr);
+    if (lookup != heap_guard_map.end()) {
+      void * translatedAddr = (void *) ((uint64_t) (lookup->second));
+      free (translatedAddr);
+      heap_guard_map.erase(freePtr);
+    } else {  
+      free(freePtr);
+    }
   } else {
-    concretizeGPRArgs(1, "model_free");
-    model_free();
-  } 
+    free(freePtr);
+  }
+	
+  ObjectPair OP;
+  ref<ConstantExpr> addrExpr = ConstantExpr::create((uint64_t) freePtr, Expr::Int64);
+  if (GlobalExecutionStatePtr->addressSpace.resolveOne(addrExpr, OP)) {
+    if ( modelDebug ) {
+      std::cout << "Unbinding object in free" << std::endl;
+    }
+	
+    GlobalExecutionStatePtr->addressSpace.unbindObject(OP.first);
+  } else {
+    std::cout << "ERROR: Found free called without buffer corresponding to ptr" << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+    
+  do_ret();    
 }
 
 //
