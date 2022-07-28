@@ -1,4 +1,4 @@
- #include "../Core/Executor.h"
+#include "../Core/Executor.h"
 #include "../Core/Context.h"
 #include "../Core/CoreStats.h"
 #include "../Core/ExternalDispatcher.h"
@@ -562,7 +562,7 @@ std::string Executor::model_printf_base(int& count, uint64_t* &s_offset, const s
   get_val(count, s_offset, reason, fmtc);
 
   std::string fmt = std::string(fmtc);
-  if(modelDebug){
+  if( modelDebug ){
     std::cout << reason << " with fmt string: \"" << fmt << "\"" << std::endl;
   }
 

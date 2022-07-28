@@ -859,10 +859,16 @@ bool Executor::addExternalObjectCheck(ExecutionState &state,
   ObjectPair op;
   ref<ConstantExpr> CE = ConstantExpr::create((uint64_t) addr, Expr::Int64);
   if ( state.addressSpace.resolveOne(CE, op) ) {
-    std::cout << "mapped address resolved to MO: " << op.first->name << std::endl;
+    if ( taseDebug ) {
+       std::cout << "mapped address resolved to MO: " << op.first->name << std::endl;
+    }
     return false;
   }
-  std::cout << "no MO found, allocating" << std::endl;
+  
+  if ( taseDebug ) {
+    std::cout << "no MO found, allocating" << std::endl;
+  }
+  
   MemoryObject *mo = memory->allocateFixed((uint64_t) (unsigned long) addr, 
                                            size, 0);
   mo->setName(name);
