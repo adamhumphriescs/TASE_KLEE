@@ -833,9 +833,15 @@ void Executor::initializeGlobalObject(ExecutionState &state, ObjectState *os,
   }
 }
 
-MemoryObject * Executor::addExternalObject(ExecutionState &state, 
+bool Executor::addExternalObject(ExecutionState &state, 
                                            void *addr, unsigned size, 
                                            bool isReadOnly, const std::string& name, bool forTASE) {
+
+  ConstantExpr * CE = dyn_cast<ConstantExpr> (address);
+  if ( CE && state.addressSpace.resolveOne(CE, op) ) {
+    return false;
+  }
+  
   MemoryObject *mo = memory->allocateFixed((uint64_t) (unsigned long) addr, 
                                            size, 0);
   mo->setName(name);
@@ -847,7 +853,7 @@ MemoryObject * Executor::addExternalObject(ExecutionState &state,
   // os->write8(i, ((uint8_t*)addr)[i]);
   if(isReadOnly)
     os->setReadOnly(true);  
-  return mo;
+  return true;
 }
 
 
@@ -4181,7 +4187,7 @@ template bool Executor::tase_map<uint64_t>(const uint64_t&, const std::string& n
 
 template<>
 bool Executor::tase_map(FILE* const & t, const std::string& name){
-  auto a = tase_map_buf((uint64_t) &t, sizeof(FILE*), name);
+  bool a = tase_map_buf((uint64_t) &t, sizeof(FILE*), name);
     a &= (t == NULL ? a : tase_map(*t, name));
   if ( !a ) {
     std::cout << "Error mapping buffer: " << name << std::endl;
@@ -4199,11 +4205,12 @@ bool Executor::tase_map(const FILE& t){
 
 //Todo -- make this play nice with our alignment requirements
  bool Executor::tase_map_buf(uint64_t addr, size_t size, const std::string& name) {
-   MemoryObject * MOres = addExternalObject(*GlobalExecutionStatePtr, (void *) addr, size, false, name, true);
+   return addExternalObject(*GlobalExecutionStatePtr, (void *) addr, size, false, name, true);
+   //MemoryObject * MOres = addExternalObject(*GlobalExecutionStatePtr, (void *) addr, size, false, name, true);
   //  const ObjectState * OSConst = GlobalExecutionStatePtr->addressSpace.findObject(MOres);
   //  ObjectState * OSres = GlobalExecutionStatePtr->addressSpace.getWriteable(MOres, OSConst);
   //  OSres->concreteStore = (uint8_t *) addr;
-  return true;
+   // return OSres;
 }
 
 //Todo: See if we can make this faster with the poison checking scheme.
