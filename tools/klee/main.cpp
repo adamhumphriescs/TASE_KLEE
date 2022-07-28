@@ -1770,7 +1770,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      auto exe = static_cast<klee::Executor*>(interpreter);
      exe->tase_map(saved_rax, "saved_rax");
      for(int i = 0; i < pArgc; ++i){
-       std::cout << "mapping arg: " << pArgv[i] << ", size: " << pArgv[i] << strlen(pArgv[i])+1 << std::endl;
+       std::cout << "mapping arg: " << pArgv[i] << ", size: " << strlen(pArgv[i])+1 << std::endl;
        if ( i > 0 ) {
 	 std::cout << "mapped: " << std::hex << (uint64_t) pArgv[i] << std::dec << std::endl;
          exe->tase_map(pArgv[i], strlen(pArgv[i]) + 1, "pArgv[" + std::to_string(i) + "]");
