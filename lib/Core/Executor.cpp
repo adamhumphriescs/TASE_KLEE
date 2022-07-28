@@ -862,7 +862,8 @@ bool Executor::addExternalObjectCheck(ExecutionState &state,
     std::cout << "mapped address resolved to MO: " << op.first->name << std::endl;
     return false;
   }
- MemoryObject *mo = memory->allocateFixed((uint64_t) (unsigned long) addr, 
+  std::cout << "no MO found, allocating" << std::endl;
+  MemoryObject *mo = memory->allocateFixed((uint64_t) (unsigned long) addr, 
                                            size, 0);
   mo->setName(name);
   ObjectState *os = bindObjectInState(state, mo, false, NULL, forTASE);
