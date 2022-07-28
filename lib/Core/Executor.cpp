@@ -859,7 +859,7 @@ bool Executor::addExternalObjectCheck(ExecutionState &state,
   ObjectPair op;
   ref<ConstantExpr> CE = ConstantExpr::create((uint64_t) addr, Expr::Int64);
   if ( state.addressSpace.resolveOne(CE, op) ) {
-    std::cout << "mapped address resolved to MO: " << op->first.name << std::endl;
+    std::cout << "mapped address resolved to MO: " << op.first->name << std::endl;
     return false;
   }
  MemoryObject *mo = memory->allocateFixed((uint64_t) (unsigned long) addr, 
@@ -867,12 +867,11 @@ bool Executor::addExternalObjectCheck(ExecutionState &state,
   mo->setName(name);
   ObjectState *os = bindObjectInState(state, mo, false, NULL, forTASE);
   
-  //printf("Mapping external buf: mo->address is 0x%lx, size is 0x%x \n", mo->address, size);
   os->concreteStore = (uint8_t *) mo->address;
-  //for(unsigned i = 0; i < size; i++)
-  // os->write8(i, ((uint8_t*)addr)[i]);
+
   if(isReadOnly)
-    os->setReadOnly(true);  
+    os->setReadOnly(true);
+  
   return true;
 }
 
