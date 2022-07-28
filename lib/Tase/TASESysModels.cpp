@@ -1670,6 +1670,10 @@ void Executor::model_free() {
       free(freePtr);
     }
   } else {
+    if ( modelDebug ) {
+      std::cout << "Attempting to free ptr" << std::endl;
+    }
+    
     free(freePtr);
   }
   if ( modelDebug ) {
