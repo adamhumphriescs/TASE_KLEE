@@ -437,9 +437,8 @@ std::string Executor::model_printf_base_helper(int& count, uint64_t* &s_offset, 
     case 's': // char*
     {
       char* arg;
+      std::cout << "printf get_val<char*>: " << ts... << ", \"" << arg << "\"" << std::endl;
       get_val(count, s_offset, reason, arg);
-      printf("printf get_val<char*>: %d, \"%s\"\n", ts..., arg);
-      fflush(stdout);
       sprintf_helper(&outstr[0], ff, ts..., arg);
     }
     break;
