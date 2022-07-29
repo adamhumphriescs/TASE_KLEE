@@ -16,7 +16,7 @@ set(KLEE_LIBS
 )
 
 target_link_libraries(klee
-	${CMAKE_BINARY_DIR}/lib/checksum.a
+	${CMAKE_BINARY_DIR}/lib/everything.o
 	${CMAKE_BINARY_DIR}/lib/libtase.a
 	${KLEE_LIBS} )
 
