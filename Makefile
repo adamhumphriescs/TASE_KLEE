@@ -34,5 +34,7 @@ $(RUN_DIR)/install/klee_bitcode:
 	mkdir -p $(RUN_DIR)/install/klee_bitcode/
 
 
-$(RUN_DIR)/lib/main.cpp.o: $(BUILD_DIR)/build/klee/tools/klee/CMakeFiles/klee.dir/main.cpp.o $(BUILD_DIR)/build/klee/bin/klee
+$(RUN_DIR)/lib/main.cpp.o: $(BUILD_DIR)/build/klee/tools/klee/CMakeFiles/klee.dir/main.cpp.o
 	cp $< $@
+
+$(BUILD_DIR)/build/klee/tools/klee/CMakeFiles/klee.dir/main.cpp.o: $(BUILD_DIR)/build/klee/bin/klee
