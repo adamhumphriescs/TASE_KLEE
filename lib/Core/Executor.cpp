@@ -4770,7 +4770,7 @@ void Executor::klee_interp_internal () {
         }
 
       } else if ( ( cc[0] & 0x0000000000ffffff ) == 0x0x0000000000378d4c ) {
-	target_ctx_gregs[GREG_RIP].u64 += ; // leaq (%rdi),%r14
+	target_ctx_gregs[GREG_RIP].u64 += 3; // leaq (%rdi),%r14
 	
 	if ( modelDebug ) {
           std::cout << "Skipping eager instrumentation (G)..." << std::endl;
