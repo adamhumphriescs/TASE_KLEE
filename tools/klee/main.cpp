@@ -1502,7 +1502,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      project=currDir;
 
      //Also, load the bitcode
-     InputFile = path + "bitcode/" + project + ".interp.bc";     
+     InputFile = path + "/bitcode/" + project + ".interp.bc";     
    } else {
      char pathBuf [512];
      getcwd(pathBuf, 512);
