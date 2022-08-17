@@ -4730,7 +4730,7 @@ void Executor::klee_interp_internal () {
         if( modelDebug ) {
           std::cout << "Skipping LEA and jmp..." << std::endl;
         }
-      } else if ( cc[0] == 0x4566363c751101c4 && ( cc[1] & 0x0000ffffffffffff ) ==  0x0000840fff17380f ) { 
+      } else if ( cc[0] == 0x4566363c751101c4 && ( cc[1] & 0x0000ffffffffffff ) ==  0x0000850fff17380f ) { 
 	target_ctx_gregs[GREG_RIP].u64 += 18; // vpcmpeqw/ptest/je
 	
       	if( modelDebug ){
