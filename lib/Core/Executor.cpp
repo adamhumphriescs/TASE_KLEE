@@ -4027,6 +4027,7 @@ void Executor::model_sb_reopen() {
   target_ctx_gregs[GREG_RIP].u64 = target_ctx_gregs[GREG_RAX].u64;
 }
 
+
 void Executor::model_exit_tase() {
   print_run_timers();
 
@@ -4430,6 +4431,7 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &rewind,  &Executor::model_rewind},
   {(uint64_t) &sb_disabled,  &Executor::model_sb_disabled},
   {(uint64_t) &sb_reopen,  &Executor::model_sb_reopen},
+  //  {(uint64_t) &sb_eject, &Executor::model_sb_eject},
   {(uint64_t) &sprintf_tase,  &Executor::model_sprintf},
   {(uint64_t) &sscanf,  &Executor::model___isoc99_sscanf},//Check to make sure it's OK to model with C99
   {(uint64_t) &stat,  &Executor::model_stat},
@@ -4734,23 +4736,29 @@ void Executor::klee_interp_internal () {
       	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (A)..." << std::endl;
 	}
-      } else if ( ( cc[0] & 0x000000ffffffffff ) == 0x00000025048b489e ) {
-	target_ctx_gregs[GREG_RIP].u64 += 9; // sahf/mov
+      } else if ( ( cc[0] & 0x0000000000ffffff ) == 0x0000000000bf499e && ( cc[1] & 0x0000ffffff000000 ) == 0x0000078b49000000 ) {
+	target_ctx_gregs[GREG_RIP].u64 += 9; // sahf/movabsq/movq
 	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (B)..." << std::endl;
 	}
-      } else if ( ( cc[0] & 0x00000000ffffffff ) == 0x0000000025048948 && ( cc[1] & 0x00000000000000ff ) == 0x000000000000009f ) {
-	target_ctx_gregs[GREG_RIP].u64 += 9; // mov/lahf
+      } else if ( ( cc[0] & 0x000000000000ffff ) == 0x000000000000bf49 && ( cc[1] & 0x0000ffffffff0000 ) == 0x00009f0789490000 ) {
+	target_ctx_gregs[GREG_RIP].u64 += 9; // movabsq/movq/lahf
 	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (C)..." << std::endl;
 	}
       } else if ( cc[0] == 0x42c400000001bf41 && ( cc[1] & 0x0000000000ffffff ) == 0x0000000000f6f783 ) {
-	target_ctx_gregs[GREG_RIP].u64 += 11; // movl/shrx
+	target_ctx_gregs[GREG_RIP].u64 += 29; // movl/shrx/vpcmpeqw/ptest/je
 
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (D)..." << std::endl;
+	}
+      } else if ( cc[0] == 0xc4eed14924348b4c ) {
+	target_ctx_gregs[GREG_RIP].u64 += 25; // movq/shrq/vpcmpeqw/ptest/je
+
+	if ( modelDebug ) {
+	  std::cout << "Skipping eager instrumentation (E)..." << std::endl;
 	}
       } else {
         runCoreInterpreter(target_ctx_gregs);

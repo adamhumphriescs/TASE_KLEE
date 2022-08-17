@@ -359,6 +359,7 @@ private:
   void killDeadRegsPreCall();
   void do_ret();
   void model_sb_disabled();
+  void model_sb_eject() __attribute__((noreturn));
   void deadRegisterFlush();
   void printDebugInterpHeader();
   void printDebugInterpFooter();
