@@ -4760,6 +4760,21 @@ void Executor::klee_interp_internal () {
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (E)..." << std::endl;
 	}
+
+      } else if ( ( cc[0] & 0x0000ffffffffffff ) == 0x0000eed149378d4c ) { 
+	target_ctx_gregs[GREG_RIP].u64 += 6; // leaq/shrq
+
+
+        if ( modelDebug ) {
+          std::cout << "Skipping eager instrumentation (F)..." << std::endl;
+        }
+
+      } else if ( ( cc[0] & 0x0000000000ffffff == 0x0x0000000000378d4c ) {
+	target_ctx_gregs[GREG_RIP].u64 += ; // leaq (%rdi),%r14
+	
+	if ( modelDebug ) {
+          std::cout << "Skipping eager instrumentation (G)..." << std::endl;
+        }
       } else {
         runCoreInterpreter(target_ctx_gregs);
       }
