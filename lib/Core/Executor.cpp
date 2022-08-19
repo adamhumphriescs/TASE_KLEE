@@ -4736,7 +4736,7 @@ void Executor::klee_interp_internal () {
 	  std::cout << "Skipping eager instrumentation (A)..." << std::endl;
 	}
       } else if ( ( cc[0] & 0x0000000000ffffff ) == 0x0000000000bf499e && ( cc[1] & 0x0000ffffff000000 ) == 0x0000078b49000000 ) {
-	target_ctx_gregs[GREG_RIP].u64 += 9; // sahf/movabsq/movq
+	target_ctx_gregs[GREG_RIP].u64 += 14; // sahf/movabsq/movq
 	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (B)..." << std::endl;
