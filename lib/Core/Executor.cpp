@@ -3824,15 +3824,14 @@ extern "C" void klee_interp () {
     interp_enter_time = util::getWallTime();
   
   if (taseDebug) {
-    printf("---------------ENTERING KLEE_INTERP ---------------------- \n");
-    std::cout.flush();
+    std::cout << "---------------ENTERING KLEE_INTERP ---------------------- " << std::endl;
   }
   
   if (canBounceback(target_ctx.abort_status, target_ctx_gregs[GREG_RIP].u64))
     {    
       target_ctx_gregs[GREG_RIP].u64 -= bounceback_offset;
       if (taseDebug) 
-        printf("After adjusting offset, attempting to bounceback to 0x%lx \n", target_ctx_gregs[GREG_RIP].u64);
+	std::cout << "After adjusting offset, attempting to bounceback to 0x" << std::hex << target_ctx_gregs[GREG_RIP].u64 << std::dec << std::endl;
       return;
     }
 
@@ -4743,7 +4742,7 @@ void Executor::klee_interp_internal () {
 	  std::cout << "Skipping eager instrumentation (B)..." << std::endl;
 	}
       } else if ( ( cc[0] & 0x000000000000ffff ) == 0x000000000000bf49 && ( cc[1] & 0x0000ffffffff0000 ) == 0x00009f0789490000 ) {
-	target_ctx_gregs[GREG_RIP].u64 += 9; // movabsq/movq/lahf
+	target_ctx_gregs[GREG_RIP].u64 += 14; // movabsq/movq/lahf
 	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (C)..." << std::endl;
