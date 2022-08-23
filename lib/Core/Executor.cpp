@@ -4761,18 +4761,25 @@ void Executor::klee_interp_internal () {
 	}
 
       } else if ( ( cc[0] & 0x0000ffffffffffff ) == 0x0000eed149378d4c ) { 
-	target_ctx_gregs[GREG_RIP].u64 += 6; // leaq/shrq
+	target_ctx_gregs[GREG_RIP].u64 += 6; // leaq (%rsp),%r14/shrq %r14
 
 
         if ( modelDebug ) {
           std::cout << "Skipping eager instrumentation (F)..." << std::endl;
         }
 
-      } else if ( ( cc[0] & 0x0000000000ffffff ) == 0x0000000000378d4c ) {
-	target_ctx_gregs[GREG_RIP].u64 += 3; // leaq (%rdi),%r14
+      } else if ( ( cc[0] & 0x00000000ffffffff ) == 0x00000000004c8d3424 ) {
+	target_ctx_gregs[GREG_RIP].u64 += 4; // leaq (%rsp),%r14
 	
 	if ( modelDebug ) {
           std::cout << "Skipping eager instrumentation (G)..." << std::endl;
+        }
+
+      } else if ( ( cc[0] & 0x000000ffffffffff ) == 0x0000004c8d7424f8 ) {
+      	target_ctx_gregs[GREG_RIP] += 5; // leaq -0x8(%rsp),%r14
+	
+        if ( modelDebug ) {
+          std::cout << "Skipping eager instrumentation (H)..." << std::endl;
         }
       } else {
         runCoreInterpreter(target_ctx_gregs);
