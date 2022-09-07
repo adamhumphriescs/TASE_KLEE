@@ -25,20 +25,7 @@ using namespace klee;
 using namespace llvm;
 
 
-
-
-klee::UFElement * UF_MakeSet (klee::UFElement * x) {
-  if (x->arr == NULL) {
-    printf("FATAL ERROR: arr not set in MakeSet operation \n");
-    fflush(stdout);
-  }
-  x->parent = x;
-  x->rank = 0;
-  x->size = 1;
-
-  return x;
-}
-
+extern UFManager *ufmanager;
 
 
 namespace {
@@ -50,6 +37,57 @@ namespace {
 
 /***/
 
+    
+int UFManager::create(Array *x) {
+  elements.emplace_back(x, elements.size());
+  return elements.size() - 1;
+}
+
+void UFManager::destroy(Array *x) {
+  elements.erase(std::remove_if(elements.begin(),
+				elements.end(),
+				[=](const UFElement &z){return z.arr == x;}));
+}
+    
+UFElement & UFManager::operator[](const int i) {
+  return elements[i];
+}
+
+int UFManager::find( UFElement &x ) {
+  if ( &x != &elements[x.parent] ) {
+    x.parent = find( elements[x.parent] );
+  }
+  return x.parent;
+}
+
+int UFManager::find( const int i ) {
+  return find( elements[i] );
+}
+
+int UFManager::join( const int a, const int b ) {      
+  auto i = find( a );
+  auto j = find( b );
+
+  if ( i == j ) {
+    return i;
+  }
+
+  auto &x = elements[a];
+  auto &y = elements[b];
+      
+  if ( x.rank >= y.rank ) {
+    y.parent = x.parent;
+    if ( x.rank == y.rank ) {
+      x.constraints.insert(x.constraints.end(), y.constraints.begin(), y.constraints.end());
+      y.constraints.clear();
+      return i;
+    } else {
+      y.constraints.insert(y.constraints.end(), x.constraints.begin(), x.constraints.end());
+      x.constraints.clear();
+      return j;
+    }
+  }
+}
 
 
 
@@ -108,8 +146,8 @@ int Expr::compare(const Expr &b) const {
   return r;
 }
 
-// returns 0 if b is structurally equal to *this
-int Expr::compare(const Expr &b, ExprEquivSet &equivs) const {
+// returns 0 if b is structurally equal to *this 
+int Expr::compare(const Expr &b, ExprEquivSet &equivs) const {  // ExprEquivSet is set of ordered pairs of Expr* ((a,b), a<b)
   if (this == &b) return 0;
 
   const Expr *ap, *bp;
@@ -509,9 +547,9 @@ Array::Array(const std::string &_name, uint64_t _size,
              Expr::Width _range)
     : name(_name), size(_size), domain(_domain), range(_range),
       constantValues(constantValuesBegin, constantValuesEnd) {
-
-  this->UFE.arr = this;
-  UF_MakeSet(&UFE);
+  
+  UFE = ufmanager->create(this);
+  
   assert((isSymbolicArray() || constantValues.size() == size) &&
          "Invalid size for constant array!");
   computeHash();
@@ -524,6 +562,7 @@ Array::Array(const std::string &_name, uint64_t _size,
 }
 
 Array::~Array() {
+  ufmanager->destroy(this);
 }
 
 unsigned Array::computeHash() {

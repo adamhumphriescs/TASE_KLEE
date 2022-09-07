@@ -34,6 +34,7 @@ void Solver::setCoreSolverTimeout(double timeout) {
 }
 
 bool Solver::evaluate(const Query& query, Validity &result) {
+  printf("evalueate called\n");
   assert(query.expr->getWidth() == Expr::Bool && "Invalid expression type!");
 
   // Maintain invariants implementations expect.
@@ -62,6 +63,7 @@ bool Solver::evaluateCheat(const Query& query, Validity &result) {
 
 
 bool Solver::mustBeTrue(const Query& query, bool &result) {
+  printf("mustBeTrue called\n");
   assert(query.expr->getWidth() == Expr::Bool && "Invalid expression type!");
 
   // Maintain invariants implementations expect.
@@ -78,6 +80,7 @@ bool Solver::mustBeFalse(const Query& query, bool &result) {
 }
 
 bool Solver::mayBeTrue(const Query& query, bool &result) {
+  printf("mayBeTrue called\n");
   bool res;
   if (!mustBeFalse(query, res))
     return false;
@@ -86,6 +89,7 @@ bool Solver::mayBeTrue(const Query& query, bool &result) {
 }
 
 bool Solver::mayBeFalse(const Query& query, bool &result) {
+  printf("mayBeFalse called\n");
   bool res;
   if (!mustBeTrue(query, res))
     return false;
@@ -95,6 +99,7 @@ bool Solver::mayBeFalse(const Query& query, bool &result) {
 
 bool Solver::getValue(const Query& query, ref<ConstantExpr> &result) {
   // Maintain invariants implementation expect.
+  printf("getValue called\n");
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(query.expr)) {
     result = CE;
     return true;
@@ -113,6 +118,7 @@ bool
 Solver::getInitialValues(const Query& query,
                          const std::vector<const Array*> &objects,
                          std::vector< std::vector<unsigned char> > &values) {
+  printf("getInitialValues called\n");
   bool hasSolution;
   bool success =
     impl->computeInitialValues(query, objects, values, hasSolution);

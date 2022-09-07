@@ -95,6 +95,7 @@ extern "C" void klee_interp();
 
 std::unordered_set<uint64_t> cartridge_entry_points;
 std::unordered_set<uint64_t> cartridges_with_flags_live;
+std::unordered_set<uint64_t> kill_flags;
 
 #ifdef TASE_OPENSSL
 extern "C" void s_client_main(int argc, char ** argv);
@@ -1392,6 +1393,10 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      numLiveBlocks++;
    }
    printf("Found %d basic blocks with flags live-in \n", numLiveBlocks);
+
+   for( uint32_t i = 0; i < tase_num_kill_flags_block_records; ++i) {
+     kill_flags.insert(tase_kill_flags_block_records[i]);
+   }
  }
 
  //Make seperate directories for each of the workers in the time series.
@@ -1569,7 +1574,11 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    LLVMContext ctx;
    std::cout << "Attempting to load bitcode from " << InputFile << std::endl;
    std::cout.flush();
+
+   auto bcloadtime = util::getWallTime();
+   
    interpModule = klee::loadModule(ctx, InputFile, errorMsg);
+
    if (taseDebug){
      std::cout << "Bitcode module has been loaded..." << std::endl;
    }
@@ -1578,6 +1587,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
     klee_error("error loading program '%s': %s", InputFile.c_str(),
                errorMsg.c_str());
   }
+  std::cout << "Bitcode load took " << ( util::getWallTime() - bcloadtime ) << " seconds" << std::endl;
    ///////////////////////Arg Parsing section
 
    int pArgc;

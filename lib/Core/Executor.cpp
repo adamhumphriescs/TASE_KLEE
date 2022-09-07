@@ -145,6 +145,10 @@ extern std::unordered_set<uint64_t> cartridges_with_flags_live;
 extern double target_start_time;
 extern double target_end_time;
 
+extern std::unordered_set<uint32_t> kill_flags;
+
+UFManager *ufmanager;
+
 Executor * GlobalExecutorPtr;
 MemoryObject * target_ctx_gregs_MO;
 ObjectState * target_ctx_gregs_OS;
@@ -574,8 +578,8 @@ void print_run_timers() {
     BB_OTHER = 0;//Other return
 
     FILE * logFile = fopen(curr_unique_log_ID.c_str(), "w+");
-    fprintf(logFile,"Prev log name, Round, Pass, Total Runtime, Interp Time, Solver Time, Fork Time, Core Interp Time,TMP1, TMP2, TMP3, RUN INTERP TRAPS, RUN BB COUNT, RUN MODEL COUNT \n");
-    fprintf(logFile,"%s, %d, %d,", prev_unique_log_ID.c_str(), round_count, pass_count);
+    fprintf(logFile, "Prev log name, Round, Pass, Total Runtime, Interp Time, Solver Time, Fork Time, Core Interp Time,TMP1, TMP2, TMP3, RUN INTERP TRAPS, RUN BB COUNT, RUN MODEL COUNT \n");
+    fprintf(logFile, "%s, %d, %d,", prev_unique_log_ID.c_str(), round_count, pass_count);
     fprintf(logFile, " %lf, %lf, %lf, %lf, %d, %lf, %lf, %lf, %lf, %d, %d, %d \n", totalRunTime, run_interp_time, run_solver_time, run_fork_time, run_interp_insts, run_core_interp_time, run_tmp_1_time, run_tmp_2_time, run_tmp_3_time, run_interp_traps, run_bb_count, run_model_count);
     fclose(logFile);
 
@@ -3714,7 +3718,7 @@ void Executor::executeMakeSymbolic(ExecutionState &state,
   executeMakeSymbolicCalls++;
 
 #ifdef TASE_OPENSSL
-  if (executeMakeSymbolicCalls ==1 ) {
+  if ( executeMakeSymbolicCalls == 1 ) {
     //Bootstrap multipass here for the very first round
     //before we hit a concretized writesocket call
     if (modelDebug) {
@@ -3756,11 +3760,9 @@ void Executor::executeMakeSymbolic(ExecutionState &state,
     //CVDEBUG("Multi-pass: Concretization found for " << array_name);
     multipass = true;
   } else {
-    if (!unnamed) {
-      if (taseDebug) {
-	printf("Didn't find concretization \n");
-	std::cout.flush();
-      }
+    if (!unnamed && taseDebug) {
+      printf("Didn't find concretization \n");
+      std::cout.flush();
     }
     array = arrayCache.CreateArray(array_name, mo->size);
     round_symbolics.push_back(array);
@@ -4783,7 +4785,15 @@ void Executor::klee_interp_internal () {
         }
       } else {
         runCoreInterpreter(target_ctx_gregs);
-      }
+	if ( kill_flags.find( target_ctx_gregs[GREG_RIP].u64 ) != kill_flags.end() ) {
+	  if ( taseDebug ) {
+	    printf("Killing Flags...\n");
+	  }
+	  
+	  ref<ConstantExpr> zeroExpr = ConstantExpr::create(0, Expr::Int64);
+	  tase_helper_write((uint64_t) &(target_ctx_gregs[GREG_EFL].u64), zeroExpr);
+	  }
+	}
     }
 
     if(tase_buf_has_taint((void *) &(target_ctx_gregs[GREG_RIP].u64), 8) ) { // fast check for potential taint
@@ -5117,7 +5127,7 @@ void printCtx(tase_greg_t * registers ) {
 
 
 void Executor::initializeInterpretationStructures (Function *f) {
-
+  ufmanager = new UFManager();
   printf("INITIALIZING INTERPRETATION STRUCTURES \n");
   fflush(stdout);
   

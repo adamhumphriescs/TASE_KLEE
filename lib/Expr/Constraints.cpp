@@ -27,8 +27,11 @@
 using namespace klee;
 
 bool useUF = true;
+
+extern UFManager *ufmanager;
+
 //Path compression
-klee::UFElement * UF_Find (klee::UFElement *x) {
+/*klee::UFElement * UF_Find (klee::UFElement *x) {
   if (x->parent != x)
     x->parent = UF_Find(x->parent);
   return x->parent;
@@ -65,7 +68,7 @@ klee::UFElement * UF_Union (klee::UFElement * x, klee::UFElement * y) {
   }
 
 }
-
+*/
 
 
 
@@ -272,7 +275,7 @@ bool ConstraintManager::rewriteConstraints(ExprVisitor &visitor) {
     ref<Expr> e = visitor.visit(ce);
 
     if (e!=ce) {
-      addConstraintInternal(e); // enable further reductions
+      addConstraint(e); // enable further reductions
       changed = true;
     } else {
       constraints.push_back(ce);
@@ -359,18 +362,17 @@ ref<Expr> ConstraintManager::simplifyExpr(ref<Expr> e) const {
 
   std::map< ref<Expr>, ref<Expr> > equalities;
 
-  for (ConstraintManager::constraints_ty::const_iterator
-         it = constraints.begin(), ie = constraints.end(); it != ie; ++it) {
-    if (const EqExpr *ee = dyn_cast<EqExpr>(*it)) {
+  for (const auto& it : constraints) {
+    if (const EqExpr *ee = dyn_cast<EqExpr>(it)) {
       if (isa<ConstantExpr>(ee->left)) {
         equalities.insert(std::make_pair(ee->right,
                                          ee->left));
       } else {
-        equalities.insert(std::make_pair(*it,
+        equalities.insert(std::make_pair(it,
                                          ConstantExpr::alloc(1, Expr::Bool)));
       }
     } else {
-      equalities.insert(std::make_pair(*it,
+      equalities.insert(std::make_pair(it,
                                        ConstantExpr::alloc(1, Expr::Bool)));
     }
   }
@@ -378,38 +380,39 @@ ref<Expr> ConstraintManager::simplifyExpr(ref<Expr> e) const {
   return ExprReplaceVisitor2(equalities).visit(e);
 }
 
+
 void updateUFStructures(std::vector<const klee::Array *> arrs, ref <Expr> e) {
   if (arrs.size() == 0)
     return;
   
-  if (arrs.size() ==1 ) {
-    UFElement * ufe = const_cast<UFElement *>((&((arrs.front())->UFE)));
-    UFElement * rep = UF_Find(ufe);
-    rep->constraints.push_back(e);
+  if (arrs.size() == 1 ) {
+    int ufe = arrs.front()->UFE;
+    int rep = ufmanager->find(ufe);
+    (*ufmanager)[rep].constraints.push_back(e);
     return;
   }
 
   auto it1 = arrs.begin();
-  auto it2 = arrs.begin();
+  auto it2 = it1;
   it2++;
 
   while (it2 != arrs.end()) {
-    UFElement * first = const_cast<UFElement *>(&(((*it1)->UFE)));
-    UFElement * second = const_cast<UFElement *>(&(((*it2)->UFE)));
-    UFElement * rep = UF_Union(first,second);
+    int rep = ufmanager->join((*it1)->UFE, (*it2)->UFE);
     
     it1++;
     it2++;
     if (it2 == arrs.end())
-      rep->constraints.push_back(e);
-    
+      (*ufmanager)[rep].constraints.push_back(e);
   }
-  
 }
 
 
 //ABH Added option to pass in list of symbolic variables and avoid calling "findSymbolicObjects"
-void ConstraintManager::addConstraintInternal(ref<Expr> e, std::vector<const klee::Array * > * symNames ) {
+void ConstraintManager::addConstraint(ref<Expr> e, const std::vector<const klee::Array * > &symNames ) {
+
+  //Removed for TASE
+  //e = simplifyExpr(e);
+  
   // rewrite any known equalities and split Ands into different conjuncts
   double T0 = util::getWallTime();
   
@@ -422,8 +425,8 @@ void ConstraintManager::addConstraintInternal(ref<Expr> e, std::vector<const kle
     // split to enable finer grained independence and other optimizations
   case Expr::And: {
     BinaryExpr *be = cast<BinaryExpr>(e);
-    addConstraintInternal(be->left);
-    addConstraintInternal(be->right);
+    addConstraint(be->left);
+    addConstraint(be->right);
     break;
   }
 
@@ -450,8 +453,8 @@ void ConstraintManager::addConstraintInternal(ref<Expr> e, std::vector<const kle
     llvm::outs().flush();
     */
     if (useUF) {
-      if (symNames != NULL) {
-	updateUFStructures(*symNames, e);
+      if ( !symNames.empty() ) {
+	updateUFStructures(symNames, e);
       } else {
 	std::vector<const klee::Array * > arrays;
 	klee::findSymbolicObjects(e, arrays);     
@@ -478,8 +481,8 @@ void ConstraintManager::addConstraintInternal(ref<Expr> e, std::vector<const kle
     */
     double T2 = util::getWallTime();
     if (useUF) {
-      if (symNames != NULL) {
-	updateUFStructures(*symNames, e);
+      if ( !symNames.empty() ) {
+	updateUFStructures(symNames, e);
       } else {
 	std::vector<const klee::Array * > arrays;
 	klee::findSymbolicObjects(e, arrays);
@@ -491,19 +494,6 @@ void ConstraintManager::addConstraintInternal(ref<Expr> e, std::vector<const kle
     constraints.push_back(e);
     break;
   }
-}
-
-void ConstraintManager::addConstraint(ref<Expr> e, std::vector<const klee::Array * > * symNames) {
-
-  //Removed for TASE
-  //e = simplifyExpr(e);
-  
-  if (symNames != NULL) {
-    addConstraintInternal(e, symNames);
-  } else {
-    addConstraintInternal(e);
-  }
-
 }
 
 

@@ -25,7 +25,7 @@ ArrayCache::CreateArray(const std::string &_name, uint64_t _size,
   const Array *array = new Array(_name, _size, constantValuesBegin,
                                  constantValuesEnd, _domain, _range);
   if (array->isSymbolicArray()) {
-    std::pair<ArrayHashMap::const_iterator, bool> success =
+    auto success =
         cachedSymbolicArrays.insert(array);
     if (success.second) {
       // Cache miss

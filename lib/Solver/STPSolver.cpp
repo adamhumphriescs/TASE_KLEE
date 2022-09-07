@@ -141,10 +141,9 @@ STPSolverImpl::~STPSolverImpl() {
 
 char *STPSolverImpl::getConstraintLog(const Query &query) {
   vc_push(vc);
-  for (std::vector<ref<Expr> >::const_iterator it = query.constraints.begin(),
-                                               ie = query.constraints.end();
-       it != ie; ++it)
+  for (auto it = query.constraints.begin(), ie = query.constraints.end(); it != ie; ++it){
     vc_assertFormula(vc, builder->construct(*it));
+  }
   assert(query.expr == ConstantExpr::alloc(0, Expr::Bool) &&
          "Unexpected expression in query!");
 
@@ -197,33 +196,29 @@ runAndGetCex(::VC vc, STPBuilder *builder, ::VCExpr q,
 
   if (hasSolution) {
     values.reserve(objects.size());
-    for (std::vector<const Array *>::const_iterator it = objects.begin(),
-                                                    ie = objects.end();
-         it != ie; ++it) {
+    for (auto it = objects.cbegin(), ie = objects.cend(); it != ie; ++it) {
       const Array *array = *it;
       std::vector<unsigned char> data;
-
-      data.reserve(array->size);
-      for (unsigned offset = 0; offset < array->size; offset++) {
+      const unsigned size = array->size;
+      
+      data.reserve(size);
+      for (unsigned offset = 0; offset < size; offset++) {
         ExprHandle counter =
             vc_getCounterExample(vc, builder->getInitialRead(array, offset));
-        unsigned char val = getBVUnsigned(counter);
-        data.push_back(val);
+        data.push_back(getBVUnsigned(counter));
       }
-
       values.push_back(data);
     }
-  }
-
-  if (true == hasSolution) {
     return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_SOLVABLE;
   } else {
     return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_UNSOLVABLE;
   }
 }
 
+  
 static void stpTimeoutHandler(int x) { _exit(52); }
 
+  
 static SolverImpl::SolverRunStatus
 runAndGetCexForked(::VC vc, STPBuilder *builder, ::VCExpr q,
                    const std::vector<const Array *> &objects,
@@ -231,24 +226,21 @@ runAndGetCexForked(::VC vc, STPBuilder *builder, ::VCExpr q,
                    bool &hasSolution, double timeout) {
   unsigned char *pos = shared_memory_ptr;
   unsigned sum = 0;
-  for (std::vector<const Array *>::const_iterator it = objects.begin(),
-                                                  ie = objects.end();
-       it != ie; ++it)
+  for (auto it = objects.cbegin(), ie = objects.cend(); it != ie; ++it)
     sum += (*it)->size;
-  if (sum >= shared_memory_size)
+  if (sum >= shared_memory_size) {
     llvm::report_fatal_error("not enough shared memory for counterexample");
-
-  fflush(stdout);
-  fflush(stderr);
+    fflush(stdout);
+    fflush(stderr);
+  }
+  
   int pid = fork();
   if (pid == -1) {
     klee_warning("fork failed (for STP) - %s", llvm::sys::StrError(errno).c_str());
     if (!IgnoreSolverFailures)
       exit(1);
     return SolverImpl::SOLVER_RUN_STATUS_FORK_FAILED;
-  }
-
-  if (pid == 0) {
+  } else if (pid == 0) {
     if (timeout) {
       ::alarm(0); /* Turn off alarm so we can safely set signal handler */
       ::signal(SIGALRM, stpTimeoutHandler);
@@ -256,9 +248,7 @@ runAndGetCexForked(::VC vc, STPBuilder *builder, ::VCExpr q,
     }
     unsigned res = vc_query(vc, q);
     if (!res) {
-      for (std::vector<const Array *>::const_iterator it = objects.begin(),
-                                                      ie = objects.end();
-           it != ie; ++it) {
+      for (auto it = objects.cbegin(), ie = objects.cend(); it != ie; ++it) {
         const Array *array = *it;
         for (unsigned offset = 0; offset < array->size; offset++) {
           ExprHandle counter =
@@ -314,23 +304,19 @@ runAndGetCexForked(::VC vc, STPBuilder *builder, ::VCExpr q,
     if (hasSolution) {
       values = std::vector<std::vector<unsigned char> >(objects.size());
       unsigned i = 0;
-      for (std::vector<const Array *>::const_iterator it = objects.begin(),
-                                                      ie = objects.end();
-           it != ie; ++it) {
+      for (auto it = objects.cbegin(), ie = objects.cend(); it != ie; ++it) {
         const Array *array = *it;
-        std::vector<unsigned char> &data = values[i++];
+        auto &data = values[i++];
         data.insert(data.begin(), pos, pos + array->size);
         pos += array->size;
       }
-    }
-
-    if (true == hasSolution) {
       return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_SOLVABLE;
     } else {
       return SolverImpl::SOLVER_RUN_STATUS_SUCCESS_UNSOLVABLE;
     }
   }
 }
+  
 bool STPSolverImpl::computeInitialValues(
     const Query &query, const std::vector<const Array *> &objects,
     std::vector<std::vector<unsigned char> > &values, bool &hasSolution) {
@@ -342,16 +328,22 @@ bool STPSolverImpl::computeInitialValues(
 
   vc_push(vc);
 
-  for (ConstraintManager::const_iterator it = query.constraints.begin(),
-                                         ie = query.constraints.end();
-       it != ie; ++it)
+  for (auto it = query.constraints.begin(), ie = query.constraints.end(); it != ie; ++it){
     vc_assertFormula(vc, builder->construct(*it));
+  }
 
+  printf("Asserts time: %lf\n", util::getWallTime() - T0);
+  
   ++stats::queries;
   ++stats::queryCounterexamples;
 
+  auto TT = util::getWallTime();
+  
   ExprHandle stp_e = builder->construct(query.expr);
 
+  printf("construct time: %lf\n", util::getWallTime() - TT);
+  
+  
   if (DebugDumpSTPQueries) {
     char *buf;
     unsigned long len;

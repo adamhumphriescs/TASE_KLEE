@@ -45,22 +45,64 @@ template<class T> class ref;
   class Expr;
   class UFElement {
   public:
-    UFElement * parent;
+    int parent;
     Array * arr;
     int rank;
     int size;
 
     std::vector<ref<Expr>> constraints; //Only for representative of set
 
-    UFElement(Array * _a){
-      arr = _a;
+    UFElement()
+      : parent(-1)
+      , arr(nullptr)
+      , rank(-1)
+      , size(-1)
+    {}
+    
+    UFElement(Array *x, int idx)
+      : parent(idx)
+      , arr(x)
+      , rank(0)
+      , size(1)
+      , constraints()
+    {}
+
+    ~UFElement(){}
+
+    UFElement & operator=(const UFElement& o){
+      parent = o.parent;
+      arr = o.arr;
+      rank = o.rank;
+      size = o.size;
+      constraints = o.constraints;
     }
 
-    UFElement() {}
-
+    UFElement(UFElement &&o)
+      : parent(o.parent)
+      , arr(o.arr)
+      , rank(o.rank)
+      , size(o.size)
+      , constraints(std::move(o.constraints))
+    {}
+	
+	
+    
   };
   
+  struct UFManager {
+    std::vector<UFElement> elements;
 
+    UFManager()
+      : elements()
+    {}
+   
+    int create(Array *x);
+    void destroy(Array *x);
+    UFElement & operator[](const int i);
+    int find( UFElement &x );
+    int find( const int i );
+    int join( const int a, const int b );    
+  };
 
 
   
@@ -510,7 +552,7 @@ public:
   // Name of the array
   const std::string name;
 
-  UFElement UFE;
+  int UFE;
   
   // FIXME: Not 64-bit clean.
   const unsigned size;

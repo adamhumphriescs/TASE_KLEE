@@ -52,7 +52,7 @@ public:
   ref<Expr> simplifyWithXorOptimization(ref<Expr> e) const;
 
   //Added option for caller to provide list of symbolic variable names to avoid finding them twice.
-  void addConstraint(ref<Expr> e, std::vector<const klee::Array * > * symNames = NULL);
+  void addConstraint(ref<Expr> e, const std::vector<const klee::Array * > &symNames = {});
 
   void DoXorOptimization();
   
