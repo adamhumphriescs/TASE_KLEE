@@ -185,6 +185,7 @@ void printCtx(tase_greg_t *);
 //Multipass
 extern int c_special_cmds; //Int used by cliver to disable special commands to s_client.  Made global for debugging
 extern bool UseForkedCoreSolver;
+extern bool singleStepping;
 extern void worker_exit();
 extern int round_count;
 extern int pass_count;
@@ -4295,7 +4296,7 @@ bool Executor::resumeNativeExecution (){
   
   tase_greg_t * registers = target_ctx_gregs;
   bool instBeginsTrans = instructionBeginsTransaction(registers[GREG_RIP].u64);
-  if (instBeginsTrans) {
+  if ( singleStepping || instBeginsTrans ) {
     #ifdef TASE_OPENSSL
     if (isProhibFn(registers[GREG_RIP].u64))
 	return false;
@@ -4673,6 +4674,61 @@ bool tase_buf_has_taint (void * ptr, int size) {
   return false;
 }
 
+template < int I > inline int
+scan (uint64_t target, uint64_t pattern, uint64_t mask) { return ((target >> 8 * I) & mask) == pattern ? I : -1; }
+
+template <> inline int scan < 8 > (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
+
+
+template < int I, int J > inline int
+scanleft (uint64_t target, uint64_t pattern, uint64_t mask);
+
+
+template < int I > inline int
+scanlefthelper (uint64_t target, uint64_t pattern, uint64_t mask) {
+    return scanleft < I, I+1 > (target, pattern, mask);    
+}
+
+template <> inline int
+scanlefthelper <8> (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
+
+template < > inline int scanleft < 1, 0 > (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
+template < > inline int scanleft < 2, 1 > (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
+template < > inline int scanleft < 3, 2 > (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
+template < > inline int scanleft < 4, 3 > (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
+template < > inline int scanleft < 5, 4 > (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
+template < > inline int scanleft < 6, 5 > (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
+template < > inline int scanleft < 7, 6 > (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
+template < > inline int scanleft < 8, 7 > (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
+template < > inline int scanleft < 8, 8 > (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
+
+// scan full pattern, then scan partials
+template < int I, int J > inline int
+scanleft (uint64_t target, uint64_t pattern, uint64_t mask)
+{
+  return I < J ?
+    ( scan < I > (target, pattern, mask) >=0 ? scan < I > (target, pattern, mask) : scanleft < I + 1, J > (target, pattern, mask) ) : 
+     I == J && J < 8 ? scanlefthelper < I > (target, pattern << 8*I >> 8*I, mask << 8*I >> 8*I) : -1;
+}
+
+
+template< int I, int J > inline int
+scanright (uint64_t target, uint64_t pattern, uint64_t mask);
+
+template <> inline int scanright <1,1> (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; };
+template <> inline int scanright <2,2> (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; };
+template <> inline int scanright <3,3> (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; };
+template <> inline int scanright <4,4> (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; };
+template <> inline int scanright <5,5> (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; };
+template <> inline int scanright <6,6> (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; };
+template <> inline int scanright <7,7> (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; };
+
+template< int I, int J > inline int
+scanright (uint64_t target, uint64_t pattern, uint64_t mask)
+{
+    return scan< 0 >(target, pattern, mask) == 0 ? I : scanright < I+1, J >(target, pattern >> 8, mask >> 8);
+}
+
 void Executor::klee_interp_internal () {
   bool hasMadeProgress = false;
   run_interp_traps++;
@@ -4702,7 +4758,7 @@ void Executor::klee_interp_internal () {
       std::cout << "Dont model: " << (dont_model ? "true" : "false") << "\n";
       std::cout << "resumeNative: " << (resumeNativeExecution() ? "true" : "false") << "\n";
       std::cout << "hasMadeProgress: " << (hasMadeProgress ? "true" : "false") << std::endl;
-      std::cout << "RIP: " << std::hex <<  *(uint64_t*)target_ctx_gregs[GREG_RIP].u64 << std::dec << std::endl;
+      std::cout << "RIP: " << std::hex <<  target_ctx_gregs[GREG_RIP].u64 << std::dec << std::endl;
     }
 
     if( !dont_model && mod != fnModelMap.end() ){
@@ -4725,64 +4781,73 @@ void Executor::klee_interp_internal () {
 
 
       uint64_t cc[2] = {*(uint64_t*)target_ctx_gregs[GREG_RIP].u64, *(((uint64_t*)target_ctx_gregs[GREG_RIP].u64)+1)};
-      if( (cc[0] & 0x00ffffffffffffff) == 0x00000000053d8d4c ){
+      if( scan< 0 >(cc[0], 0x00000000053d8d4c, 0x00ffffffffffffff) >= 0 ){
         target_ctx_gregs[GREG_RIP].u64 += trap_off; // lea/jmpq
-
+	hasMadeProgress = false;
         if( modelDebug ) {
           std::cout << "Skipping LEA and jmp..." << std::endl;
         }
-      } else if ( cc[0] == 0x4566363c751101c4 && ( cc[1] & 0x0000ffffffffffff ) ==  0x0000850fff17380f ) { 
+      } else if ( cc[0] == 0x4566363c751101c4 && scan< 0 >(cc[1], 0x0000850fff17380f, 0x0000ffffffffffff) >= 0 ) { 
 	target_ctx_gregs[GREG_RIP].u64 += 18; // vpcmpeqw/ptest/je
-	
+	hasMadeProgress = false;	
       	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (A)..." << std::endl;
 	}
-      } else if ( ( cc[0] & 0x0000000000ffffff ) == 0x0000000000bf499e && ( cc[1] & 0x0000ffffff000000 ) == 0x0000078b49000000 ) {
+      } else if ( scan< 0 >(cc[0], 0x0000000000bf499e, 0x0000000000ffffff) >= 0 && scan< 0 >(cc[1], 0x0000078b49000000, 0x0000ffffff000000) >= 0 ) {
 	target_ctx_gregs[GREG_RIP].u64 += 14; // sahf/movabsq/movq
-	
+	hasMadeProgress = false;	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (B)..." << std::endl;
 	}
-      } else if ( ( cc[0] & 0x000000000000ffff ) == 0x000000000000bf49 && ( cc[1] & 0x0000ffffffff0000 ) == 0x00009f0789490000 ) {
+      } else if ( scan< 0 >(cc[0], 0x000000000000bf49, 0x000000000000ffff) >= 0 && scan< 0 >(cc[1], 0x00009f0789490000, 0x0000ffffffff0000) >= 0 ) {
 	target_ctx_gregs[GREG_RIP].u64 += 14; // movabsq/movq/lahf
-	
+	hasMadeProgress = false;	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (C)..." << std::endl;
 	}
-      } else if ( cc[0] == 0x42c400000001bf41 && ( cc[1] & 0x0000000000ffffff ) == 0x0000000000f6f783 ) {
+      } else if ( cc[0] == 0x42c400000001bf41 && scan< 0 >(cc[1], 0x0000000000f6f783, 0x0000000000ffffff) >= 0 ) {
 	target_ctx_gregs[GREG_RIP].u64 += 29; // movl/shrx/vpcmpeqw/ptest/je
-
+	hasMadeProgress = false;
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (D)..." << std::endl;
 	}
+      } else if ( scan< 0 >(cc[0], 0x0000000000008d4c, 0x000000000000ffff) >= 0 &&
+		  ( scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 || scan< 0 >(cc[1], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 ) ) { // leaq 3 to 8 bytes
+	auto a = scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff);
+	a = a >= 0 ? a : 8;
+	target_ctx_gregs[GREG_RIP].u64 += a + 29; // leaq/movl/shrx/vpcmpeqw/ptest/je
+
       } else if ( cc[0] == 0xc4eed14924348b4c ) {
 	target_ctx_gregs[GREG_RIP].u64 += 25; // movq/shrq/vpcmpeqw/ptest/je
-
+	hasMadeProgress = false;
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (E)..." << std::endl;
 	}
 
-      } else if ( ( cc[0] & 0x0000ffffffffffff ) == 0x0000eed149378d4c ) { 
-	target_ctx_gregs[GREG_RIP].u64 += 6; // leaq (%rsp),%r14/shrq %r14
+      } else if ( scan< 0 >(cc[0], 0x0000000000008d4c, 0x000000000000ffff) >= 0 &&
+		  ( scanleft< 3, 7 >(cc[0], 0x0000000000eed149, 0x0000000000ffffff) >= 0 ||
+		    scan< 0 >(cc[1], 0x0000000000eed149, 0x0000000000ffffff) ) >= 0 ) { // leaq/shrq is 3 to 8 bytes + 3 bytes
+	  auto a = scanleft< 3, 7 >(cc[0], 0x0000000000eed149, 0x0000000000ffffff); // -1, or 3 -> 7
+	  auto b = scanright< 0, 3 >(cc[1], 0x0000000000eed149, 0x0000000000ffffff); // -1, or 0 -> 2
 
+	  // a >= 0 -> match, a < 6 -> full match, a > 6 -> partial match
 
-        if ( modelDebug ) {
-          std::cout << "Skipping eager instrumentation (F)..." << std::endl;
-        }
-
-      } else if ( ( cc[0] & 0x00000000ffffffff ) == 0x00000000004c8d3424 ) {
-	target_ctx_gregs[GREG_RIP].u64 += 4; // leaq (%rsp),%r14
-	
-	if ( modelDebug ) {
-          std::cout << "Skipping eager instrumentation (G)..." << std::endl;
-        }
-
-      } else if ( ( cc[0] & 0x000000ffffffffff ) == 0x0000004c8d7424f8 ) {
-      	target_ctx_gregs[GREG_RIP].u64 += 5; // leaq -0x8(%rsp),%r14
-	
-        if ( modelDebug ) {
-          std::cout << "Skipping eager instrumentation (H)..." << std::endl;
-        }
+	if ( a >= 0 && a < 6 ) {
+	  target_ctx_gregs[GREG_RIP].u64 += 3 + a + 18; // 6, 7, or 8 bytes for leaq/shrq
+	  hasMadeProgress = false;	  
+	  if( modelDebug ) {
+	    std::cout << "skipping eager instrumentation (F [" << a << "][" << b << "])..." << std::endl;
+	  }
+	} else if ( b >= 0 ) {
+	  target_ctx_gregs[GREG_RIP].u64 += 11 - b + 18; // 11, 10, or 9 bytes for leaq/shrq
+	  hasMadeProgress = false;
+	  if ( modelDebug ) {
+	    std::cout << "skipping eager instrumentation (F [" << a << "][" << b << "])..." << std::endl;
+	  }
+	} else {
+	  hasMadeProgress = false;
+	  std::cout << "eager instrumentation false positive" << std::endl; // hopefully we covered all the cases...
+	}
       } else {
         runCoreInterpreter(target_ctx_gregs);
 	if ( kill_flags.find( target_ctx_gregs[GREG_RIP].u64 ) != kill_flags.end() ) {
@@ -4792,8 +4857,9 @@ void Executor::klee_interp_internal () {
 	  
 	  ref<ConstantExpr> zeroExpr = ConstantExpr::create(0, Expr::Int64);
 	  tase_helper_write((uint64_t) &(target_ctx_gregs[GREG_EFL].u64), zeroExpr);
-	  }
 	}
+	hasMadeProgress = execMode == INTERP_ONLY ? false : true;
+      }
     }
 
     if(tase_buf_has_taint((void *) &(target_ctx_gregs[GREG_RIP].u64), 8) ) { // fast check for potential taint

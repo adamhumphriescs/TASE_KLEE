@@ -128,6 +128,7 @@ int QR_MAX_WORKERS = 8;
 int masterPID;
 bool enableMultipass = false;
 bool taseDebug;
+bool singleStepping;
 bool dropS2C;
 bool enableTimeSeries;
 bool bufferGuard;
@@ -197,6 +198,9 @@ namespace klee {
   cl::opt<bool>
   taseDebugArg("taseDebug", cl::desc("Verbose logging in TASE"), cl::init(false));
 
+  cl::opt<bool>
+  singleSteppingArg("singleStepping", cl::desc("bitcode is single-instruction functions"), cl::init(false));
+  
   cl::opt<bool>
   modelDebug("modelDebug", cl::desc("Logging for models in TASE"), cl::init(false));
 
@@ -1456,7 +1460,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
          std::cout.flush();
        }
      }
-   }  
+   }
  }
  
  //Attempt to load basic block successor information for basic blocks ending in
@@ -1489,6 +1493,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    }
 
    //Ugly!
+   singleStepping = singleSteppingArg;
    taseDebug = taseDebugArg;
    bufferGuard = bufferGuardArg;
    dropS2C = dropS2CArg;

@@ -633,9 +633,11 @@ void worker_exit() {
   }
   #else
 
-  get_sem_lock();
-  *total_workers = *total_workers -1 ;
-  release_sem_lock();
+  if ( !dontFork ) {
+    get_sem_lock();
+    *total_workers = *total_workers -1 ;
+    release_sem_lock();
+  }
 
   if (taseManager != true || dontFork) {
     printf("WARNING: worker_exit called without taseManager \n");
