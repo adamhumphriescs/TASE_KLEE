@@ -4799,7 +4799,7 @@ void Executor::klee_interp_internal () {
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (C)..." << std::endl;
 	}
-      } else if ( cc[0] == 0x42c400000001bf41 && scan< 0 >(cc[1], 0x0000000000f6f783, 0x0000000000ffffff) >= 0 ) {
+      } else if ( scan<0>(cc[0], 0x00c400000001bf41, 0x00ffffffffffffff) >= 0 && scan< 0 >(cc[1], 0x000000000000f783, 0x000000000000ffff) >= 0 ) {
 	target_ctx_gregs[GREG_RIP].u64 += 36; // movl/shrx/vpcmpeqw/ptest/leaq/jne
 	hasMadeProgress = false;
 	if ( modelDebug ) {
@@ -4818,9 +4818,9 @@ void Executor::klee_interp_internal () {
 	  std::cout << "Skipping eager instrumentation (E)..." << std::endl;
 	}
 
-      } else if ( scan< 0 >(cc[0], 0x0000000000008d4c, 0x000000000000ffff) >= 0 &&
+      } else if ( scan< 0 >(cc[0], 0x0000000000008d00, 0x000000000000ff00) >= 0 &&
 		  ( scanleft< 3, 7 >(cc[0], 0x0000000000eed149, 0x0000000000ffffff) >= 0 ||
-		    scan< 0 >(cc[1], 0x0000000000eed149, 0x0000000000ffffff) ) >= 0 ) { // leaq/shrq is 3 to 8 bytes + 3 bytes
+		    scan< 0 >(cc[1], 0x0000000000eed149, 0x0000000000ffffff) >= 0 ) ) { // leaq/shrq is 3 to 8 bytes + 3 bytes
 	  auto a = scanleft< 3, 7 >(cc[0], 0x0000000000eed149, 0x0000000000ffffff); // -1, or 3 -> 7
 	  auto b = scanright< 0, 3 >(cc[1], 0x0000000000eed149, 0x0000000000ffffff); // -1, or 0 -> 2
 
