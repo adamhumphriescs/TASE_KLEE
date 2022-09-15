@@ -15,7 +15,7 @@
 #include "../Core/Executor.h"
 #include "klee/Internal/System/Time.h"
 #include "klee/CommandLine.h"
-#include "../../../test/proj_defs.h"
+//#include "../../../test/proj_defs.h"
 
 using namespace llvm;
 using namespace klee;
@@ -615,21 +615,19 @@ void manage_verification_workers() {
 }
 
 //Todo -- Any more cleanup needed?
-void worker_exit() {
+void worker_exit(int status=EXIT_SUCCESS) {
  #ifdef TASE_OPENSSL
 
   if (taseManager != true || dontFork) {
-    printf("WARNING: worker_exit called without taseManager \n");
-    std::cout.flush();
-    std::exit(EXIT_SUCCESS);
+    std::cout << "WARNING: worker_exit called without taseManager" << std::endl;
+    std::exit(status);
   } else {
     int p = getpid();
     get_sem_lock();
     removeFromQR(PidInQR(p));
     release_sem_lock();
-    printf("Worker %d attempting to exit and remove self from QR \n", getpid());
-    std::cout.flush();
-    std::exit(EXIT_SUCCESS);
+    std::cout << "Worker " << getpid() << " attempting to exit and remove self from QR" << std::endl;
+    std::exit(status);
   }
   #else
 
@@ -640,14 +638,12 @@ void worker_exit() {
   }
 
   if (taseManager != true || dontFork) {
-    printf("WARNING: worker_exit called without taseManager \n");
-    std::cout.flush();
-    std::exit(EXIT_SUCCESS);
+    std::cout << "WARNING: worker_exit called without taseManager" << std::endl;
+    std::exit(status);
   } else {
     int p = getpid();
-    printf("Worker pid %d attempting to exit \n", getpid());
-    std::cout.flush();
-    std::exit(EXIT_SUCCESS);
+    std::cout << "Worker pid " << getpid() << " attempting to exit" << std::endl;
+    std::exit(status);
   }
 
 #endif
@@ -660,8 +656,7 @@ void worker_self_term() {
   removeFromQR(PidInQR(p));
   release_sem_lock();
   if (taseDebug) {
-    printf("Worker %d is in round %d when latest round is %d. Worker exiting. \n", getpid(), round_count, *latestRoundPtr );
-    fflush(stdout);
+    std::cout << "Worker " << getpid() << " is in round " << round_count << " when latest round is " << *latestRoundPtr << ". Worker exiting." << std::endl;
   }
   std::exit(EXIT_SUCCESS);
 }

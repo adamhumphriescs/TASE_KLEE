@@ -12,7 +12,7 @@
 #include <iostream>
 
 #include "../Core/ExecutorTimerInfo.h"
-extern void worker_exit();
+#include "tase/TASEControl.h"
 extern std::stringstream worker_ID_stream;
 extern std::string curr_unique_log_ID;
 extern std::string prev_worker_ID;

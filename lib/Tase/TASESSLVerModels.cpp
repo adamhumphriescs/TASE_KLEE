@@ -94,7 +94,6 @@ using namespace klee;
 
 extern int peekCtr;
 extern int trace_ID;
-extern void tase_exit();
 
 extern bool taseManager;
 extern tase_greg_t * target_ctx_gregs;
@@ -147,7 +146,7 @@ extern CVAssignment prevMPA ;
 extern void multipass_reset_round(bool isFirstCall);
 extern void multipass_start_round(Executor * theExecutor, bool isReplay);
 extern void multipass_replay_round(void * assignmentBufferPtr, CVAssignment * mpa);
-extern void worker_exit();
+extern void worker_exit(int);
 extern void printBuf(FILE * f,void * buf, size_t count);
 extern void rewriteConstants(uint64_t base, size_t size);
 

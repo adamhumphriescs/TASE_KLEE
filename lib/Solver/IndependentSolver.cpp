@@ -33,7 +33,6 @@ using namespace llvm;
 
 extern UFManager *ufmanager;
 //extern UFElement * UF_Find(UFElement *);
-extern void worker_exit();
 extern bool useUF;
 
 

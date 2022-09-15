@@ -186,7 +186,6 @@ void printCtx(tase_greg_t *);
 extern int c_special_cmds; //Int used by cliver to disable special commands to s_client.  Made global for debugging
 extern bool UseForkedCoreSolver;
 extern bool singleStepping;
-extern void worker_exit();
 extern int round_count;
 extern int pass_count;
 extern int run_count;
@@ -623,12 +622,12 @@ void cycleTASELogs(bool isReplay) {
 
     pidString = worker_ID_stream.str();
     if (pidString.size() > 250) {
-      printf("Cycling log names due to large size \n");
+      std::cout << "Cycling log names due to large size" << std::endl;
       worker_ID_stream.str("");
       worker_ID_stream << "Monitor.Wrapped.";
       worker_ID_stream << i;
       pidString = worker_ID_stream.str();
-      printf("Cycled log name is %s \n", pidString.c_str());
+      std::cout << "Cycled log name is " << pidString.c_str() << std::endl;
 
     }
 
@@ -637,20 +636,18 @@ void cycleTASELogs(bool isReplay) {
     if (prev_stderr_log != NULL)
       fclose(prev_stderr_log);
 
-    prev_stdout_log = freopen(pidString.c_str(),"w",stdout);
-    //prev_stderr_log = freopen(pidString.c_str(), "w", stderr);
+    prev_stdout_log = freopen(pidString.c_str(), "w", stdout);
+
     fflush(stdout);
     fflush(stderr);
 
     double T1 = util::getWallTime();
-    printf("Spent %lf seconds resetting log streams \n", T1-T0);
-    printf("Time since start is %lf \n", util::getWallTime() - target_start_time);
+    std::cout << "Spent " << ( T1 - T0 ) << " seconds resetting log streams" << std::endl;;
+    std::cout << "Time since start is " << ( util::getWallTime() - target_start_time ) << std::endl;
     if (prev_stdout_log == NULL ) {
-      printf("ERROR opening new file for child process logging \n");
-      fprintf(stderr, "ERROR opening new file for child process logging for pid %d \n", i);
-      fflush(stdout);
-      worker_exit();
-      std::exit(EXIT_FAILURE);
+      std::cout << "ERROR opening new file for child process logging" << std::endl;
+      std::cerr << "ERROR opening new file for child process logging for pid " << i << std::endl;
+      worker_exit(EXIT_FAILURE);
     }
   }
 
@@ -3662,8 +3659,7 @@ void Executor::concretizeGPRArgs( unsigned int argNum, const char * reason) {
   
   if (argNum == 0 || argNum > 7) {
     printf("ERROR -- concretizeGPRArgs called with invalid number of args %u ", argNum);
-    worker_exit();
-    std::exit(EXIT_FAILURE);
+    worker_exit(EXIT_FAILURE);
   }
 
   if (argNum >= 1 ) {
@@ -3954,8 +3950,7 @@ KFunction * findInterpFunction (tase_greg_t * registers, KModule * kmod) {
   if (!KInterpFunction) {
     printf("Unable to find interp function for entrypoint PC 0x%lx \n", nativePC);
     fflush(stdout);
-    worker_exit();
-    std::exit(EXIT_FAILURE);
+    worker_exit(EXIT_FAILURE);
   } else {
     if (taseDebug) {
       printf("Found interp function \n");
@@ -4038,7 +4033,6 @@ void Executor::model_exit_tase() {
   fflush(stdout);
   fflush(stderr);
   worker_exit();
-  std::exit(EXIT_SUCCESS);
 }
 
 //Todo: Double check the edge cases and make sure we handle
@@ -4788,7 +4782,7 @@ void Executor::klee_interp_internal () {
           std::cout << "Skipping LEA and jmp..." << std::endl;
         }
       } else if ( cc[0] == 0x4566363c751101c4 && scan< 0 >(cc[1], 0x0000850fff17380f, 0x0000ffffffffffff) >= 0 ) { 
-	target_ctx_gregs[GREG_RIP].u64 += 18; // vpcmpeqw/ptest/je
+	target_ctx_gregs[GREG_RIP].u64 += 25; // vpcmpeqw/ptest/leaq/jne
 	hasMadeProgress = false;	
       	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (A)..." << std::endl;
@@ -4806,7 +4800,7 @@ void Executor::klee_interp_internal () {
 	  std::cout << "Skipping eager instrumentation (C)..." << std::endl;
 	}
       } else if ( cc[0] == 0x42c400000001bf41 && scan< 0 >(cc[1], 0x0000000000f6f783, 0x0000000000ffffff) >= 0 ) {
-	target_ctx_gregs[GREG_RIP].u64 += 29; // movl/shrx/vpcmpeqw/ptest/je
+	target_ctx_gregs[GREG_RIP].u64 += 36; // movl/shrx/vpcmpeqw/ptest/leaq/jne
 	hasMadeProgress = false;
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (D)..." << std::endl;
@@ -4815,10 +4809,10 @@ void Executor::klee_interp_internal () {
 		  ( scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 || scan< 0 >(cc[1], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 ) ) { // leaq 3 to 8 bytes
 	auto a = scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff);
 	a = a >= 0 ? a : 8;
-	target_ctx_gregs[GREG_RIP].u64 += a + 29; // leaq/movl/shrx/vpcmpeqw/ptest/je
+	target_ctx_gregs[GREG_RIP].u64 += a + 36; // leaq/movl/shrx/vpcmpeqw/ptest/leaq/jne
 
       } else if ( cc[0] == 0xc4eed14924348b4c ) {
-	target_ctx_gregs[GREG_RIP].u64 += 25; // movq/shrq/vpcmpeqw/ptest/je
+	target_ctx_gregs[GREG_RIP].u64 += 32; // movq/shrq/vpcmpeqw/ptest/leaq/jne
 	hasMadeProgress = false;
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (E)..." << std::endl;
@@ -4833,13 +4827,13 @@ void Executor::klee_interp_internal () {
 	  // a >= 0 -> match, a < 6 -> full match, a > 6 -> partial match
 
 	if ( a >= 0 && a < 6 ) {
-	  target_ctx_gregs[GREG_RIP].u64 += 3 + a + 18; // 6, 7, or 8 bytes for leaq/shrq
+	  target_ctx_gregs[GREG_RIP].u64 += 3 + a + 25; // 6, 7, or 8 bytes for leaq/shrq + vpcmpeqw/ptest/leaq/jne
 	  hasMadeProgress = false;	  
 	  if( modelDebug ) {
 	    std::cout << "skipping eager instrumentation (F [" << a << "][" << b << "])..." << std::endl;
 	  }
 	} else if ( b >= 0 ) {
-	  target_ctx_gregs[GREG_RIP].u64 += 11 - b + 18; // 11, 10, or 9 bytes for leaq/shrq
+	  target_ctx_gregs[GREG_RIP].u64 += 11 - b + 25; // 11, 10, or 9 bytes for leaq/shrq + vpcmpeqw/ptest/leaq/jne
 	  hasMadeProgress = false;
 	  if ( modelDebug ) {
 	    std::cout << "skipping eager instrumentation (F [" << a << "][" << b << "])..." << std::endl;
@@ -5029,8 +5023,7 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
     if (!s) {
       printf("FATAL ERROR: Solver evaluate call failed in forkOnPossibleRIPValues! \n");  
       std::cout.flush();
-      worker_exit();
-      std::exit(EXIT_FAILURE);
+      worker_exit(EXIT_FAILURE);
     }
 
     double t1 = util::getWallTime();
@@ -5092,8 +5085,7 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
 	if (numSolutions > maxSolutions) {
 	  printf("IMPORTANT: control debug: Found too many symbolic values for next instruction after 0x%lx \n ", initRIP);
 	  std::cout.flush();
-	  worker_exit();
-	  std::exit(EXIT_FAILURE);
+	  worker_exit(EXIT_FAILURE);
 	}
       
 	solver_start_time = util::getWallTime();
@@ -5109,8 +5101,7 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
 	if (!success) {
 	  printf("ERROR: couldn't get initial value in forkOnPossibleRIPValues \n");  
 	  std::cout.flush();
-	  worker_exit();
-	  std::exit(EXIT_FAILURE);
+	  worker_exit(EXIT_FAILURE);
 	}
       
 	int isTrueChild = tase_fork(getpid(), initRIP); //Returns 0 for false branch, 1 for true.  Not intuitive
@@ -5143,8 +5134,7 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
 	  if (!success) {
 	    printf("ERROR: couldn't get RIP value in forkOnPossibleRIPValues for false child \n");
 	    std::cout.flush();
-	    worker_exit();
-	    std::exit(EXIT_FAILURE);
+	    worker_exit(EXIT_FAILURE);
 	  }
 	  if (!noLog) {
 	    printf("IMPORTANT: control debug: Found dest RIP 0x%lx on false branch in forkOnRip from RIP 0x%lx with pid %d \n", (uint64_t) solution->getZExtValue(), initRIP, getpid());
@@ -5258,8 +5248,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
       if(!ss){
         std::cout << "Error reading externals file within initializeInterpretationStructures() at line " << lines << std::endl;
 	std::cout << '"' << line << '"' << std::endl;
-        worker_exit();
-        std::exit(EXIT_FAILURE);
+        worker_exit(EXIT_FAILURE);
       }
       if((uint64_t) addrVal != (uint64_t) &target_ctx_gregs){
         //if((sizeVal %2) == 1){
@@ -5275,8 +5264,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
     }
   } else {
     std::cout << "Error reading externals file within initializeInterpretationStructures()" << std::endl;
-    worker_exit();
-    std::exit(EXIT_FAILURE);
+    worker_exit(EXIT_FAILURE);
   }
 
   //Todo -- De-hackify this environ variable mapping

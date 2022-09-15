@@ -8,6 +8,7 @@ void initManagerStructures();
 void manage_workers();
 int tase_fork(int parentPID, uint64_t initRIP);
 void tase_exit();
+void worker_exit(int status=EXIT_SUCCESS);
 
 extern void * ms_base;
 extern int ms_size;

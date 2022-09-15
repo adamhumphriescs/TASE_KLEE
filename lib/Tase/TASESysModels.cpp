@@ -110,9 +110,8 @@ extern bool taseManager;
 extern bool noLog;
 
 extern bool gprsAreConcrete();
-extern void tase_exit();
+extern void tase_exit(int);
 extern void printCtx(tase_greg_t *);
-extern void worker_exit();
 extern bool tase_buf_has_taint(void * addr, int size);
 
 bool roundUpHeapAllocations = true; //Round the size Arg of malloc, realloc, and calloc up to a multiple of 8
@@ -948,12 +947,9 @@ void Executor::model___errno_location() {
 void Executor::model_exit() {
 
   std::cout << " Found call to exit.  TASE should shutdown." << std::endl;
-  std::cout.flush();
   //Todo: Make a flag to only print round/pass for multipass
   //printf("IMPORTANT: Worker exiting from terminal path in round %d pass %d from model_exit \n", round_count, pass_count);
-  std::cout.flush();
   worker_exit();
-  std::exit(EXIT_SUCCESS);
 }
 
 //http://man7.org/linux/man-pages/man2/write.2.html
