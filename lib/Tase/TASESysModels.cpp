@@ -211,7 +211,26 @@ void Executor::rewriteConstants(uint64_t base, size_t size) {
   }
 }
 
+/*
+// void __assert_fail(const char * assertion, const char * file, unsigned int line, const char * function)
+void Executor::model_assert_fail(){
+  if( !noLog ) {
+    _LOG
+  }
 
+  int count = 0;
+  uint64_t *s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  char *assertion;
+  char *file;
+  unsigned int line;
+  char *function;
+  get_vals(count, s_offset, __func__, assertion, file, line, function);
+  __assert_fail(assertion, file, line, function);
+  do_ret();
+}
+*/
 
 void Executor::model_putchar(){
   if(!noLog){

@@ -28,3 +28,5 @@ target_link_libraries(kleeTase PRIVATE
   kleeSupport
   ${CMAKE_BINARY_DIR}/lib/libtase.a
   )
+
+target_link_options(kleeTase PUBLIC "-lc -lgcc_s")

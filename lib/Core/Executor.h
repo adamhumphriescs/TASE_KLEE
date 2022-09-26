@@ -368,6 +368,7 @@ private:
   void model_entertran();
   void model_exittran();
   void model_sb_reopen();
+  void model_assert_fail();
   //AH: Special functions we provide TASE defs for, and need to trap to.
   void model_exit_tase();
   void make_byte_symbolic_model();
