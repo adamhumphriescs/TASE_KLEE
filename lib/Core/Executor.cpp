@@ -3869,16 +3869,8 @@ bool canBounceback (uint32_t abort_status, uint64_t rip) {
   is_model_trap = false;
   is_psn_trap = false;
 
-  if ((abort_status & 0xff) == 0) {
-    //Unknown return code
-    if (modelDebug)
-      printf("Bounceback unknown return code \n");
-
-    tran_max = tran_max/2;
-    BB_UR++;
-    retry = true; 
-  } else if (abort_status & (1 << TSX_XABORT)) {
-    if ((abort_status & TSX_XABORT_MASK) == 0xFF000000) {
+  if (abort_status & (1 << TSX_XABORT)) { // TSX_XABORT == 0
+    if ((abort_status & TSX_XABORT_MASK) == 0xFF000000) { // TSX_XABORT_MASK == 0xFF000000
       if (modelDebug) {
         printf("Model abort \n");
       }
@@ -3897,6 +3889,14 @@ bool canBounceback (uint32_t abort_status, uint64_t rip) {
       retry = true;
       BB_PSN++;
     }
+  } else if ((abort_status & 0xff) == 0) {
+    //Unknown return code                                                                                                                                                   
+    if (modelDebug)
+      printf("Bounceback unknown return code %x\n", abort_status);
+
+    tran_max = tran_max/2;
+    BB_UR++;
+    retry = true;
   } else {
     if (modelDebug)
       printf("Bounceback fall-through case \n");
