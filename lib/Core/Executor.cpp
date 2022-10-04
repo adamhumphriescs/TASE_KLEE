@@ -4849,7 +4849,7 @@ void Executor::klee_interp_internal () {
 	}
       } else {
         runCoreInterpreter(target_ctx_gregs);
-	if ( kill_flags.find( target_ctx_gregs[GREG_RIP].u64 ) != kill_flags.end() ) {
+	if ( !killFlags && kill_flags.find( target_ctx_gregs[GREG_RIP].u64 ) != kill_flags.end() ) {
 	  if ( taseDebug ) {
 	    printf("Killing Flags...\n");
 	  }
