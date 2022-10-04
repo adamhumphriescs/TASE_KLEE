@@ -4805,17 +4805,20 @@ void Executor::klee_interp_internal () {
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (D)..." << std::endl;
 	}
-      } else if ( scan< 0 >(cc[0], 0x0000000000008d4c, 0x000000000000ffff) >= 0 &&
+      } else if ( scan< 0 >(cc[0], 0x0000000000008d00, 0x000000000000ff00) >= 0 &&
+		  scanleft< 2, 7 >(cc[0], 0x000000000000008d, 0x00000000000000ff) < 0 && // one leaq, no more
 		  ( scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 || scan< 0 >(cc[1], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 ) ) { // leaq 3 to 8 bytes
 	auto a = scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff);
 	a = a >= 0 ? a : 8;
 	target_ctx_gregs[GREG_RIP].u64 += a + 36; // leaq/movl/shrx/vpcmpeqw/ptest/leaq/jne
-
+	if( modelDebug ) {
+	  std::cout << "Skipping eager instrumentation (E[" << a << "])..." << std::endl;
+	}
       } else if ( cc[0] == 0xc4eed14924348b4c ) {
 	target_ctx_gregs[GREG_RIP].u64 += 32; // movq/shrq/vpcmpeqw/ptest/leaq/jne
 	hasMadeProgress = false;
 	if ( modelDebug ) {
-	  std::cout << "Skipping eager instrumentation (E)..." << std::endl;
+	  std::cout << "Skipping eager instrumentation (F)..." << std::endl;
 	}
 
       } else if ( scan< 0 >(cc[0], 0x0000000000008d00, 0x000000000000ff00) >= 0 &&
@@ -4832,13 +4835,13 @@ void Executor::klee_interp_internal () {
 	  target_ctx_gregs[GREG_RIP].u64 += 3 + a + 25; // 6, 7, or 8 bytes for leaq/shrq + vpcmpeqw/ptest/leaq/jne
 	  hasMadeProgress = false;	  
 	  if( modelDebug ) {
-	    std::cout << "skipping eager instrumentation (F [" << a << "][" << b << "])..." << std::endl;
+	    std::cout << "skipping eager instrumentation (G [" << a << "][" << b << "])..." << std::endl;
 	  }
 	} else if ( b >= 0 ) {
 	  target_ctx_gregs[GREG_RIP].u64 += 11 - b + 25; // 11, 10, or 9 bytes for leaq/shrq + vpcmpeqw/ptest/leaq/jne
 	  hasMadeProgress = false;
 	  if ( modelDebug ) {
-	    std::cout << "skipping eager instrumentation (F [" << a << "][" << b << "])..." << std::endl;
+	    std::cout << "skipping eager instrumentation (G [" << a << "][" << b << "])..." << std::endl;
 	  }
 	} else {
 	  hasMadeProgress = false;
