@@ -4672,6 +4672,20 @@ bool tase_buf_has_taint (void * ptr, int size) {
 template < int I > inline int
 scan (uint64_t target, uint64_t pattern, uint64_t mask) { return ((target >> 8 * I) & mask) == pattern ? I : -1; }
 
+template<typename... Ts>
+inline int scan(int I, Ts... ts) {
+  switch(I){
+  case 0: return scan<0>(ts...); break;
+  case 1: return scan<1>(ts...); break;
+  case 2: return scan<2>(ts...); break;
+  case 3: return scan<3>(ts...); break;
+  case 4: return scan<4>(ts...); break;
+  case 5: return scan<5>(ts...); break;
+  case 6: return scan<6>(ts...); break;
+  case 7: return scan<7>(ts...); break;
+  }
+}
+
 template <> inline int scan < 8 > (uint64_t target, uint64_t pattern, uint64_t mask) { return -1; }
 
 
@@ -4810,10 +4824,12 @@ void Executor::klee_interp_internal () {
 		  scanleft< 2, 7 >(cc[0], 0x000000000000008d, 0x00000000000000ff) < 0 && // one leaq, no more
 		  ( scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 || scan< 0 >(cc[1], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 ) ) { // leaq 3 to 8 bytes
 	auto a = scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff);
+	auto b = scan(a, cc[0], 0x000000000000009f, 0x00000000000000ff);
 	a = a >= 0 ? a : 8;
-	target_ctx_gregs[GREG_RIP].u64 += a + 36; // leaq/movl/shrx/vpcmpeqw/ptest/leaq/jne
+	b = b >= 0 ? 1 : 0;
+	target_ctx_gregs[GREG_RIP].u64 += a + b + 36; // lahf? leaq/movl/shrx/vpcmpeqw/ptest/leaq/jne sahf?
 	if( modelDebug ) {
-	  std::cout << "Skipping eager instrumentation (E[" << a << "])..." << std::endl;
+	  std::cout << "Skipping eager instrumentation (E[" << a << "," << b << "])..." << std::endl;
 	}
       } else if ( cc[0] == 0xc4eed14924348b4c ) {
 	target_ctx_gregs[GREG_RIP].u64 += 32; // movq/shrq/vpcmpeqw/ptest/leaq/jne
