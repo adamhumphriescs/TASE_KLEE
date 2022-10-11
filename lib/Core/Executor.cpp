@@ -4371,6 +4371,7 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &feof,  &Executor::model_feof},
   {(uint64_t) &ferror,  &Executor::model_ferror},
   {(uint64_t) &fflush,  &Executor::model_fflush},
+  {(uint64_t) &fflush_unlocked, &Executor::model_fflush_unlocked},
   {(uint64_t) &fgets,  &Executor::model_fgets},
   {(uint64_t) &fileno,  &Executor::model_fileno},
   {(uint64_t) &fopen,  &Executor::model_fopen},

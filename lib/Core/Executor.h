@@ -459,6 +459,7 @@ private:
   void model_fwrite();
   void model_fgets();
   void model_fflush();
+  void model_fflush_unlocked();
   void model_fseek();
   void model_posix_fadvise();
   void model_feof();
