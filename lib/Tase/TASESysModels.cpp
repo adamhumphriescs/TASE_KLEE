@@ -1841,6 +1841,8 @@ void Executor::model_getc_unlocked() {
 }
 
 
+
+
 //https://www.man7.org/linux/man-pages/man3/feof.3.html
 //int feof(FILE *stream);
 
@@ -2198,57 +2200,59 @@ void Executor::model___ctype_tolower_loc() {
 //Todo -- Actually model this or provide a symbolic return status
 void Executor::model_fflush(){
   if (!noLog) {
-    printf("Entering model_fflush at %lu \n", interpCtr);
-  }
-  
-
-  //Get the input args per system V linux ABI.
-
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-
-  if  (
-       (isa<ConstantExpr>(arg1Expr))
-       ){
-
-    int res = 0;
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    do_ret();//fake a ret
-
-  } else {
-    concretizeGPRArgs(1, "model_fflush");
-    model_fflush();
+    _LOG
   }
 
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  FILE* file;
+  get_vals(count, s_offset, __func__, file);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) fflush(file), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();
 }
+
+
+void Executor::model_fflush_unlocked() {
+  if (!noLog) {
+    _LOG
+  }
+
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+
+  FILE* file;
+  get_vals(count, s_offset, __func__, file);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) fflush_unlocked(file), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();
+}
+
 
 
 //char *fgets(char *s, int size, FILE *stream);
 //https://linux.die.net/man/3/fgets
 void Executor::model_fgets() {
   if (!noLog) {
-    printf("Entering model_fgets at %lu \n", interpCtr);
+    _LOG
   }
-  //Get the input args per system V linux ABI.  
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
   
-  if (
-      (isa<ConstantExpr>(arg1Expr)) &&
-      (isa<ConstantExpr>(arg2Expr)) &&
-      (isa<ConstantExpr>(arg3Expr)) 
-      ){
-    //Do call
-    char * res = fgets((char *) target_ctx_gregs[GREG_RDI].u64, (int) target_ctx_gregs[GREG_RSI].u64, (FILE *) target_ctx_gregs[GREG_RDX].u64);
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    do_ret();//Fake a return
-
-  } else {
-    concretizeGPRArgs(3, "model_fgets");
-    model_fgets();
-  }
+  char *s;
+  int size;
+  FILE *stream;
+  get_vals(count, s_offset, __func__, s, size, stream);
+  
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) fgets(s, size, stream), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();
 }
 
 //Todo -- Inspect byte-by-byte for symbolic taint
@@ -2257,34 +2261,25 @@ void Executor::model_fgets() {
 // FILE *stream);
 void Executor::model_fwrite() {
   if (!noLog) {
-    printf("Entering model_fwrite \n");
+    _LOG
   }
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  ref<Expr> arg4Expr = target_ctx_gregs_OS->read(GREG_RCX * 8, Expr::Int64);
   
-  if (  (isa<ConstantExpr>(arg1Expr)) &&
-	(isa<ConstantExpr>(arg2Expr)) &&
-	(isa<ConstantExpr>(arg3Expr)) &&
-	(isa<ConstantExpr>(arg4Expr))
-	) {
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
 
-    //size_t res = ( (size_t) target_ctx_gregs[GREG_RDX].u64 );
+  void *ptr;
+  size_t size;
+  size_t nmemb;
+  FILE *stream;
 
-    
-    
-    size_t res = fwrite( (void *) target_ctx_gregs[GREG_RDI].u64, (size_t) target_ctx_gregs[GREG_RSI].u64, (size_t) target_ctx_gregs[GREG_RDX].u64, (FILE *) target_ctx_gregs[GREG_RCX].u64);
-    
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    do_ret();//Fake a return
+  get_vals(count, s_offset, __func__, ptr, size, nmemb, stream);
 
-  } else {
-    concretizeGPRArgs(4, "model_fwrite");
-    model_fwrite();
-  } 
-}
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) fwrite(ptr, size, nmemb, stream), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();
+} 
+ 
 /*
 Executor::print_specifier Executor::parse_specifier (char * input, int * offset) {
 

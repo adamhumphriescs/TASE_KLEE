@@ -1451,7 +1451,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      while (target_ctx_gregs[GREG_RIP].u64 != (uint64_t) &tase_exit) {
        klee_interp();
        if (taseDebug) {
-         printf("Returning from klee_interp ... \n");
+	 std::cout << "Returning from klee_interp at " << std::hex << target_ctx_gregs[GREG_RIP].u64 << std::dec << std::endl;
          std::cout.flush();
        }
        tase_inject(sbArg);
