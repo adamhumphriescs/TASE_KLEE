@@ -4824,7 +4824,7 @@ void Executor::klee_interp_internal () {
 		  scanleft< 2, 7 >(cc[0], 0x000000000000008d, 0x00000000000000ff) < 0 && // one leaq, no more
 		  ( scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 || scan< 0 >(cc[1], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 ) ) { // leaq 3 to 8 bytes
 	auto a = scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff);
-	auto b = scan(a-1, cc[0], 0x000000000000009f, 0x00000000000000ff);
+	auto b = a > 0 ? scan(a-1, cc[0], 0x000000000000009f, 0x00000000000000ff) : -1;
 	a = a >= 0 ? a : 8;
 	target_ctx_gregs[GREG_RIP].u64 += a + ( b >= 0 ? 1 : 0 )  + 36; // lahf? leaq/movl/shrx/vpcmpeqw/ptest/leaq/jne sahf?
 	if( modelDebug ) {

@@ -1139,8 +1139,7 @@ void Executor::model_geteuid() {
 //http://man7.org/linux/man-pages/man2/getgid.2.html
 //Todo -- determine if we should fix result, see if gid_t is ever > 64 bits
 void Executor::model_getgid() {
-  gid_t gidResult = getgid();
-  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) gidResult, Expr::Int64);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) getgid(), Expr::Int64);
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
   do_ret();//Fake a ret
 
@@ -1150,13 +1149,14 @@ void Executor::model_getgid() {
 //http://man7.org/linux/man-pages/man2/getegid.2.html
 //Todo -- determine if we should fix result, see if gid_t is ever > 64 bits
 void Executor::model_getegid() {
-  printf("Calling model_getegid() \n");
-  gid_t egidResult = getegid();
-  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) egidResult, Expr::Int64);
+  if(!noLog) {
+    _LOG
+  }
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) getegid(), Expr::Int64);
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
 
   do_ret();//Fake a ret
-
 }
 
 //char * getenv(const char * name)
@@ -1260,24 +1260,24 @@ void Executor::model_gmtime() {
 //http://man7.org/linux/man-pages/man2/gettimeofday.2.html
 //Todo -- properly check contents of args for symbolic content, allow for symbolic returns
 void Executor::model_gettimeofday() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) ) {
-
-    //Do call
-    int res = gettimeofday( (struct timeval *) target_ctx_gregs[GREG_RDI].u64, (struct timezone *) target_ctx_gregs[GREG_RSI].u64);
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    do_ret();//fake a ret
-
-  }  else {
-    concretizeGPRArgs(2, "model_gettimeofday");
-    model_gettimeofday();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+
+  ++s_offset;
+
+  struct timeval *tv;
+  struct timezone *tz;
+  
+  get_vals(count, s_offset, __func__, str, tv, tz);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) gettimeofday(tv, tz), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();//fake a ret
 }
+
 
 size_t roundUp(size_t input, size_t multiple) {
 
@@ -1717,85 +1717,73 @@ void Executor::model_free() {
 //https://linux.die.net/man/3/freopen
 //FILE *freopen(const char *path, const char *mode, FILE *stream);
 void Executor::model_freopen() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-
-  if (  (isa<ConstantExpr>(arg1Expr)) &&
-	(isa<ConstantExpr>(arg2Expr)) &&
-	(isa<ConstantExpr>(arg3Expr)) ) {
-    FILE * res = freopen((char *) target_ctx_gregs[GREG_RDI].u64, (char *) target_ctx_gregs[GREG_RSI].u64, (FILE *) target_ctx_gregs[GREG_RDX].u64);
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();//fake a ret
-
-  } else {
-    concretizeGPRArgs(3, "model_freopen");
-    model_freopen();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
 
+  ++s_offset;
 
+  char *path;
+  char *mode;
+  FILE *stream;
+  
+  get_vals(count, s_offset, __func__, path, mode, stream);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) freopen(path, mode, stream), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();//fake a ret
 }
 
 //Todo -- check byte-by-byte through the input args for symbolic data
 //http://man7.org/linux/man-pages/man3/fopen.3.html
 //FILE *fopen(const char *pathname, const char *mode);
 void Executor::model_fopen() {
-
-  printf("Entering model_fopen \n");
-  
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr))
-       ){
-
-    FILE * res = fopen( (char *) target_ctx_gregs[GREG_RDI].u64, (char *) target_ctx_gregs[GREG_RSI].u64);
-    printf("Calling fopen on file %s \n", (char *) target_ctx_gregs[GREG_RDI].u64);
-    //Return result
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    
-    do_ret();//fake a ret
-    
-  } else {
-    concretizeGPRArgs(2, "model_fopen");
-    model_fopen();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr 
 
+  ++s_offset;
+
+  char *pathname;
+  char *mode;
+  
+  get_vals(count, s_offset, __func__, pathname, mode);
+
+  printf("Calling fopen on file %s \n", pathname);
+    //Return result
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) fopen(pathname, mode), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+    
+  do_ret();//fake a ret
 }
 
 //Todo -- check byte-by-byte through the input args for symbolic data
 //http://man7.org/linux/man-pages/man3/fopen.3.html
 //FILE *fopen64(const char *pathname, const char *mode);
 void Executor::model_fopen64() {
-
-  printf("Entering model_fopen64 \n");
-
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr))
-       ){
-
-    FILE * res = fopen64( (char *) target_ctx_gregs[GREG_RDI].u64, (char *) target_ctx_gregs[GREG_RSI].u64);
-    printf("Calling fopen64 on file %s \n", (char *) target_ctx_gregs[GREG_RDI].u64);
-    //Return result
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    
-    do_ret();//fake a ret
-    
-  } else {
-    concretizeGPRArgs(2, "model_fopen64");
-    model_fopen64();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
 
+  ++s_offset;
+
+  char *pathname;
+  char *mode;
+  get_vals(count, s_offset, __func__, pathname, mode);
+
+  printf("Calling fopen64 on file %s \n", pathname);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) fopen64(pathname, mode), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+    
+  do_ret();//fake a ret
 }
 
 //https://linux.die.net/man/3/getc_unlocked
@@ -1848,98 +1836,88 @@ void Executor::model_getc_unlocked() {
 
 
 void Executor::model_feof() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr))
-       ){
-
-    int res = feof((FILE *) target_ctx_gregs[GREG_RDI].u64);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    
-    do_ret();//Fake a return
-  } else {
-    concretizeGPRArgs(1, "model_feof");
-    model_feof();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
 
+  ++s_offset;
 
+  FILE *stream;
+  
+  get_vals(count, s_offset, __func__, stream);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) feof(stream), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+    
+  do_ret();//Fake a return
 }
 
 //https://man7.org/linux/man-pages/man3/ferror.3.html
 //int ferror(FILE *stream);
 
 void Executor::model_ferror() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr))
-       ){
-
-    int res = ferror((FILE *) target_ctx_gregs[GREG_RDI].u64);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();//Fake a return
-  } else {
-    concretizeGPRArgs(1, "model_ferror");
-    model_ferror();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
 
+  ++s_offset;
 
+  FILE *stream;
+  
+  get_vals(count, s_offset, __func__, stream);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) ferror(stream), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();//Fake a return
 }
 
 //https://man7.org/linux/man-pages/man2/posix_fadvise.2.html
 //int posix_fadvise(int fd, off_t offset, off_t len, int advice);
 
 void Executor::model_posix_fadvise() {
-
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  ref<Expr> arg4Expr = target_ctx_gregs_OS->read(GREG_RCX * 8, Expr::Int64);
-
-  if (  (isa<ConstantExpr>(arg1Expr)) &&
-	(isa<ConstantExpr>(arg2Expr)) &&
-	(isa<ConstantExpr>(arg3Expr)) &&
-	(isa<ConstantExpr>(arg4Expr))
-	) {
-
-    int res = posix_fadvise( (int) target_ctx_gregs[GREG_RDI].u64, (off_t) target_ctx_gregs[GREG_RSI].u64, (off_t) target_ctx_gregs[GREG_RDX].u64, (int) target_ctx_gregs[GREG_RCX].u64);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    do_ret();
-    
-  }  else {
-    concretizeGPRArgs(4, "model_posix_fadvise");
-    model_posix_fadvise();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
 
-    
+  ++s_offset;
+
+  int fd;
+  off_t offset;
+  off_t len;
+  int advice;
+  
+  get_vals(count, s_offset, __func__, fd, offset, len, advice);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) posix_fadvise(fd, offset, len, advice), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  do_ret();  
 }
 
 //http://man7.org/linux/man-pages/man3/fclose.3.html
 //int fclose(FILE *stream);
 //Todo -- examine all bytes of stream for symbolic taint
 void Executor::model_fclose() {
-  printf("Entering model_fclose at %lu \n", interpCtr);
-  fflush(stdout);
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr))
-       ){
-    
-    //We don't need to make any call
-    
-    do_ret();//Fake a return
-    
-  } else {
-    concretizeGPRArgs(1, "model_fclose");
-    model_fclose();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+
+  ++s_offset;
+
+  FILE *stream;
   
+  get_vals(count, s_offset, __func__, stream);
+    
+  //We don't need to make any call    
+  do_ret();//Fake a return
 }
 
 // http://man7.org/linux/man-pages/man3/fseek.3.html
@@ -1947,29 +1925,25 @@ void Executor::model_fclose() {
 
 // Just pass the call through
 void Executor::model_fseek() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  
-  if (  (isa<ConstantExpr>(arg1Expr)) &&
-	(isa<ConstantExpr>(arg2Expr)) &&
-	(isa<ConstantExpr>(arg3Expr)) ) {
-
-    FILE* stream = (FILE *) target_ctx_gregs[GREG_RDI].u64;
-    long offset = (long) target_ctx_gregs[GREG_RSI].u64;
-    int whence = (int) target_ctx_gregs[GREG_RDX].u64;
-    int res = fseek(stream, offset, whence);
-    
-    //Return result
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    
-    do_ret();
-    
-  } else {
-    concretizeGPRArgs(3, "model_fseek");
-    model_fseek();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr 
+
+  ++s_offset;
+
+  FILE *stream;
+  long offset;
+  int whence;
+  
+  get_vals(count, s_offset, __func__, str, stream, offset, whence);
+
+  //Return result
+  ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) fseek(stream, offset, whence), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+    
+  do_ret();
 }
 
 //http://man7.org/linux/man-pages/man3/ftell.3p.html
@@ -1977,22 +1951,23 @@ void Executor::model_fseek() {
 
 // Just pass the call through
 void Executor::model_ftell() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  if (  (isa<ConstantExpr>(arg1Expr)) ) {
+  if(!noLog){
+    _LOG
+  }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
 
-    FILE * stream = (FILE *) target_ctx_gregs[GREG_RDI].u64;
-    long res = ftell(stream);
+  ++s_offset;
+
+  FILE *stream;
+  
+  get_vals(count, s_offset, __func__, stream);
 
     //Return result
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) ftell(stream), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
     
-    do_ret();
-    
-  } else {
-    concretizeGPRArgs(1, "model_ftell");
-    model_ftell();
-  }
+  do_ret();
 }
 
 
@@ -2001,56 +1976,48 @@ void Executor::model_ftell() {
 
 //Just pass the call through
 void Executor::model_rewind() {
-  
-   ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  if (  (isa<ConstantExpr>(arg1Expr)) ) {
-
-    FILE * stream = (FILE *) target_ctx_gregs[GREG_RDI].u64;
-    rewind(stream);
-
-    do_ret();
-    
-  } else {
-    concretizeGPRArgs(1, "model_rewind");
-    model_rewind();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr 
 
+  ++s_offset;
+
+  FILE *stream;
+  
+  get_vals(count, s_offset, __func__, stream);
+
+  rewind(stream);
+  do_ret();  
 }
 
 //http://man7.org/linux/man-pages/man3/fread.3.html
 //size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 //Todo -- Inspect byte-by-byte for symbolic taint
 void Executor::model_fread() {
-  if (taseDebug) {
-    printf("Entering model_fread \n");
+  if(!noLog){
+    _LOG
   }
-  
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  ref<Expr> arg4Expr = target_ctx_gregs_OS->read(GREG_RCX * 8, Expr::Int64);
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr                                     
+  ++s_offset;
 
-  if (  (isa<ConstantExpr>(arg1Expr)) &&
-	(isa<ConstantExpr>(arg2Expr)) &&
-	(isa<ConstantExpr>(arg3Expr)) &&
-	(isa<ConstantExpr>(arg4Expr)) 
-	) {
-  
-    size_t res = fread( (void *) target_ctx_gregs[GREG_RDI].u64, (size_t) target_ctx_gregs[GREG_RSI].u64, (size_t) target_ctx_gregs[GREG_RDX].u64, (FILE *) target_ctx_gregs[GREG_RCX].u64);
-    
-    //Return result
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    
-    do_ret();//Fake a return
+  void *ptr;
+  size_t size;
+  size_t nmemb;
+  FILE *stream;
 
-  } else {
-    concretizeGPRArgs(4, "model_fread");
-    model_fread();
-  }
-  
+  get_vals(count, s_offset, __func__, ptr, size, nmemb, stream);
+    
+  //Return result
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) fread(ptr, size, nmemb, stream), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+    
+  do_ret();//Fake a return
 }
 
+ 
 extern int __isoc99_sscanf ( const char * s, const char * format, ...);
 void Executor::model___isoc99_sscanf() {
   
@@ -2134,37 +2101,33 @@ void Executor::model_gethostbyname() {
 //https://linux.die.net/man/2/setsockopt
 //Todo -- actually model this
 void Executor::model_setsockopt() {
-  printf("Entering model_setsockopt at interpCtr %lu \n", interpCtr);
-  fflush(stdout);
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  ref<Expr> arg4Expr = target_ctx_gregs_OS->read(GREG_RCX * 8, Expr::Int64);
-  ref<Expr> arg5Expr = target_ctx_gregs_OS->read(GREG_R8 * 8, Expr::Int64);
-
-  if (  (isa<ConstantExpr>(arg1Expr)) &&
-	(isa<ConstantExpr>(arg2Expr)) &&
-	(isa<ConstantExpr>(arg3Expr)) &&
-	(isa<ConstantExpr>(arg4Expr)) &&
-	(isa<ConstantExpr>(arg5Expr))
-	) {
-
-    int res = 0; //Pass success
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();//Fake a return
-
-  } else {
-    concretizeGPRArgs(5, "model_setsockopt");
-    model_setsockopt();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr                                     
+  ++s_offset;
+
+  int sockfd;
+  int level;
+  int optname;
+  void *optval;
+  socklen_t optlen;
+
+  get_vals(count, s_offset, __func__, sockfd, level, optname, optval, optlen);
+  
+  int res = 0; //Pass success
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) res, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+  
+  do_ret();//Fake a return
 }
+
 
 //No args for this one
 void Executor::model___ctype_b_loc() {
   if (!noLog) {
-    printf("Entering model__ctype_b_loc at interpCtr %lu \n", interpCtr);
+    _LOG
   }
 
   const unsigned short ** constRes = __ctype_b_loc();
@@ -2449,61 +2412,64 @@ void Executor::model_printf() {
 //Models for strtoX
 
 void Executor::model_strtof() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr))
-       ){
-    union BITS {
-      float asFloat;
-      double asDouble;
-      uint64_t asUint64_t;
-    } b;
-
-    const char * nptr = (char *) target_ctx_gregs[GREG_RDI].u64;
-    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
-    b.asFloat = strtof(nptr,endptr);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();
-    
-  } else {
-    concretizeGPRArgs(2, "model_strtof");
-    model_strtof();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr                                     
+
+  ++s_offset;
+
+  char * str;
+  char ** endptr;
+  int base;
+
+  get_vals(count, s_offset, __func__, str, endptr);
+
+  union BITS {
+    float asFloat;
+    double asDouble;
+    uint64_t asUint64_t;
+  } b;
+
+  b.asFloat = strtof(nptr, endptr);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();
 }
+
+
 void Executor::model_strtod() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr))
-       ){
-    union BITS {
-      float asFloat;
-      double asDouble;
-      uint64_t asUint64_t;
-    } b;
-
-    const char * nptr = (char *) target_ctx_gregs[GREG_RDI].u64;
-    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
-    b.asDouble = strtod(nptr,endptr);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();
-
-  } else {
-    concretizeGPRArgs(2, "model_strtod");
-    model_strtod();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr                                     
+
+  ++s_offset;
+
+  char * str;
+  char ** endptr;
+
+  get_vals(count, s_offset, __func__, str, endptr);
+  
+  union BITS {
+    float asFloat;
+    double asDouble;
+    uint64_t asUint64_t;
+  } b;
+
+  b.asDouble = strtod(nptr, endptr);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();
 }
+
+
 void Executor::model_strtold() {
   printf("TASE INFO: Calling strtold and returning 64 bits for long double \n");
   model_strtod();
@@ -2511,138 +2477,133 @@ void Executor::model_strtold() {
 
 
 void Executor::model_strtoull() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) &&
-       (isa<ConstantExpr>(arg3Expr))
-       ){
-
-    union BITS {
-      unsigned long long asULL;
-      long long asLL;
-      unsigned long asUL;
-      long asLong;
-      uint64_t asUint64_t;
-    } b;
-    const char * str = (char *) target_ctx_gregs[GREG_RDI].u64;
-    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
-    int base = (int) target_ctx_gregs[GREG_RDX].u64;
-
-    b.asULL = strtoull(str, endptr, base);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();
-    
-  } else {
-    concretizeGPRArgs(3, "model_strtoull");
-    model_strtoull();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+
+  ++s_offset;
+
+  char * str;
+  char ** endptr;
+  int base;
+
+  get_vals(count, s_offset, __func__, str, endptr, base);
+
+  union BITS {
+    unsigned long long asULL;
+    long long asLL;
+    unsigned long asUL;
+    long asLong;
+    uint64_t asUint64_t;
+  } b;
+  
+  b.asULL = strtoull(str, endptr, base);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();
     
 }
+
+
 void Executor::model_strtoll() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) &&
-       (isa<ConstantExpr>(arg3Expr))
-       ){
-
-    union BITS {
-      unsigned long long asULL;
-      long long asLL;
-      unsigned long asUL;
-      long asLong;
-      uint64_t asUint64_t;
-    } b;
-    const char * str = (char *) target_ctx_gregs[GREG_RDI].u64;
-    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
-    int base = (int) target_ctx_gregs[GREG_RDX].u64;
-
-    b.asLL = strtoll(str, endptr, base);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();
-
-  } else {
-    concretizeGPRArgs(3, "model_strtoll");
-    model_strtoll();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  
+  ++s_offset;
+
+  char * str;
+  char ** endptr;
+  int base;
+
+  get_vals(count, s_offset, __func__, str, endptr, base);
+
+  union BITS {
+    unsigned long long asULL;
+    long long asLL;
+    unsigned long asUL;
+    long asLong;
+    uint64_t asUint64_t;
+  } b;
+  
+  b.asLL = strtoll(str, endptr, base);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();
 }
+
+
 void Executor::model_strtoul() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) &&
-       (isa<ConstantExpr>(arg3Expr))
-       ){
-
-    union BITS {
-      unsigned long long asULL;
-      long long asLL;
-      unsigned long asUL;
-      long asLong;
-      uint64_t asUint64_t;
-    } b;
-    const char * str = (char *) target_ctx_gregs[GREG_RDI].u64;
-    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
-    int base = (int) target_ctx_gregs[GREG_RDX].u64;
-
-    b.asUL = strtoul(str, endptr, base);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();
-
-  } else {
-    concretizeGPRArgs(3, "model_strtoul");
-    model_strtoul();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr                                     
+  ++s_offset;
+
+  char * str;
+  char ** endptr;
+  int base;
+
+  get_vals(count, s_offset, __func__, str, endptr, base);
+
+  union BITS {
+    unsigned long long asULL;
+    long long asLL;
+    unsigned long asUL;
+    long asLong;
+    uint64_t asUint64_t;
+  } b;
+
+  b.asUL = strtoul(str, endptr, base);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();
 }
+
+
 void Executor::model_strtol() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) &&
-       (isa<ConstantExpr>(arg3Expr))
-       ){
-
-    union BITS {
-      unsigned long long asULL;
-      long long asLL;
-      unsigned long asUL;
-      long asLong;
-      uint64_t asUint64_t;
-    } b;
-    const char * str = (char *) target_ctx_gregs[GREG_RDI].u64;
-    char ** endptr = (char **) target_ctx_gregs[GREG_RSI].u64;
-    int base = (int) target_ctx_gregs[GREG_RDX].u64;
-
-    b.asLong = strtol(str, endptr, base);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();
-
-  } else {
-    concretizeGPRArgs(3, "model_strtol");
-    model_strtol();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+  
+  ++s_offset;
+
+  char *str;
+  char **endptr;
+  int base;
+
+  get_vals(count, s_offset, __func__, str, endptr, base);
+
+  union BITS {
+    unsigned long long asULL;
+    long long asLL;
+    unsigned long asUL;
+    long asLong;
+    uint64_t asUint64_t;
+  } b;
+
+  b.asLong = strtol(str, endptr, base);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();
 }
+
+
 void Executor::model_strtoimax() {
   printf("TASE INFO: Modeling strtoimax as strtoll \n");
   model_strtoll();
@@ -2655,57 +2616,62 @@ void Executor::model_strtoumax() {
 //Models for wcstoX
 
 void Executor::model_wcstof() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) 
-       ){
-    union BITS {
-      float asFloat;
-      uint64_t asUint64_t;
-    } b;
-    
-    const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64; 
-    wchar_t **  endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
-    b.asFloat = wcstof(nptr, endptr);
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    
-    do_ret();
-    
-  } else {
-    concretizeGPRArgs(2, "model_wcstof");
-    model_wcstof();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr                                     
+
+  ++s_offset;
+
+  dwchar_t *nptr;
+  wchar_t **endptr;
+
+  get_vals(count, s_offset, __func__, nptr, endptr);
+  
+  union BITS {
+    float asFloat;
+    uint64_t asUint64_t;
+  } b;
+  
+  const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64; 
+  wchar_t **  endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
+
+  b.asFloat = wcstof(nptr, endptr);
+    
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);    
+  do_ret();
 }
+
+
 void Executor::model_wcstod() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr))
-       ){
-    union BITS {
-      double asDouble;
-      uint64_t asUint64_t;
-    } b;
-
-    const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64;
-    wchar_t **  endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
-    b.asDouble = wcstod(nptr, endptr);
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();
-
-  } else {
-    concretizeGPRArgs(2, "model_wcstod");
-    model_wcstod();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+
+  ++s_offset;
+
+  dwchar_t *nptr;
+  wchar_t **endptr;
+  
+  get_vals(count, s_offset, __func__, nptr, endptr);
+  
+  union BITS {
+    double asDouble;
+    uint64_t asUint64_t;
+  } b;
+
+  b.asDouble = wcstod(nptr, endptr);
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();
 }
+
+
 void Executor::model_wcstold() {
   printf("TASE INFO: Calling model_wctold and returning 64 bits for long double \n");
   model_wcstod();   
@@ -2714,130 +2680,118 @@ void Executor::model_wcstold() {
 //wcstol models
 
 void Executor::model_wcstoull() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) &&
-       (isa<ConstantExpr>(arg3Expr))
-       ){
-
-    union BITS {
-      unsigned long long asULL;
-      uint64_t asUint64_t;
-    } b;
-
-    const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64;
-    wchar_t ** endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
-    int base = (int) target_ctx_gregs[GREG_RDX].u64;
-
-    b.asULL = wcstoull(nptr, endptr, base);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();
-
-  } else {
-    concretizeGPRArgs(3, "model_wcstoull");
-    model_wcstoull();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr                                     
+
+  ++s_offset;
+
+  wchar_t *nptr;
+  wchar_t **endptr;
+  int base;
+
+  get_vals(count, s_offset, __func__, nptr, endptr, base);
+
+  union BITS {
+    unsigned long long asULL;
+    uint64_t asUint64_t;
+  } b;
+
+  b.asULL = wcstoull(nptr, endptr, base);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();
 }
+
+
 void Executor::model_wcstoll() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) &&
-       (isa<ConstantExpr>(arg3Expr))
-       ){
-
-    union BITS {
-      long long asLL;
-      uint64_t asUint64_t;
-    } b;
-
-    const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64;
-    wchar_t ** endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
-    int base = (int) target_ctx_gregs[GREG_RDX].u64;
-
-    b.asLL = wcstoll(nptr, endptr, base);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();
-
-  } else {
-    concretizeGPRArgs(3, "model_wcstoll");
-    model_wcstoll();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr                                     
+  ++s_offset;
+
+  wchar_t *nptr;
+  wchar_t **endptr;
+  int base;
+
+  get_vals(count, s_offset, __func__, nptr, endptr, base);
+
+  union BITS {
+    long long asLL;
+    uint64_t asUint64_t;
+  } b;
+
+  b.asLL = wcstoll(nptr, endptr, base);
+
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();
+
 }
+
+
 void Executor::model_wcstoul() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) &&
-       (isa<ConstantExpr>(arg3Expr))
-       ){
-
-    union BITS {
-      unsigned long asUL;
-      uint64_t asUint64_t;
-    } b;
-
-    const wchar_t * nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64;
-    wchar_t ** endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
-    int base = (int) target_ctx_gregs[GREG_RDX].u64;
-
-    b.asUL = wcstoul(nptr, endptr, base);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();
-
-  } else {
-    concretizeGPRArgs(3, "model_wcstoul");
-    model_wcstoul();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr
+                                                                                                                                              
+  ++s_offset;
 
+  wchar_t *nptr;
+  wchar_t **endptr;
+  int base;
+
+  get_vals(count, s_offset, __func__, nptr, endptr, base);
+
+  union BITS {
+    unsigned long asUL;
+    uint64_t asUint64_t;
+  } b;
+
+  b.asUL = wcstoul(nptr, endptr, base);
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+
+  do_ret();
 }
+
+
 void Executor::model_wcstol() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-  ref<Expr> arg2Expr = target_ctx_gregs_OS->read(GREG_RSI * 8, Expr::Int64);
-  ref<Expr> arg3Expr = target_ctx_gregs_OS->read(GREG_RDX * 8, Expr::Int64);
-  if  (
-       (isa<ConstantExpr>(arg1Expr)) &&
-       (isa<ConstantExpr>(arg2Expr)) &&
-       (isa<ConstantExpr>(arg3Expr))
-       ){
-
-    union BITS {
-      long asLong;
-      uint64_t asUint64_t;
-    } b;
-
-    const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64;
-    wchar_t ** endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
-    int base = (int) target_ctx_gregs[GREG_RDX].u64;
-
-    b.asLong = wcstol(nptr, endptr, base);
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-
-    do_ret();
-
-  } else {
-    concretizeGPRArgs(3, "model_wcstol");
-    model_wcstol();
+  if(!noLog){
+    _LOG
   }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr  
+  ++s_offset;
+
+  wchar_t *nptr;
+  wchar_t **endptr;
+  int base;
+
+  get_vals(count, s_offset, __func__, nptr, endptr, base);
+
+  union BITS {
+    long asLong;
+    uint64_t asUint64_t;
+  } b;
+
+  b.asLong = wcstol(nptr, endptr, base);
+  
+  ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
 }
+
+
 void Executor::model_wcstoimax() {
   printf("TASE INFO: Modeling wcstoimax as wcstoll \n");
   model_wcstoll();
@@ -2879,27 +2833,22 @@ void Executor::model_mbsrtowcs(){
 // }
 
 void Executor::model_puts() {
-  ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64);
-
-  if  (
-       (isa<ConstantExpr>(arg1Expr))       
-       ){
-
-    printf("Passing puts call through: \n");
-    puts((char *) target_ctx_gregs[GREG_RDI].u64);
-
-    //Always model the call as succeeding.  In the future, for bugfinding it
-    //would be interesting to make the return value symbolic to model failure.
-
-    ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) 0, Expr::Int64);
-    target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
-    do_ret();
-    
-  } else {
-    concretizeGPRArgs(1, "model_puts");
-    model_puts();
+  if(!noLog){
+    _LOG
   }
+
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr                                     
+  ++s_offset;
+
+  char* str;
+  get_val(count, s_offset, __func__, str);
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) puts(str), Expr::Int64);
+  tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RAX], resExpr);
+  do_ret();
 }
+
+
 
 void Executor::model_setlocale(){
   if(!noLog){
@@ -3027,7 +2976,7 @@ void Executor::model___pthread_self() {
 //Implementation for a_ctz_64 and a_clz_64 comes directly from internal/atomic.h in musl.
 //We're just trapping on these for now because the emitted code for them
 //use bsr and bsl instructions, which aren't implemented in TASE yet.
-
+/*
 void Executor::model_a_ctz_64() {
   static const char debruijn64[64] = {
 				      0, 1, 2, 53, 3, 7, 54, 27, 4, 38, 41, 8, 34, 55, 48, 28,
@@ -3084,3 +3033,4 @@ void Executor::model_a_clz_64() {
     model_a_clz_64();
   }
 }
+*/
