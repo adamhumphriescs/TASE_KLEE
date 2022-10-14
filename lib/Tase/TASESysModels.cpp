@@ -1271,7 +1271,7 @@ void Executor::model_gettimeofday() {
   struct timeval *tv;
   struct timezone *tz;
   
-  get_vals(count, s_offset, __func__, str, tv, tz);
+  get_vals(count, s_offset, __func__, tv, tz);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) gettimeofday(tv, tz), Expr::Int64);
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
@@ -1937,7 +1937,7 @@ void Executor::model_fseek() {
   long offset;
   int whence;
   
-  get_vals(count, s_offset, __func__, str, stream, offset, whence);
+  get_vals(count, s_offset, __func__, stream, offset, whence);
 
   //Return result
   ref<ConstantExpr> resExpr = ConstantExpr::create((int64_t) fseek(stream, offset, whence), Expr::Int64);
@@ -2422,7 +2422,6 @@ void Executor::model_strtof() {
 
   char * str;
   char ** endptr;
-  int base;
 
   get_vals(count, s_offset, __func__, str, endptr);
 
@@ -2432,7 +2431,7 @@ void Executor::model_strtof() {
     uint64_t asUint64_t;
   } b;
 
-  b.asFloat = strtof(nptr, endptr);
+  b.asFloat = strtof(str, endptr);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
@@ -2461,7 +2460,7 @@ void Executor::model_strtod() {
     uint64_t asUint64_t;
   } b;
 
-  b.asDouble = strtod(nptr, endptr);
+  b.asDouble = strtod(str, endptr);
 
   ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
   target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
@@ -2624,7 +2623,7 @@ void Executor::model_wcstof() {
 
   ++s_offset;
 
-  dwchar_t *nptr;
+  wchar_t *nptr;
   wchar_t **endptr;
 
   get_vals(count, s_offset, __func__, nptr, endptr);
@@ -2634,9 +2633,6 @@ void Executor::model_wcstof() {
     uint64_t asUint64_t;
   } b;
   
-  const wchar_t *  nptr = (wchar_t *) target_ctx_gregs[GREG_RDI].u64; 
-  wchar_t **  endptr = (wchar_t **) target_ctx_gregs[GREG_RSI].u64;
-
   b.asFloat = wcstof(nptr, endptr);
     
   ref<ConstantExpr> resExpr = ConstantExpr::create(b.asUint64_t, Expr::Int64);
@@ -2654,7 +2650,7 @@ void Executor::model_wcstod() {
 
   ++s_offset;
 
-  dwchar_t *nptr;
+  wchar_t *nptr;
   wchar_t **endptr;
   
   get_vals(count, s_offset, __func__, nptr, endptr);
