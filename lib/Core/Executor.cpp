@@ -3906,7 +3906,7 @@ bool canBounceback (uint32_t abort_status, uint64_t rip) {
     BB_OTHER++;
   }
 
-  if (execMode == MIXED && enableBounceback && retry && tran_max > 0) {
+  if (execMode == MIXED && !singleStepping  && enableBounceback && retry && tran_max > 0) {
     if (modelDebug){
       printf("Attempting to bounceback to native execution at RIP 0x%lx \n", rip);
     }
