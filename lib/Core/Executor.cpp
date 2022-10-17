@@ -4820,11 +4820,10 @@ void Executor::klee_interp_internal () {
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (D)..." << std::endl;
 	}
-      } else if ( scan< 0 >(cc[0], 0x0000000000008d00, 0x000000000000ff00) >= 0 &&
-		  scanleft< 2, 7 >(cc[0], 0x000000000000008d, 0x00000000000000ff) < 0 && // one leaq, no more
+      } else if ( scan< 0 >(cc[0], 0x0000000000308d44, 0x00000000000038fff4) >= 0 && // leaq -> r14
 		  ( scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 || scan< 0 >(cc[1], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 ) ) { // leaq 3 to 8 bytes
-	auto a = scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff);
-	auto b = a > 0 ? scan(a-1, cc[0], 0x000000000000009f, 0x00000000000000ff) : -1;
+	auto a = scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff); // movl $0x1,%r15d
+	auto b = a > 0 ? scan(a-1, cc[0], 0x000000000000009f, 0x00000000000000ff) : -1; // lahf
 	a = a >= 0 ? a : 8;
 	target_ctx_gregs[GREG_RIP].u64 += a + ( b >= 0 ? 1 : 0 )  + 36; // lahf? leaq/movl/shrx/vpcmpeqw/ptest/leaq/jne sahf?
 	if( modelDebug ) {
@@ -4836,9 +4835,7 @@ void Executor::klee_interp_internal () {
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (F)..." << std::endl;
 	}
-
-      } else if ( scan< 0 >(cc[0], 0x0000000000008d00, 0x000000000000ff00) >= 0 &&
-		  ( scan< 0 >(cc[0], 0x000000008d000000, 0x00000000ff000000) < 0 || scan< 0 >(cc[0], 0xeed1490000000000, 0xffffff0000000000) == 0 ) &&  // one leaq, no more
+      } else if ( scan< 0 >(cc[0], 0x0000000000308d44, 0x00000000000038fff4) >= 0 && // leaq -> r14
 		  ( scanleft< 3, 7 >(cc[0], 0x0000000000eed149, 0x0000000000ffffff) >= 0 ||
 		    scan< 0 >(cc[1], 0x0000000000eed149, 0x0000000000ffffff) >= 0 ) ) { // leaq/shrq is 3 to 8 bytes + 3 bytes
 	  auto a = scanleft< 3, 7 >(cc[0], 0x0000000000eed149, 0x0000000000ffffff); // -1, or 3 -> 7
