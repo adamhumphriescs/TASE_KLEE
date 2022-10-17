@@ -4838,8 +4838,7 @@ void Executor::klee_interp_internal () {
 	}
 
       } else if ( scan< 0 >(cc[0], 0x0000000000008d00, 0x000000000000ff00) >= 0 &&
-		  scanleft< 2, 7 >(cc[0], 0x000000000000008d, 0x00000000000000ff) < 0 &&  // one leaq, no more
-		  
+		  ( scan< 0 >(cc[0], 0x000000008d000000, 0x00000000ff000000) < 0 || scan< 0 >(cc[0], 0xeed1490000000000, 0xffffff0000000000) == 0 ) &&  // one leaq, no more
 		  ( scanleft< 3, 7 >(cc[0], 0x0000000000eed149, 0x0000000000ffffff) >= 0 ||
 		    scan< 0 >(cc[1], 0x0000000000eed149, 0x0000000000ffffff) >= 0 ) ) { // leaq/shrq is 3 to 8 bytes + 3 bytes
 	  auto a = scanleft< 3, 7 >(cc[0], 0x0000000000eed149, 0x0000000000ffffff); // -1, or 3 -> 7
