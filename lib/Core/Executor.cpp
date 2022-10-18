@@ -4866,7 +4866,7 @@ void Executor::klee_interp_internal () {
 	mov = mov >= 0 ? mov : 8;
 	lah = lah >= 0 ? lah : 8;
 
-	auto update = shr < mov ? ( shr < lah ? 32 : 71 ) : ( mov < lah ? 51 : 71 );
+	auto update = shr < mov ? ( shr < lah ? 33 : 71 ) : ( mov < lah ? 51 : 71 );
 	target_ctx_gregs[GREG_RIP].u64 += update;
 
 	if ( modelDebug ) {
