@@ -4802,24 +4802,84 @@ void Executor::klee_interp_internal () {
       	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (A)..." << std::endl;
 	}
-      } else if ( scan< 0 >(cc[0], 0x0000000000bf499e, 0x0000000000ffffff) >= 0 && scan< 0 >(cc[1], 0x0000078b49000000, 0x0000ffffff000000) >= 0 ) {
+	/*      } else if ( scan< 0 >(cc[0], 0x0000000000bf499e, 0x0000000000ffffff) >= 0 && scan< 0 >(cc[1], 0x0000078b49000000, 0x0000ffffff000000) >= 0 ) {
 	target_ctx_gregs[GREG_RIP].u64 += 14; // sahf/movabsq/movq
 	hasMadeProgress = false;	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (B)..." << std::endl;
-	}
+	  }
       } else if ( scan< 0 >(cc[0], 0x000000000000bf49, 0x000000000000ffff) >= 0 && scan< 0 >(cc[1], 0x00009f0789490000, 0x0000ffffffff0000) >= 0 ) {
 	target_ctx_gregs[GREG_RIP].u64 += 14; // movabsq/movq/lahf
 	hasMadeProgress = false;	
 	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (C)..." << std::endl;
+	  }*/
+      } else if ( scan< 0 >(cc[0], 0x0000000000bf499e, 0x0000000000ffffff) >= 0 ) { 
+	// movabsq/movq/lahf/movl/shrxq/vpcmpeqw/ptest/leaq/jne/sahf/movabsq/movq
+
+
+	if( modelDebug ){                                                                                       
+          std::cout << "Skipping eager instrumentation (B)..." << std::endl;                                    
+	} 
+      } else if ( scan< 0 >(cc[0], 0x000000000000009f, 0x00000000000000ff) == 0 ) {
+	// lahf/movl/shrxq/vpcmpeqw/ptest/leaq/jne/sahf
+	
+        if( modelDebug ){                                                                                       
+          std::cout << "Skipping eager instrumentation (C)..." << std::endl;                                    
+	} 	
+      } else if ( scan< 0 >(cc[0], 0x0000000000308d44, 0x00000000000038fff4) == 0 ) {
+	// leaq -> r14
+	// get length: https://wiki.osdev.org/X86-64_Instruction_Encoding#64-bit_addressing
+	//        MOD
+	//  B.RM       0.000-0.011(0-3) 0.100  0.101  0.110-1.011(6-11) 1.100 1.101  1.110-1.111(14-15)
+	//         00        3           4      7         3             4     7        3
+	//         01        4           5      4         4             5     4        4
+	//         10        7           8      7         7             8     7        7
+
+	
+	auto brm = ((0x00000000000001 & cc[0]) << 3) | ((0x0000000000070000 & cc[0]) >> 16);
+	auto mod = (0x0000000000c00000 & cc[0]) >> 22;
+	auto size = 0;
+	
+        if ( brm == 4 || brm == 12 ) {
+	  size = mod < 1 ? 4 : mod < 2 ? 5 : 8;
+	} else if ( brm == 5 || brm == 13 ) {
+	  size = mod < 1 ? 7 : mod < 2 ? 4 : 7;
+	} else {
+	  size = mod < 1 ? 3 : mod < 2 ? 4 : 7;
 	}
-      } else if ( scan<0>(cc[0], 0x00c400000001bf41, 0x00ffffffffffffff) >= 0 && scan< 0 >(cc[1], 0x000000000000f783, 0x000000000000ffff) >= 0 ) {
+
+	uint64_t c = 0;
+
+	if ( size < 8 ) {
+	  c = (cc[0] >> 56) | (cc[1] << 8);
+	} else {
+	  c = cc[1];
+	}
+	
+	// check for potential next instrs, take earliest appearance
+	auto shr = scanleft< 0, 7 >(c, 0x000000000049d1ee, 0x0000000000ffffff); // shrq
+	auto mov = scanleft< 0, 7 >(c, 0x000000000000bf49, 0x000000000000ffff); // movabsq
+	auto lah = scanleft< 0, 7 >(c, 0x000000000000009f, 0x00000000000000ff); // lahf
+        shr = shr >= 0 ? shr : 8;
+	mov = mov >= 0 ? mov : 8;
+	lah = lah >= 0 ? lah : 8;
+
+	auto update = shr < mov ? ( shr < lah ? 32 : 71 ) : ( mov < lah ? : 51);
+	target_ctx_gregs[GREG_RIP].u64 += update;
+
+	if ( modelDebug ) {
+	  std::cout << "Skipping eager instrumentation (D[" << shr << "][" << mov << "][" << lah << "])..." << std::endl;
+	}
+	
+
+	
+	/*      } else if ( scan<0>(cc[0], 0x00c400000001bf41, 0x00ffffffffffffff) >= 0 && scan< 0 >(cc[1], 0x000000000000f783, 0x000000000000ffff) >= 0 ) {
 	target_ctx_gregs[GREG_RIP].u64 += 36; // movl/shrx/vpcmpeqw/ptest/leaq/jne
 	hasMadeProgress = false;
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (D)..." << std::endl;
-	}
+	  }
       } else if ( scan< 0 >(cc[0], 0x0000000000308d44, 0x00000000000038fff4) >= 0 && // leaq -> r14
 		  ( scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 || scan< 0 >(cc[1], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 ) ) { // leaq 3 to 8 bytes
 	auto a = scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff); // movl $0x1,%r15d
@@ -4854,7 +4914,7 @@ void Executor::klee_interp_internal () {
 	  hasMadeProgress = false;
 	  if ( modelDebug ) {
 	    std::cout << "skipping eager instrumentation (G [" << a << "][" << b << "])..." << std::endl;
-	  }
+	    }*/
 	} else {
 	  hasMadeProgress = false;
 	  std::cout << "eager instrumentation false positive" << std::endl; // hopefully we covered all the cases...
