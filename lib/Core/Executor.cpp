@@ -4859,7 +4859,7 @@ void Executor::klee_interp_internal () {
 	}
 	
 	// check for potential next instrs, take earliest appearance
-	auto shr = scanleft< 0, 7 >(c, 0x000000000049d1ee, 0x0000000000ffffff); // shrq
+	auto shr = scanleft< 0, 7 >(c, 0x0000000000eed149, 0x0000000000ffffff); // shrq
 	auto mov = scanleft< 0, 7 >(c, 0x000000000000bf49, 0x000000000000ffff); // movabsq
 	auto lah = scanleft< 0, 7 >(c, 0x000000000000009f, 0x00000000000000ff); // lahf
         shr = shr >= 0 ? shr : 8;
