@@ -4853,7 +4853,7 @@ void Executor::klee_interp_internal () {
 	uint64_t c = 0;
 
 	if ( size < 8 ) {
-	  c = (cc[0] >> ((size)*8)) | (cc[1] << ((8-size)*8));
+	  c = (cc[0] >> ((size)*8)) | (cc[1] >> ((8-size)*8) << ((8-size)*8));
 	} else {
 	  c = cc[1];
 	}
