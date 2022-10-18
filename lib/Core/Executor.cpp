@@ -4870,7 +4870,7 @@ void Executor::klee_interp_internal () {
 	target_ctx_gregs[GREG_RIP].u64 += update;
 
 	if ( modelDebug ) {
-	  std::cout << "Skipping eager instrumentation (D[" << shr << "][" << mov << "][" << lah << "])..." << std::endl;
+	  std::cout << "Skipping eager instrumentation (D[" << size << "][" << shr << "][" << mov << "][" << lah << "])... " << std::hex << c << std::endl;
 	}
 	
 
