@@ -4862,11 +4862,11 @@ void Executor::klee_interp_internal () {
 	auto shr = scanleft< 0, 7 >(c, 0x000000000049d1ee, 0x0000000000ffffff); // shrq
 	auto mov = scanleft< 0, 7 >(c, 0x000000000000bf49, 0x000000000000ffff); // movabsq
 	auto lah = scanleft< 0, 7 >(c, 0x000000000000009f, 0x00000000000000ff); // lahf
-        shr = shr >= 0 ? shr : 8;
-	mov = mov >= 0 ? mov : 8;
-	lah = lah >= 0 ? lah : 8;
+        shr = shr <= 0 ? shr : 8;
+	mov = mov <= 0 ? mov : 8;
+	lah = lah <= 0 ? lah : 8;
 
-	auto update = shr < mov ? ( shr < lah ? 32 : 71 ) : ( mov < lah ? 51 : 71 );
+	auto update = shr < mov ? ( shr < lah ? 33 : 71 ) : ( mov < lah ? 51 : 71 );
 	target_ctx_gregs[GREG_RIP].u64 += update;
 
 	if ( modelDebug ) {
