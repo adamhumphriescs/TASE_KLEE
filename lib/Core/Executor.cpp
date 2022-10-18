@@ -4915,11 +4915,11 @@ void Executor::klee_interp_internal () {
 	  hasMadeProgress = false;
 	  if ( modelDebug ) {
 	    std::cout << "skipping eager instrumentation (G [" << a << "][" << b << "])..." << std::endl;
-	    }*/
+	    }
 	} else {
 	  hasMadeProgress = false;
 	  std::cout << "eager instrumentation false positive" << std::endl; // hopefully we covered all the cases...
-	}
+	}*/
       } else {
         runCoreInterpreter(target_ctx_gregs);
 	if ( killFlags && kill_flags.find( target_ctx_gregs[GREG_RIP].u64 ) != kill_flags.end() ) {
