@@ -4816,13 +4816,14 @@ void Executor::klee_interp_internal () {
 	  }*/
       } else if ( scan< 0 >(cc[0], 0x0000000000bf499e, 0x0000000000ffffff) >= 0 ) { 
 	// movabsq/movq/lahf/movl/shrxq/vpcmpeqw/ptest/leaq/jne/sahf/movabsq/movq
-
-
+	target_ctx_gregs[GREG_RIP].u64 += 64;
+	
 	if( modelDebug ){                                                                                       
           std::cout << "Skipping eager instrumentation (B)..." << std::endl;                                    
 	} 
       } else if ( scan< 0 >(cc[0], 0x000000000000009f, 0x00000000000000ff) == 0 ) {
 	// lahf/movl/shrxq/vpcmpeqw/ptest/leaq/jne/sahf
+	target_ctx_gregs[GREG_RIP].u64 += 38;
 	
         if( modelDebug ){                                                                                       
           std::cout << "Skipping eager instrumentation (C)..." << std::endl;                                    
