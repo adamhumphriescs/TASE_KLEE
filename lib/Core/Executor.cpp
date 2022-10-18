@@ -4843,7 +4843,7 @@ void Executor::klee_interp_internal () {
 	auto size = 0;
 	
         if ( brm == 4 || brm == 12 ) {
-	  auto base = (0x00000007000000 & cc[0]) >> 6*8;
+	  auto base = (0x00000007000000 & cc[0]) >> 6*4;
 	  size = mod == 0 ? ( base == 5 ? 8 : 4 ) : ( mod == 2 ? 8 : 5 );
 	} else if ( brm == 5 || brm == 13 ) {
 	  size = mod < 1 ? 8 : mod < 2 ? 4 : 8;
