@@ -4833,17 +4833,18 @@ void Executor::klee_interp_internal () {
 	// get length: https://wiki.osdev.org/X86-64_Instruction_Encoding#64-bit_addressing
 	//        MOD
 	//  B.RM       0.000-0.011(0-3) 0.100  0.101  0.110-1.011(6-11) 1.100 1.101  1.110-1.111(14-15)
-	//         00        3           4      7         3             4     7        3
-	//         01        4           5      4         4             5     4        4
-	//         10        7           8      7         7             8     7        7
-
+	//         00        3           SIB      7         3             SIB     7        3
+	//         01        4           SIB      4         4             SIB     4        4
+	//         10        7           SIB      7         7             SIB     7        7
+	// SIB -> check base. If mod == 00 and base is 0.101 or 1.101 then size = 8, o.w. size = 4. If mod == 10, size = 8. If mod == 01, size = 5.
 	
 	auto brm = ((0x00000000000001 & cc[0]) << 3) | ((0x0000000000070000 & cc[0]) >> 16);
 	auto mod = (0x0000000000c00000 & cc[0]) >> 22;
 	auto size = 0;
 	
         if ( brm == 4 || brm == 12 ) {
-	  size = mod < 1 ? 4 : mod < 2 ? 5 : 8;
+	  auto base = (0x00000007000000 & cc[0]) >> 6*8;
+	  size = mod == 0 ? ( base == 5 ? 8 : 4 ) : ( mod == 2 ? 8 : 4 );
 	} else if ( brm == 5 || brm == 13 ) {
 	  size = mod < 1 ? 7 : mod < 2 ? 4 : 7;
 	} else {
