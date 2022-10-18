@@ -4866,8 +4866,8 @@ void Executor::klee_interp_internal () {
 	mov = mov >= 0 ? mov : 8;
 	lah = lah >= 0 ? lah : 8;
 
-	auto update = shr < mov ? ( shr < lah ? 33 : 71 ) : ( mov < lah ? 51 : 71 );
-	target_ctx_gregs[GREG_RIP].u64 += update;
+	auto update = shr < mov ? ( shr < lah ? 28 : 37 ) : ( mov < lah ? 61 : 37 );
+	target_ctx_gregs[GREG_RIP].u64 += size + update;
 
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (D[" << size << "][" << shr << "][" << mov << "][" << lah << "])... " << std::hex << c << std::endl;
