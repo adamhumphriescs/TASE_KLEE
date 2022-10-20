@@ -1398,9 +1398,9 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    }
    printf("Found %d basic blocks with flags live-in \n", numLiveBlocks);
 
-   for( uint32_t i = 0; i < tase_num_kill_flags_block_records; ++i) {
+   /*   for( uint32_t i = 0; i < tase_num_kill_flags_block_records; ++i) {
      kill_flags.insert(tase_kill_flags_block_records[i]);
-   }
+     }*/
  }
 
  //Make seperate directories for each of the workers in the time series.

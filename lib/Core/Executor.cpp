@@ -4802,18 +4802,6 @@ void Executor::klee_interp_internal () {
       	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (A)..." << std::endl;
 	}
-	/*      } else if ( scan< 0 >(cc[0], 0x0000000000bf499e, 0x0000000000ffffff) >= 0 && scan< 0 >(cc[1], 0x0000078b49000000, 0x0000ffffff000000) >= 0 ) {
-	target_ctx_gregs[GREG_RIP].u64 += 14; // sahf/movabsq/movq
-	hasMadeProgress = false;	
-	if( modelDebug ){
-	  std::cout << "Skipping eager instrumentation (B)..." << std::endl;
-	  }
-      } else if ( scan< 0 >(cc[0], 0x000000000000bf49, 0x000000000000ffff) >= 0 && scan< 0 >(cc[1], 0x00009f0789490000, 0x0000ffffffff0000) >= 0 ) {
-	target_ctx_gregs[GREG_RIP].u64 += 14; // movabsq/movq/lahf
-	hasMadeProgress = false;	
-	if( modelDebug ){
-	  std::cout << "Skipping eager instrumentation (C)..." << std::endl;
-	  }*/
       } else if ( scan< 0 >(cc[0], 0x0000000000bf499e, 0x0000000000ffffff) >= 0 ) { 
 	// movabsq/movq/lahf/movl/shrxq/vpcmpeqw/ptest/leaq/jne/sahf/movabsq/movq
 	target_ctx_gregs[GREG_RIP].u64 += 64;
@@ -4873,64 +4861,16 @@ void Executor::klee_interp_internal () {
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (D[" << size << "][" << shr << "][" << mov << "][" << lah << "])... " << std::hex << c << std::endl;
 	}
-	
-
-	
-	/*      } else if ( scan<0>(cc[0], 0x00c400000001bf41, 0x00ffffffffffffff) >= 0 && scan< 0 >(cc[1], 0x000000000000f783, 0x000000000000ffff) >= 0 ) {
-	target_ctx_gregs[GREG_RIP].u64 += 36; // movl/shrx/vpcmpeqw/ptest/leaq/jne
-	hasMadeProgress = false;
-	if ( modelDebug ) {
-	  std::cout << "Skipping eager instrumentation (D)..." << std::endl;
-	  }
-      } else if ( scan< 0 >(cc[0], 0x0000000000308d44, 0x00000000000038fff4) >= 0 && // leaq -> r14
-		  ( scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 || scan< 0 >(cc[1], 0x000000000001bf41, 0x0000ffffffffffff) >= 0 ) ) { // leaq 3 to 8 bytes
-	auto a = scanleft< 3, 7 >(cc[0], 0x000000000001bf41, 0x0000ffffffffffff); // movl $0x1,%r15d
-	auto b = a > 0 ? scan(a-1, cc[0], 0x000000000000009f, 0x00000000000000ff) : -1; // lahf
-	a = a >= 0 ? a : 8;
-	target_ctx_gregs[GREG_RIP].u64 += a + ( b >= 0 ? 1 : 0 )  + 36; // lahf? leaq/movl/shrx/vpcmpeqw/ptest/leaq/jne sahf?
-	if( modelDebug ) {
-	  std::cout << "Skipping eager instrumentation (E[" << a << "," << b << "])..." << std::endl;
-	}
-      } else if ( cc[0] == 0xc4eed14924348b4c ) {
-	target_ctx_gregs[GREG_RIP].u64 += 32; // movq/shrq/vpcmpeqw/ptest/leaq/jne
-	hasMadeProgress = false;
-	if ( modelDebug ) {
-	  std::cout << "Skipping eager instrumentation (F)..." << std::endl;
-	}
-      } else if ( scan< 0 >(cc[0], 0x0000000000308d44, 0x00000000000038fff4) >= 0 && // leaq -> r14
-		  ( scanleft< 3, 7 >(cc[0], 0x0000000000eed149, 0x0000000000ffffff) >= 0 ||
-		    scan< 0 >(cc[1], 0x0000000000eed149, 0x0000000000ffffff) >= 0 ) ) { // leaq/shrq is 3 to 8 bytes + 3 bytes
-	  auto a = scanleft< 3, 7 >(cc[0], 0x0000000000eed149, 0x0000000000ffffff); // -1, or 3 -> 7
-	  auto b = scanright< 0, 3 >(cc[1], 0x0000000000eed149, 0x0000000000ffffff); // -1, or 0 -> 2
-
-	  // a >= 0 -> match, a < 6 -> full match, a > 6 -> partial match
-
-	if ( a >= 0 && a < 6 ) {
-	  target_ctx_gregs[GREG_RIP].u64 += 3 + a + 25; // 6, 7, or 8 bytes for leaq/shrq + vpcmpeqw/ptest/leaq/jne
-	  hasMadeProgress = false;	  
-	  if( modelDebug ) {
-	    std::cout << "skipping eager instrumentation (G [" << a << "][" << b << "])..." << std::endl;
-	  }
-	} else if ( b >= 0 ) {
-	  target_ctx_gregs[GREG_RIP].u64 += 11 - b + 25; // 11, 10, or 9 bytes for leaq/shrq + vpcmpeqw/ptest/leaq/jne
-	  hasMadeProgress = false;
-	  if ( modelDebug ) {
-	    std::cout << "skipping eager instrumentation (G [" << a << "][" << b << "])..." << std::endl;
-	    }
-	} else {
-	  hasMadeProgress = false;
-	  std::cout << "eager instrumentation false positive" << std::endl; // hopefully we covered all the cases...
-	}*/
       } else {
         runCoreInterpreter(target_ctx_gregs);
-	if ( killFlags && kill_flags.find( target_ctx_gregs[GREG_RIP].u64 ) != kill_flags.end() ) {
+	/*	if ( killFlags && kill_flags.find( target_ctx_gregs[GREG_RIP].u64 ) != kill_flags.end() ) {
 	  if ( taseDebug ) {
 	    printf("Killing Flags...\n");
 	  }
 	  
 	  ref<ConstantExpr> zeroExpr = ConstantExpr::create(0, Expr::Int64);
 	  tase_helper_write((uint64_t) &(target_ctx_gregs[GREG_EFL].u64), zeroExpr);
-	}
+	  }*/
 	hasMadeProgress = execMode == INTERP_ONLY ? false : true;
       }
     }
