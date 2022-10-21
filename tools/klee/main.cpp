@@ -95,7 +95,7 @@ extern "C" void klee_interp();
 
 std::unordered_set<uint64_t> cartridge_entry_points;
 std::unordered_set<uint64_t> cartridges_with_flags_live;
-std::unordered_set<uint64_t> kill_flags;
+//std::unordered_set<uint64_t> kill_flags;
 
 #ifdef TASE_OPENSSL
 extern "C" void s_client_main(int argc, char ** argv);
