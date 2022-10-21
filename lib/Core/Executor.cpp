@@ -4782,7 +4782,7 @@ void Executor::klee_interp_internal () {
     } else {
       dont_model = false;
       hasMadeProgress = true;
-      tryKillFlags(target_ctx_gregs);
+      //      tryKillFlags(target_ctx_gregs);
       
       if( taseDebug ) {
 	std::cout << "Checking for skippable instrs" << std::endl;
