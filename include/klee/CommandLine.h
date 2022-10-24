@@ -28,11 +28,10 @@ namespace klee {
   extern llvm::cl::opt<bool> killFlags;
   extern llvm::cl::opt<bool> taseManager;
   extern llvm::cl::opt<bool> tasePreProcess;
-  extern llvm::cl::opt<bool> taseDebug;
-  extern llvm::cl::opt<bool> modelDebug;
+  extern llvm::cl::opt<bool> taseDebugArg;
+  extern llvm::cl::opt<bool> modelDebugArg;
   extern llvm::cl::opt<bool> taseFloatDebug;
-  extern bool noLog;
-  extern llvm::cl::opt<string> log;
+  extern llvm::cl::opt<std::string> logFileArg;
   extern llvm::cl::opt<bool> dontFork;
   extern llvm::cl::opt<bool> workerSelfTerminate;
   extern llvm::cl::opt<bool> UseLegacyIndependentSolver;

@@ -104,6 +104,7 @@ extern std::stringstream worker_ID_stream;
 uint64_t native_ret_off = 0;
 
 extern bool taseDebug;
+extern bool modelDebug;
 extern bool bufferGuard;
 extern bool skipFree;
 extern bool taseManager;

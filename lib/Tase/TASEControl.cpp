@@ -20,6 +20,10 @@
 using namespace llvm;
 using namespace klee;
 
+
+extern bool taseDebug;
+extern bool modelDebug;
+extern bool noLog;
 extern FILE * prev_stdout_log;
 extern std::stringstream worker_ID_stream;
 extern std::string prev_worker_ID;
@@ -33,8 +37,6 @@ extern double run_start_time;
 extern double run_interp_time;
 extern double run_fork_time;
 extern double interp_enter_time;
-
-extern bool taseDebug;
 
 double last_message_verification_time = 0;
 

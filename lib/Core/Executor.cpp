@@ -124,6 +124,9 @@ extern "C"  void ( *signal(int signum, void (*handler)(int)) ) (int){
   }
 
 //Symbols we need to map in for TASE
+extern bool taseDebug;
+extern bool modelDebug;
+extern bool noLog;
 extern char edata;
 extern char __GNU_EH_FRAME_HDR,  _IO_stdin_used; //used for mapping .rodata section
 extern int __ctype_tolower;
@@ -136,7 +139,7 @@ extern uint16_t poison_val;
 extern target_ctx_t target_ctx;
 extern tase_greg_t * target_ctx_gregs;
 //extern xmmreg_t * target_ctx_xmms;
-extern bool taseDebug;
+
 extern int retryMax;
 extern Module * interpModule;
 extern klee::Interpreter * GlobalInterpreter;

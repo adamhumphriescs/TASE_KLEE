@@ -85,7 +85,6 @@ extern double last_message_verification_time;
 extern target_ctx_t target_ctx;
 tase_greg_t * target_ctx_gregs = target_ctx.gregs;
 
-bool noLog;
 uint64_t targetMemAddr;
 int glob_argc;
 char ** glob_argv;
@@ -127,9 +126,12 @@ extern std::map<uint64_t, KFunction *> IR_KF_Map;
 
 int QR_MAX_WORKERS = 8;
 int masterPID;
-bool enableMultipass = false;
+bool enableMultipass = false;;
 bool taseDebug;
+bool modelDebug;
 bool singleStepping;
+bool noLog;
+std::string logFile;
 bool dropS2C;
 bool enableTimeSeries;
 bool bufferGuard;
@@ -203,7 +205,7 @@ namespace klee {
   singleSteppingArg("singleStepping", cl::desc("bitcode is single-instruction functions"), cl::init(false));
   
   cl::opt<bool>
-  modelDebug("modelDebug", cl::desc("Logging for models in TASE"), cl::init(false));
+  modelDebugArg("modelDebug", cl::desc("Logging for models in TASE"), cl::init(false));
 
   cl::opt<bool>
   taseFloatDebug("taseFloatDebug", cl::desc("Log results of soft float emulation routines"), cl::init(true));
@@ -211,8 +213,8 @@ namespace klee {
   cl::opt<bool>
   dontFork("dontFork", cl::desc("Disable forking in TASE for debugging"), cl::init(false));
 
-  cl::opt<string>
-  noLog("log", cl::desc("Filename or \"false\" for no logging in TASE"), cl::init("Monitor"));
+  cl::opt<std::string>
+  logFileArg("log", cl::desc("Filename or \"false\" for no logging in TASE"), cl::init("Monitor"));
   
   cl::opt<bool>
   workerSelfTerminate("workerSelfTerminate", cl::desc("Workers will exit if they see they're in an earlier round"), cl::init(true));
@@ -1494,8 +1496,15 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    }
 
    //Ugly!
+   logFile = logFileArg;
+   {
+     std::string loglower;
+     std::transform(logFile.begin(), logFile.end(), std::back_inserter(loglower), [](unsigned char x){return tolower(x);});
+     noLog = loglower == "false";
+   }
    singleStepping = singleSteppingArg;
    taseDebug = taseDebugArg;
+   modelDebug = modelDebugArg;
    bufferGuard = bufferGuardArg;
    dropS2C = dropS2CArg;
    enableTimeSeries = enableTimeSeriesArg;
@@ -1521,7 +1530,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      InputFile = path + "/bitcode/" + project + ".interp.bc";
    }
 	   
-   if ( log == "false" ) {
+   if ( logFile == "false" ) {
      noLog = true;
    } else {
      noLog = false;
@@ -1565,7 +1574,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    
    if (!noLog) {
      uint64_t orig_stdout = (uint64_t) stdout;
-     worker_ID_stream << log;
+     worker_ID_stream << logFile;
      std::string IDString;
      IDString = worker_ID_stream.str();
      FILE * tmpFile = freopen(IDString.c_str(),"w", stdout); // changes part of the FILE but in-place?wf
