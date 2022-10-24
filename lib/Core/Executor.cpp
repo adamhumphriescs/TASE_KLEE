@@ -167,7 +167,7 @@ extern "C" void make_byte_symbolic(void * addr);
 //TASE stats and logging
 
 uint64_t interpCtr =0;
-uint64_t instCtr=0;
+uint64_t instCtr = 0;
 int forkSolverCalls = 0;
 std::string prev_unique_log_ID = "NONE";
 std::string curr_unique_log_ID = "ROOT";

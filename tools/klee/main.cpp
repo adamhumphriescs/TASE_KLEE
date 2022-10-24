@@ -85,6 +85,7 @@ extern double last_message_verification_time;
 extern target_ctx_t target_ctx;
 tase_greg_t * target_ctx_gregs = target_ctx.gregs;
 
+bool noLog;
 uint64_t targetMemAddr;
 int glob_argc;
 char ** glob_argv;
@@ -210,8 +211,8 @@ namespace klee {
   cl::opt<bool>
   dontFork("dontFork", cl::desc("Disable forking in TASE for debugging"), cl::init(false));
 
-  cl::opt<bool>
-  noLog("noLog", cl::desc("No logging at all in TASE"), cl::init(false));
+  cl::opt<string>
+  noLog("log", cl::desc("Filename or \"false\" for no logging in TASE"), cl::init("Monitor"));
   
   cl::opt<bool>
   workerSelfTerminate("workerSelfTerminate", cl::desc("Workers will exit if they see they're in an earlier round"), cl::init(true));
@@ -1520,8 +1521,11 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      InputFile = path + "/bitcode/" + project + ".interp.bc";
    }
 	   
-   
-   
+   if ( log == "false" ) {
+     noLog = true;
+   } else {
+     noLog = false;
+   }
      
    QR_MAX_WORKERS = QRMaxWorkers;
    tran_max = (uint64_t) tranMaxArg;
@@ -1561,7 +1565,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    
    if (!noLog) {
      uint64_t orig_stdout = (uint64_t) stdout;
-     worker_ID_stream << "Monitor";
+     worker_ID_stream << log;
      std::string IDString;
      IDString = worker_ID_stream.str();
      FILE * tmpFile = freopen(IDString.c_str(),"w", stdout); // changes part of the FILE but in-place?wf
@@ -1684,10 +1688,6 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    loadCartridgeInfo();
    loadCartridgeDests();
 
-   
-	  
-
-	  
    signal(SIGCHLD, SIG_IGN);
    //--------
 #ifdef TASE_OPENSSL
