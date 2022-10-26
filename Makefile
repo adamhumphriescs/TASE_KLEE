@@ -12,7 +12,7 @@ $(BUILD_DIR)/build/klee/bin/klee:
 	mkdir -p $(BUILD_DIR)/build/klee/lib/
 	cp $(RUN_DIR)/lib/$(LIBTASE) $(BUILD_DIR)/build/klee/lib/libtase.a
 	cd $(BUILD_DIR)/build/klee/ && $(KLEE_ENV) cmake $(KLEE_OPTS) $(BUILD_DIR)/klee/
-	cp link.txt $(BUILD_DIR)/build/klee/tools/klee/CMakeFiles/klee.dir/link.txt
+	sed 's|/TASE|$(RUN_DIR)|g' link.txt > $(BUILD_DIR)/build/klee/tools/klee/CMakeFiles/klee.dir/link.txt
 	$(MAKE) -C $(BUILD_DIR)/build/klee/
 
 
