@@ -5329,7 +5329,7 @@ void Executor::initializeInterpretationStructures (Function *f) {
   loadFnModelMap();
   
   FILE * stats = fopen("/proc/self/statm", "r");
-  if (stats <= 0 ) {
+  if (stats != NULL ) {
     printf("Couldn't open statm \n");
     fflush(stdout);
   } else {
