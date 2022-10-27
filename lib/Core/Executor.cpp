@@ -110,7 +110,6 @@ using namespace klee;
 #include <netdb.h>
 #include <fcntl.h>
 #include "tase_shims.h"
-//#include "../../../test/proj_defs.h"
 #include "tase/TASEControl.h"
 #include "../Tase/TASESoftFloatEmulation.h"
 #include <sys/times.h>
@@ -4362,7 +4361,7 @@ fnModelMap.insert(std::make_pair( (uint64_t) &calloc_tase + trap_off, &klee::Exe
 
 void Executor::loadFnModelMap() {
   fnModelMap = {
-  {(uint64_t) &calloc_tase_shim, &Executor::model_calloc},
+		//  {(uint64_t) &calloc_tase_shim, &Executor::model_calloc},
   {(uint64_t) &calloc_tase,  &Executor::model_calloc},
   {(uint64_t) &__ctype_b_loc,  &Executor::model___ctype_b_loc},
   {(uint64_t) &__ctype_tolower_loc,  &Executor::model___ctype_tolower_loc},
@@ -4371,27 +4370,29 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &exit_tase,  &Executor::model_exit_tase},
   {(uint64_t) &fclose,  &Executor::model_fclose},
   {(uint64_t) &fcntl,  &Executor::model_fcntl},
-  {(uint64_t) &feof,  &Executor::model_feof},
-  {(uint64_t) &ferror,  &Executor::model_ferror},
-  {(uint64_t) &fflush,  &Executor::model_fflush},
+  {(uint64_t) &feof_tase,  &Executor::model_feof},
+  {(uint64_t) &ferror_tase,  &Executor::model_ferror},
+  {(uint64_t) &fflush_tase,  &Executor::model_fflush},
+  //  {(uint64_t) &fflush_tase_shim, &Executor::model_fflush},
   {(uint64_t) &fflush_unlocked, &Executor::model_fflush_unlocked},
   {(uint64_t) &fgets,  &Executor::model_fgets},
-  {(uint64_t) &fileno,  &Executor::model_fileno},
-  {(uint64_t) &fopen,  &Executor::model_fopen},
+  {(uint64_t) &fileno_tase,  &Executor::model_fileno},
+  {(uint64_t) &fopen_tase,  &Executor::model_fopen},
   {(uint64_t) &fopen64,  &Executor::model_fopen64},
-  {(uint64_t) &fread,  &Executor::model_fread},
-  {(uint64_t) &fread_unlocked,  &Executor::model_fread}, //double check against model_fread
-  {(uint64_t) &free,  &Executor::model_free},
+  {(uint64_t) &fclose_tase, &Executor::model_fclose},
+  {(uint64_t) &fread_tase,  &Executor::model_fread},
+  //  {(uint64_t) &fread_unlocked,  &Executor::model_fread}, //double check against model_fread
+  //  {(uint64_t) &free,  &Executor::model_free},
   {(uint64_t) &free_tase,  &Executor::model_free},
-  {(uint64_t) &free_tase_shim, &Executor::model_free},
-  {(uint64_t) &freopen,  &Executor::model_freopen},
-  {(uint64_t) &fseek,  &Executor::model_fseek},
-  {(uint64_t) &ftell,  &Executor::model_ftell},
-  {(uint64_t) &fwrite,  &Executor::model_fwrite},
+  //  {(uint64_t) &free_tase_shim, &Executor::model_free},
+  {(uint64_t) &freopen_tase,  &Executor::model_freopen},
+  {(uint64_t) &fseek_tase,  &Executor::model_fseek},
+  {(uint64_t) &ftell_tase,  &Executor::model_ftell},
+  {(uint64_t) &fwrite_tase,  &Executor::model_fwrite},
   {(uint64_t) &fwrite_unlocked,  &Executor::model_fwrite}, //double check against model_fwrite
-  {(uint64_t) &getc_unlocked,  &Executor::model_getc_unlocked},
+  //  {(uint64_t) &getc_unlocked,  &Executor::model_getc_unlocked},
   {(uint64_t) &getc_unlocked_tase,  &Executor::model_getc_unlocked},
-  {(uint64_t) &getc_unlocked_tase_shim, &Executor::model_getc_unlocked},
+  //  {(uint64_t) &getc_unlocked_tase_shim, &Executor::model_getc_unlocked},
   {(uint64_t) &getegid,  &Executor::model_getegid},
   {(uint64_t) &getenv,  &Executor::model_getenv},
   {(uint64_t) &geteuid,  &Executor::model_geteuid},
@@ -4401,19 +4402,19 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &gettimeofday,  &Executor::model_gettimeofday},
   {(uint64_t) &getuid,  &Executor::model_getuid},
   {(uint64_t) &gmtime,  &Executor::model_gmtime},
-  {(uint64_t) &isatty,  &Executor::model_isatty},
+  {(uint64_t) &isatty_tase,  &Executor::model_isatty},
   {(uint64_t) &__isoc99_sscanf,  &Executor::model___isoc99_sscanf},
   {(uint64_t) &make_byte_symbolic,  &Executor::make_byte_symbolic_model},
-  {(uint64_t) &malloc,  &Executor::model_malloc},
+  //  {(uint64_t) &malloc,  &Executor::model_malloc},
   {(uint64_t) &malloc_tase,  &Executor::model_malloc},
-  {(uint64_t) &malloc_tase_shim, &Executor::model_malloc},
-  {(uint64_t) &memcpy,  &Executor::model_memcpy_tase},
+  //  {(uint64_t) &malloc_tase_shim, &Executor::model_malloc},
+  //  {(uint64_t) &memcpy,  &Executor::model_memcpy_tase},
   {(uint64_t) &memcpy_tase,  &Executor::model_memcpy_tase},
-  {(uint64_t) &posix_fadvise,  &Executor::model_posix_fadvise},
-  {(uint64_t) &putchar,  &Executor::model_putchar},
+  {(uint64_t) &posix_fadvise_tase,  &Executor::model_posix_fadvise},
+  {(uint64_t) &putchar_tase,  &Executor::model_putchar},
   {(uint64_t) &printf_tase,  &Executor::model_printf},
-  {(uint64_t) &vsnprintf, &Executor::model_vsnprintf},
-  {(uint64_t) &vasprintf, &Executor::model_vasprintf},
+  {(uint64_t) &vsnprintf_tase, &Executor::model_vsnprintf},
+  {(uint64_t) &vasprintf_tase, &Executor::model_vasprintf},
   {(uint64_t) &mbsrtowcs, &Executor::model_mbsrtowcs},
   {(uint64_t) &setlocale, &Executor::model_setlocale},
   {(uint64_t) &sigemptyset, &Executor::model_sigemptyset},
@@ -4422,13 +4423,13 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &sigaction, &Executor::model_sigaction},
   {(uint64_t) &__printf_chk,  &Executor::model___printf_chk},
   {(uint64_t) &puts_tase,  &Executor::model_puts},
-  {(uint64_t) &puts_tase_shim, &Executor::model_puts},
+  //  {(uint64_t) &puts_tase_shim, &Executor::model_puts},
 
   //{(uint64_t) &read,  &Executor::model_read}, //Model doesn't exist yet.  fixme.
-  {(uint64_t) &realloc,  &Executor::model_realloc},
+  //  {(uint64_t) &realloc,  &Executor::model_realloc},
   {(uint64_t) &realloc_tase,  &Executor::model_realloc},
-  {(uint64_t) &realloc_tase_shim, &Executor::model_realloc},
-  {(uint64_t) &rewind,  &Executor::model_rewind},
+  //  {(uint64_t) &realloc_tase_shim, &Executor::model_realloc},
+  {(uint64_t) &rewind_tase,  &Executor::model_rewind},
   {(uint64_t) &sb_disabled,  &Executor::model_sb_disabled},
   {(uint64_t) &sb_reopen,  &Executor::model_sb_reopen},
   //  {(uint64_t) &sb_eject, &Executor::model_sb_eject},
@@ -4437,9 +4438,9 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &stat,  &Executor::model_stat},
   //{(uint64_t) &target_exit,  &Executor::model_target_exit}, //Special case. fixme. //Doesn't look like we call target_exit anymore.
   {(uint64_t) &time,  &Executor::model_time},
-  {(uint64_t) &fprintf, &Executor::model_fprintf},
+  {(uint64_t) &fprintf_tase, &Executor::model_fprintf},
 //  {(uint64_t) &vfprintf,  &Executor::model_vfprintf},
-  {(uint64_t) &write,  &Executor::model_write},
+  {(uint64_t) &write_tase,  &Executor::model_write},
   {(uint64_t) &ioctl, &Executor::model_ioctl},
   {(uint64_t) &strtof_tase,  &Executor::model_strtof},
   {(uint64_t) &strtod_tase,  &Executor::model_strtod},
@@ -4558,7 +4559,9 @@ void Executor::loadFnModelMap() {
   };
 
   std::map<uint64_t , void (Executor::*) (void) > cpy(fnModelMap);
+  printf("fnModelMap locations:\n");
   for(auto& x : cpy){
+    printf("maploc: %x, %x\n", x.first, x.first + trap_off);
     fnModelMap.insert({x.first + trap_off, x.second});
   }
   //printf("Loading float emulation models \n");
