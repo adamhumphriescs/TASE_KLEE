@@ -4381,7 +4381,7 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &fopen64,  &Executor::model_fopen64},
   {(uint64_t) &fclose_tase, &Executor::model_fclose},
   {(uint64_t) &fread_tase,  &Executor::model_fread},
-  {(uint64_t) &fread_unlocked,  &Executor::model_fread_unlocked}, //double check against model_fread
+  {(uint64_t) &fread_unlocked_tase,  &Executor::model_fread_unlocked}, //double check against model_fread
   //  {(uint64_t) &free,  &Executor::model_free},
   {(uint64_t) &free_tase,  &Executor::model_free},
   //  {(uint64_t) &free_tase_shim, &Executor::model_free},
