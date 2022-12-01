@@ -2018,6 +2018,28 @@ void Executor::model_fread() {
   do_ret();//Fake a return
 }
 
+void Executor::model_fread_unlocked() {
+  if(!noLog){
+    _LOG
+  }
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64; // RSP should be sitting on return addr                                     
+  ++s_offset;
+
+  void *ptr;
+  size_t size;
+  size_t nmemb;
+  FILE *stream;
+
+  get_vals(count, s_offset, __func__, ptr, size, nmemb, stream);
+    
+  //Return result
+  ref<ConstantExpr> resExpr = ConstantExpr::create((uint64_t) fread_unlocked(ptr, size, nmemb, stream), Expr::Int64);
+  target_ctx_gregs_OS->write(GREG_RAX * 8, resExpr);
+    
+  do_ret();//Fake a return
+}
+
  
 extern int __isoc99_sscanf ( const char * s, const char * format, ...);
 void Executor::model___isoc99_sscanf() {
