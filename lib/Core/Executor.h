@@ -456,6 +456,7 @@ private:
   void model_fopen64();
   void model_fclose();
   void model_fread();
+  void model_fread_unlocked();
   void model_fwrite();
   void model_fgets();
   void model_fflush();
