@@ -4875,6 +4875,22 @@ void Executor::klee_interp_internal () {
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (D[" << size << "][" << shr << "][" << mov << "][" << lah << "])... " << std::hex << c << std::endl;
 	}
+	/*      } else if ( scan<0>(cc[0], 0x0000000000c68b49, 0x0000000000c7fffb) >= 0 || scan<0>(cc[0], 0x0000000000f0894c, 0x0000000000f8fffe ) >= 0 ) {
+	// movq $REG,%r14
+	c = cc[0] >> (3*8) | cc[1] << (5*8);
+	        // check for potential next instrs, take earliest appearance
+        auto shr = scanleft< 0, 7 >(c, 0x0000000000eed149, 0x0000000000ffffff); // shrq ( eflags dead and rax dead )
+        auto mov = scanleft< 0, 7 >(c, 0x0000000000008948, 0x000000000000ffff); // movq ( eflags live and rax live )
+        auto lah = scanleft< 0, 7 >(c, 0x000000000000009f, 0x00000000000000ff); // lahf ( eflags live only )                        
+        shr = shr >= 0 ? shr : 8;
+        mov = mov >= 0 ? mov : 8;
+        lah = lah >= 0 ? lah : 8;
+
+        auto update = shr < mov ? ( shr < lah ? 35 : 37 ) : ( mov < lah ? 51 : 37 );
+        target_ctx_gregs[GREG_RIP].u64 += 3 + update;
+	        if ( modelDebug ) {
+          std::cout << "Skipping eager instrumentation (E[" << shr << "][" << mov << "][" << lah << "])... " << std::hex << c << std::endl;
+	  }*/
       } else {
         runCoreInterpreter(target_ctx_gregs);
 	/*	if ( killFlags && kill_flags.find( target_ctx_gregs[GREG_RIP].u64 ) != kill_flags.end() ) {
