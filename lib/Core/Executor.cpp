@@ -4788,7 +4788,9 @@ void Executor::klee_interp_internal () {
     } else {
       dont_model = false;
       hasMadeProgress = true;
-      //      tryKillFlags(target_ctx_gregs);
+      if( !singleStepping ){
+        tryKillFlags(target_ctx_gregs);
+      }
       
       if( taseDebug ) {
 	std::cout << "Checking for skippable instrs" << std::endl;
@@ -4796,41 +4798,41 @@ void Executor::klee_interp_internal () {
 
 
       uint64_t cc[2] = {*(uint64_t*)target_ctx_gregs[GREG_RIP].u64, *(((uint64_t*)target_ctx_gregs[GREG_RIP].u64)+1)};
-      if( scan<0>(cc[0], 0x0000000000f6314d, 0x0000000000ffffff) >= 0 ) { 
+      if( singleStepping && scan<0>(cc[0], 0x0000000000f6314d, 0x0000000000ffffff) >= 0 ) { 
 	tase_helper_write((uint64_t) &(target_ctx_gregs[GREG_EFL].u64), ConstantExpr::create(0, Expr::Int64));
 	target_ctx_gregs[GREG_RIP].u64 += 3; // xor %r14,%r14
 	hasMadeProgress = false;
 	if( modelDebug ) {
 	  std::cout << "Killing Flags (xor)" << std::endl;
 	}
-      } else if( scan< 0 >(cc[0], 0x00000000053d8d4c, 0x00ffffffffffffff) >= 0 ){
+      } else if( !singleStepping && scan< 0 >(cc[0], 0x00000000053d8d4c, 0x00ffffffffffffff) >= 0 ){
         target_ctx_gregs[GREG_RIP].u64 += trap_off; // lea/jmpq
-	hasMadeProgress = false;
+	//hasMadeProgress = true;
         if( modelDebug ) {
           std::cout << "Skipping LEA and jmp..." << std::endl;
         }
-      } else if ( cc[0] == 0x4566363c751101c4 && scan< 0 >(cc[1], 0x0000850fff17380f, 0x0000ffffffffffff) >= 0 ) { 
+      } else if ( singleStepping && cc[0] == 0x4566363c751101c4 && scan< 0 >(cc[1], 0x0000850fff17380f, 0x0000ffffffffffff) >= 0 ) { 
 	target_ctx_gregs[GREG_RIP].u64 += 32; // vpcmpeqw/ptest/movq/leaq/jne
 	hasMadeProgress = false;	
       	if( modelDebug ){
 	  std::cout << "Skipping eager instrumentation (A)..." << std::endl;
 	}
 	
-      } else if ( scan< 0 >(cc[0], 0x9e00000000008948, 0xff0000000000ffff) >= 0 ) { 
+      } else if ( singleStepping && scan< 0 >(cc[0], 0x9e00000000008948, 0xff0000000000ffff) >= 0 ) { 
 	// movq/lahf/movl/shrxq/vpcmpeqw/ptest/movq/leaq/jne/sahf/movq
 	target_ctx_gregs[GREG_RIP].u64 += 53;
 	
 	if( modelDebug ){                                                                                       
           std::cout << "Skipping eager instrumentation (B)..." << std::endl;                                    
 	} 
-      } else if ( scan< 0 >(cc[0], 0x000000000000009f, 0x00000000000000ff) == 0 ) {
+      } else if ( singleStepping && scan< 0 >(cc[0], 0x000000000000009f, 0x00000000000000ff) == 0 ) {
 	// lahf/movl/shrxq/vpcmpeqw/ptest/movq/leaq/jne/sahf
 	target_ctx_gregs[GREG_RIP].u64 += 37;
 	
         if( modelDebug ){                                                                                       
           std::cout << "Skipping eager instrumentation (C)..." << std::endl;                                    
 	} 	
-      } else if ( scan< 0 >(cc[0], 0x0000000000308d44, 0x00000000000038fff4) == 0 ) {
+      } else if ( singleStepping && scan< 0 >(cc[0], 0x0000000000308d44, 0x00000000000038fff4) == 0 ) {
 	// leaq -> r14
 	// get length: https://wiki.osdev.org/X86-64_Instruction_Encoding#64-bit_addressing
 	//        MOD
@@ -4875,33 +4877,9 @@ void Executor::klee_interp_internal () {
 	if ( modelDebug ) {
 	  std::cout << "Skipping eager instrumentation (D[" << size << "][" << shr << "][" << mov << "][" << lah << "])... " << std::hex << c << std::endl;
 	}
-	/*      } else if ( scan<0>(cc[0], 0x0000000000c68b49, 0x0000000000c7fffb) >= 0 || scan<0>(cc[0], 0x0000000000f0894c, 0x0000000000f8fffe ) >= 0 ) {
-	// movq $REG,%r14
-	c = cc[0] >> (3*8) | cc[1] << (5*8);
-	        // check for potential next instrs, take earliest appearance
-        auto shr = scanleft< 0, 7 >(c, 0x0000000000eed149, 0x0000000000ffffff); // shrq ( eflags dead and rax dead )
-        auto mov = scanleft< 0, 7 >(c, 0x0000000000008948, 0x000000000000ffff); // movq ( eflags live and rax live )
-        auto lah = scanleft< 0, 7 >(c, 0x000000000000009f, 0x00000000000000ff); // lahf ( eflags live only )                        
-        shr = shr >= 0 ? shr : 8;
-        mov = mov >= 0 ? mov : 8;
-        lah = lah >= 0 ? lah : 8;
-
-        auto update = shr < mov ? ( shr < lah ? 35 : 37 ) : ( mov < lah ? 51 : 37 );
-        target_ctx_gregs[GREG_RIP].u64 += 3 + update;
-	        if ( modelDebug ) {
-          std::cout << "Skipping eager instrumentation (E[" << shr << "][" << mov << "][" << lah << "])... " << std::hex << c << std::endl;
-	  }*/
       } else {
         runCoreInterpreter(target_ctx_gregs);
-	/*	if ( killFlags && kill_flags.find( target_ctx_gregs[GREG_RIP].u64 ) != kill_flags.end() ) {
-	  if ( taseDebug ) {
-	    printf("Killing Flags...\n");
-	  }
-	  
-	  ref<ConstantExpr> zeroExpr = ConstantExpr::create(0, Expr::Int64);
-	  tase_helper_write((uint64_t) &(target_ctx_gregs[GREG_EFL].u64), zeroExpr);
-	  }*/
-	hasMadeProgress = execMode == INTERP_ONLY ? false : true;
+	hasMadeProgress = singleStepping ? execMode == INTERP_ONLY ? false : true : hasMadeProgress;
       }
     }
 
