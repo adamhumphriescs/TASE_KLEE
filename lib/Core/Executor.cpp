@@ -4805,7 +4805,7 @@ void Executor::klee_interp_internal () {
 	if( modelDebug ) {
 	  std::cout << "Killing Flags (xor)" << std::endl;
 	}
-      } else if( !singleStepping && scan< 0 >(cc[0], 0x00000000053d8d4c, 0x00ffffffffffffff) >= 0 ){
+      } else if( scan< 0 >(cc[0], 0x00000000053d8d4c, 0x00ffffffffffffff) >= 0 ){
         target_ctx_gregs[GREG_RIP].u64 += trap_off; // lea/jmpq
 	//hasMadeProgress = true;
         if( modelDebug ) {
