@@ -139,7 +139,6 @@ extern uint16_t poison_val;
 extern bool taseDebug;
 extern bool dropS2C;
 extern bool bufferGuard;
-extern bool dont_model;
 extern bool skipFree;
 
 extern CVAssignment prevMPA ;
@@ -290,9 +289,6 @@ void printProhibCounters() {
   fflush(stdout);
   //#endif
 }
-
-extern bool forceNativeRet;
-
 
 
 
@@ -1616,10 +1612,10 @@ ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64); // SS
       printf("Will trap in ktest_master_secret further down for master secret \n");
 
       if (execMode != INTERP_ONLY) {
-	forceNativeRet = true;
+	interp_state = INTERP_STATE::PROHIB_RESUME;
 	target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
       } else {
-	dont_model =true;
+	interp_state = INTERP_STATE::PROHIB;
       }
       return;
     }
@@ -1735,12 +1731,14 @@ void Executor::model_SHA1_Update () {
       if (modelDebug) {
 	printf("MULTIPASS DEBUG: Did not find symbolic input to SHA1_Update \n");
       }
-       if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
-	forceNativeRet = true;
+      
+      if ( gprsAreConcrete() && execMode != INTERP_ONLY ) {
+	interp_state = INTERP_STATE::PROHIB_RESUME;
 	target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
       } else {
-	 printf("Register contains taint prior to prohib call: SHA1_Update \n");
-	 dont_model = true;
+	printf("Register contains taint prior to prohib call: SHA1_Update \n");
+        //interp_state = INTERP_STATE::PROHIB;
+	interp_state = INTERP_STATE::PROHIB;
       }
       return;
       
@@ -1811,11 +1809,11 @@ void Executor::model_SHA1_Final() {
        
 
        if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
-	 forceNativeRet = true;
+	 interp_state = INTERP_STATE::PROHIB_RESUME;
 	 target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
        } else {
 	 printf("Register contains taint prior to prohib call: SHA1_Final \n");
-	 dont_model = true;
+	 interp_state = INTERP_STATE::PROHIB;
        }
        return;
        
@@ -1894,11 +1892,11 @@ void Executor::model_SHA256_Update () {
       
 
        if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
-	forceNativeRet = true;
+	interp_state = INTERP_STATE::PROHIB_RESUME;
 	target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
       } else {
 	 printf("Register contains taint prior to prohib call: SHA256_Update \n");
-	 dont_model = true;
+	 interp_state = INTERP_STATE::PROHIB;
       }
       return;
 
@@ -1968,11 +1966,11 @@ void Executor::model_SHA256_Final() {
        
 
        if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
-	 forceNativeRet = true;
+	 interp_state = INTERP_STATE::PROHIB_RESUME;
 	 target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
        } else {
 	 printf("Register contains taint prior to prohib call: SHA256_Final \n");
-	 dont_model = true;
+	 interp_state = INTERP_STATE::PROHIB;
        }
        return;
 
@@ -2057,7 +2055,7 @@ void Executor::model_AES_encrypt () {
 	//fflush(stdout);
       }
       if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
-	forceNativeRet = true;
+	interp_state = INTERP_STATE::PROHIB_RESUME;
 	target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
 	
       } else {
@@ -2071,12 +2069,12 @@ void Executor::model_AES_encrypt () {
 	tase_helper_write((uint64_t) &target_ctx_gregs[GREG_RCX], zeroExpr);
 
 	if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
-	  forceNativeRet = true;
+	  interp_state = INTERP_STATE::PROHIB_RESUME;
 	  target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
 	  return;
 	} else {
 	  printf("Register contains taint prior to prohib call: AES_encrypt \n");
-	  dont_model = true;
+	  interp_state = INTERP_STATE::PROHIB;
 	}
       }
       return;
@@ -2144,11 +2142,11 @@ void Executor::model_gcm_gmult_4bit () {
       }
       
        if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
-	 forceNativeRet = true;
+	 interp_state = INTERP_STATE::PROHIB_RESUME;
 	 target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
        } else {
 	 printf("Register contains taint prior to prohib call: gcm_gmult \n");
-	 dont_model = true;
+	 interp_state = INTERP_STATE::PROHIB;
        }
        return;
       
@@ -2225,11 +2223,11 @@ void Executor::model_gcm_ghash_4bit () {
 	fflush(stdout);
       }
        if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
-	forceNativeRet = true;
+	interp_state = INTERP_STATE::PROHIB_RESUME;
 	target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
       } else {
 	 printf("Register contains taint prior to prohib call: gcm_ghash \n");
-	 dont_model = true;
+	 interp_state = INTERP_STATE::PROHIB;
       }
        return;
 
@@ -2399,10 +2397,10 @@ void Executor::model_EC_KEY_generate_key () {
       printf("DEBUG: Calling EC_KEY_generate_key natively \n");
       fflush(stdout);
       if (gprsAreConcrete() && execMode != INTERP_ONLY) {
-	forceNativeRet = true;
+	interp_state = INTERP_STATE::PROHIB_RESUME;
 	target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
       } else {
-	dont_model = true;
+	interp_state = INTERP_STATE::PROHIB;
       }
 	
       return; 
@@ -2547,10 +2545,10 @@ void Executor::model_ECDH_compute_key() {
       printf("DEBUG: Calling ECDH_compute_key for time %d natively \n", ECDH_compute_key_calls);
       fflush(stdout);
       if (gprsAreConcrete() && execMode != INTERP_ONLY) {
-	forceNativeRet = true;
+	interp_state = INTERP_STATE::PROHIB_RESUME;
 	target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
       } else {
-	dont_model =true;
+	interp_state = INTERP_STATE::PROHIB;
       }
       return; 
     }
@@ -2686,10 +2684,10 @@ void Executor::model_EC_POINT_point2oct() {
       if (gprsAreConcrete() && !(execMode == INTERP_ONLY)) {
 	  printf("Entering EC_POINT_point2oct for time %d and calling natively \n", EC_POINT_point2oct_calls);
 	  fflush(stdout);
-	  forceNativeRet = true;
+	  interp_state = INTERP_STATE::PROHIB_RESUME;
 	  target_ctx_gregs[GREG_RIP].u64 += native_ret_off;
 	} else {
-	  dont_model =true;
+	  interp_state = INTERP_STATE::PROHIB;
 	}
        return; 
      
