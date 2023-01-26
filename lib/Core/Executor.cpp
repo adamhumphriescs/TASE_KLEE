@@ -461,28 +461,29 @@ EXECUTION_STATE ex_state;
 ABORT_INFO abort_info{};
 
 // only occurs w/ mixed-mode checks. INTERP_ONLY mode makes this always false, see update()
-bool EXECUTION_STATE::is_concrete(){
+bool EXECUTION_STATE::is_concrete() const {
   return (txn_status & CONCRETE) != 0;
 }
 
 // singleStepping makes this always true, see update()
-bool EXECUTION_STATE::is_txn_start(){
+bool EXECUTION_STATE::is_txn_start() const {
   return (txn_status & TXN_START) != 0;
 }
 
-bool EXECUTION_STATE::is_singleStepping(){
+bool EXECUTION_STATE::is_singleStepping() const {
   return (mode & SSTEP) != 0;
 }
 
-bool EXECUTION_STATE::is_mixedMode(){
+bool EXECUTION_STATE::is_mixedMode() const {
   return (mode & MIXED) != 0;
 }
 
-bool EXECUTION_STATE::is_bouncing(){
-  return (mode & SSTEP) == 0 && (mode & BOUNCE) != 0;
+// bounceback disabled in INTERP_ONLY mode and when SSTEP is set, will always be false (see constructor in Executor.h)
+bool EXECUTION_STATE::is_bouncing() const {
+  return (mode & BOUNCE) != 0;
 }
 
-bool EXECUTION_STATE::istate_none_of(uint16_t mask){
+bool EXECUTION_STATE::istate_none_of(uint16_t mask) const {
   return (istate & mask) == 0;
 }
 
@@ -506,7 +507,11 @@ bool EXECUTION_STATE::bounceBack(ABORT_INFO::ABORT_TYPE status){
     return true;
   } else {
     if (tran_max <= 0) {
+#ifdef TASE_OPENSSL      
       istate = istate == PROHIB ? PROHIB_FAULT : FAULT;
+#else
+      istate = FAULT;
+#endif      
     } else if( ex_state.is_singleStepping() && status == ABORT_INFO::PSN ){
       istate = INTERP;
     }
@@ -515,7 +520,7 @@ bool EXECUTION_STATE::bounceBack(ABORT_INFO::ABORT_TYPE status){
 }
 
 
-void ABORT_INFO::print_counts(){
+void ABORT_INFO::print_counts() const {
   std::cout << "BB_UR: " << counts.unknown << "\n";
   std::cout << "BB_MOD: " << counts.model << "\n";
   std::cout << "BB_PSN: " << counts.psn << "\n";
@@ -556,7 +561,7 @@ void ABORT_INFO::classify_and_count(){
   }
 }
   
-void ABORT_INFO::print(){
+void ABORT_INFO::print() const {
   std::cout << "Abort type: ";
   switch( type ){
   case ABORT_TYPE::UNKNOWN:
@@ -5037,9 +5042,6 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
     uint64_t d1 = it->second.dest1;
     uint64_t d2 = it->second.dest2;
 
-    bool firstSolutionValid = false;
-    bool secondSolutionValid = false;
-    bool res = false;
     Solver::Validity rtmp;
     bool s = false;
 

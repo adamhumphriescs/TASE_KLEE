@@ -113,8 +113,8 @@ namespace klee {
     ABORT_COUNTS counts;
     ABORT_TYPE type;
 
-    void print();
-    void print_counts();
+    void print() const;
+    void print_counts() const;
     void classify_and_count();
     void reset_counts();
   };
@@ -151,26 +151,26 @@ namespace klee {
 
     EXECUTION_STATE(bool mixed, bool sstep, bool bounce)
       : istate(mixed ? RESUME : INTERP)
-      , mode((mixed ? MIXED : 0) | (bounce ? BOUNCE : 0) | (sstep ? SSTEP : 0))
+      , mode((mixed ? MIXED : 0) | ((mixed && bounce && !sstep) ? BOUNCE : 0) | (sstep ? SSTEP : 0))
       , txn_status(0)
     {}
 
     EXECUTION_STATE(){}
     
     // COMPARE w/ INTERP_STATE or EXECUTION_MODE
-    bool operator==(INTERP_STATE o){
+    bool operator==(INTERP_STATE o) const {
       return (istate & o) != 0;
     }
 
-    bool operator==(EXECUTION_MODE o){
+    bool operator==(EXECUTION_MODE o) const {
       return (mode & o) != 0;
     }
 
-    bool operator!=(INTERP_STATE o){
+    bool operator!=(INTERP_STATE o) const {
       return istate != o;
     }
 
-    bool operator!=(EXECUTION_MODE o){
+    bool operator!=(EXECUTION_MODE o) const {
       return mode != 0;
     }
 
@@ -179,7 +179,7 @@ namespace klee {
       istate = o;
     }
 
-    std::string print_istate(){
+    std::string print_istate() const {
       switch(istate){
       case INTERP_STATE::FAULT:
 	return "FAULT";
@@ -203,16 +203,15 @@ namespace klee {
       return "NO STATE";
     }
     
-    bool is_concrete();
-    bool is_txn_start();
-    bool is_singleStepping();
-    bool is_mixedMode();
-    bool is_bouncing();
-    bool bounceBack(ABORT_INFO::ABORT_TYPE status);
+    bool is_concrete() const;
+    bool is_txn_start() const;
+    bool is_singleStepping() const;
+    bool is_mixedMode() const;
+    bool is_bouncing() const;
+    bool istate_none_of(uint16_t mask) const;
 
     void update();
-
-    bool istate_none_of(uint16_t mask);
+    bool bounceBack(ABORT_INFO::ABORT_TYPE status);
   };
 
   
