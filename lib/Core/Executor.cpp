@@ -493,7 +493,7 @@ void EXECUTION_STATE::update(ABORT_INFO::ABORT_TYPE type){
   bool start = (mode & SSTEP) != 0 || cartridge_entry_points.find(target_ctx_gregs[GREG_RIP].u64) != cartridge_entry_points.end();
   txn_status = (conc ? CONCRETE : 0) | (start ? TXN_START : 0);
 
-  if( (mode & BOUNCE) != 0 && status != ABORT_INFO::MODEL ) {
+  if( (mode & BOUNCE) != 0 && type != ABORT_INFO::MODEL ) {
     if( tran_max > 0 ){
     istate = BOUNCEBACK;
     target_ctx_gregs[GREG_RIP].u64 -= bounceback_offset;
@@ -504,10 +504,22 @@ void EXECUTION_STATE::update(ABORT_INFO::ABORT_TYPE type){
       istate = FAULT;
 #endif
     }
-  } else if ( (mode & SSTEP) != 0 && status == ABORT_INFO::PSN && !conc ) {
+  } else if ( (mode & SSTEP) != 0 && type == ABORT_INFO::PSN ) {
     istate = INTERP;
   }
   
+#ifdef TASE_OPENSSL
+  if( std::find(std::begin(prohib_fns), std::end(prohib_fns), target_ctx_gregs[GREG_RIP].u64) != std::end(prohib_fns) ){
+    istate = PROHIB;
+  }
+#endif
+}
+
+void EXECUTION_STATE::update(){
+  bool conc = (mode & MIXED) != 0 && !tase_buf_has_taint((void *) &target_ctx_gregs[0], TASE_NGREG * TASE_GREG_SIZE);
+  bool start = (mode & SSTEP) != 0 || cartridge_entry_points.find(target_ctx_gregs[GREG_RIP].u64) != cartridge_entry_points.end();
+  txn_status = (conc ? CONCRETE : 0) | (start ? TXN_START : 0);
+
 #ifdef TASE_OPENSSL
   if( std::find(std::begin(prohib_fns), std::end(prohib_fns), target_ctx_gregs[GREG_RIP].u64) != std::end(prohib_fns) ){
     istate = PROHIB;

@@ -200,6 +200,8 @@ namespace klee {
 	return "PROHIB_RESUME";
       case INTERP_STATE::PROHIB_FAULT:
 	return "PROHIB_FAULT";
+      case INTERP_STATE::BOUNCEBACK:
+        return "BOUNCEBACK";
       }
       return "NO STATE";
     }
@@ -212,6 +214,7 @@ namespace klee {
     bool istate_none_of(uint16_t mask) const;
 
     void update(ABORT_INFO::ABORT_TYPE status);
+    void update();
   };
 
   
