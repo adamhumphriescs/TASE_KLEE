@@ -117,28 +117,6 @@ using namespace klee;
 #include <unordered_set>
 
 
-/*
-  INTERP_STATE answers the question:
-  What was the last thing we did in klee_interp_internal?
- */
-enum INTERP_STATE: uint32_t {
-			 START         = 1,
-			 START_RESUME  = 2,
-			 FAULT         = 4,
-			 MODEL         = 8,
-			 PROHIB        = 16,
-			 RESUME        = 32,
-			 SKIP          = 64,
-			 SKIP_RESUME   = 128,
-			 INTERP        = 256,
-			 PROHIB_RESUME = 512,
-			 PROHIB_FAULT  = 1024
-			 
-};
-
-INTERP_STATE interp_state = INTERP_STATE::START;
-
-
 //Can't include signal.h directly if it has conflicts with our tase_interp.h definitions
 //on enums like GREG_RSI, GREG_RDI, etc.
 extern "C"  void ( *signal(int signum, void (*handler)(int)) ) (int){
@@ -210,7 +188,7 @@ void printCtx(tase_greg_t *);
 //Multipass
 extern int c_special_cmds; //Int used by cliver to disable special commands to s_client.  Made global for debugging
 extern bool UseForkedCoreSolver;
-extern bool singleStepping;
+		 //extern bool singleStepping;
 extern int round_count;
 extern int pass_count;
 extern int run_count;
@@ -248,12 +226,11 @@ extern "C" {
 extern void multipass_reset_round(bool isFirstCall);
 extern void multipass_start_round (klee::Executor * theExecutor, bool isReplay);
 
-#endif
 //Distinction between prohib_fns and modeled_fns is that we sometimes may want to "jump back" into native execution
 //for prohib_fns.  Modeled fns are always skipped and emulated with a return.
-#ifdef TASE_OPENSSL
 static const uint64_t prohib_fns [] = { (uint64_t) &AES_encrypt, (uint64_t) &ECDH_compute_key, (uint64_t) &EC_POINT_point2oct, (uint64_t) &EC_KEY_generate_key, (uint64_t) &SHA1_Update, (uint64_t) &SHA1_Final, (uint64_t) &SHA256_Update, (uint64_t) &SHA256_Final, (uint64_t) &gcm_gmult_4bit, (uint64_t) &gcm_ghash_4bit, (uint64_t) &tls1_generate_master_secret };
-#endif
+#endif // TASE_OPENSSL
+
 
 // Network capture for Cliver
 extern "C" { int ktest_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
@@ -273,6 +250,7 @@ extern "C" { int ktest_connect(int sockfd, const struct sockaddr *addr, socklen_
   void ktest_start(const char *filename, enum kTestMode mode);
   void ktest_finish();               // write capture to file  
 }
+
 
 namespace {
   cl::opt<bool>
@@ -478,6 +456,126 @@ namespace {
 }
 
 
+
+EXECUTION_STATE ex_state;
+ABORT_INFO abort_info{};
+
+// only occurs w/ mixed-mode checks. INTERP_ONLY mode makes this always false, see update()
+bool EXECUTION_STATE::is_concrete(){
+  return (txn_status & CONCRETE) != 0;
+}
+
+// singleStepping makes this always true, see update()
+bool EXECUTION_STATE::is_txn_start(){
+  return (txn_status & TXN_START) != 0;
+}
+
+bool EXECUTION_STATE::is_singleStepping(){
+  return (mode & SSTEP) != 0;
+}
+
+bool EXECUTION_STATE::is_mixedMode(){
+  return (mode & MIXED) != 0;
+}
+
+bool EXECUTION_STATE::is_bouncing(){
+  return (mode & SSTEP) == 0 && (mode & BOUNCE) != 0;
+}
+
+bool EXECUTION_STATE::istate_none_of(uint16_t mask){
+  return (istate & mask) == 0;
+}
+
+// check concreteness, transaction start, and if ssl check if prohib
+void EXECUTION_STATE::update(){
+  bool conc = (mode & MIXED) != 0 && !tase_buf_has_taint((void *) &target_ctx_gregs[0], TASE_NGREG * TASE_GREG_SIZE);
+  bool start = (mode & SSTEP) != 0 || cartridge_entry_points.find(target_ctx_gregs[GREG_RIP].u64) != cartridge_entry_points.end();
+  txn_status = (conc ? CONCRETE : 0) | (start ? TXN_START : 0);
+  
+#ifdef TASE_OPENSSL
+  if( std::find(std::begin(prohib_fns), std::end(prohib_fns), target_ctx_gregs[GREG_RIP].u64) != std::end(prohib_fns) ){
+    istate = PROHIB;
+  }
+#endif
+}
+
+
+bool EXECUTION_STATE::bounceBack(ABORT_INFO::ABORT_TYPE status){
+  if( is_bouncing() && status != ABORT_INFO::MODEL && tran_max > 0) {
+    target_ctx_gregs[GREG_RIP].u64 -= bounceback_offset;
+    return true;
+  } else {
+    if (tran_max <= 0) {
+      istate = istate == PROHIB ? PROHIB_FAULT : FAULT;
+    } else if( ex_state.is_singleStepping() && status == ABORT_INFO::PSN ){
+      istate = INTERP;
+    }
+    return false;
+  }
+}
+
+
+void ABORT_INFO::print_counts(){
+  std::cout << "BB_UR: " << counts.unknown << "\n";
+  std::cout << "BB_MOD: " << counts.model << "\n";
+  std::cout << "BB_PSN: " << counts.psn << "\n";
+  std::cout << "BB_OTHER: " << counts.other << "\n";
+}
+
+
+void ABORT_INFO::reset_counts(){
+  counts = ABORT_COUNTS{0, 0, 0, 0};
+}
+
+
+void ABORT_INFO::classify_and_count(){
+  bool tsx = target_ctx.abort_status & (1<<TSX_XABORT);
+  bool model = (target_ctx.abort_status & TSX_XABORT_MASK) == 0xff000000;
+  bool unknown = ( target_ctx.abort_status & 0xff ) == 0;
+
+  type = tsx ?
+    (model ? ABORT_TYPE::MODEL : ABORT_TYPE::PSN ) :
+    (unknown ? ABORT_TYPE::UNKNOWN : ABORT_TYPE::OTHER); 
+
+  // if singleStepping not really an xabort
+  
+  switch( type ){
+  case ABORT_TYPE::MODEL:
+    ex_state = EXECUTION_STATE::MODEL;
+    counts.model++;
+    break;
+  case ABORT_TYPE::PSN:
+    counts.psn++;
+    break;
+  case ABORT_TYPE::UNKNOWN:
+    counts.unknown++;
+    break;
+  case ABORT_TYPE::OTHER:
+    counts.other++;
+    break;
+  }
+}
+  
+void ABORT_INFO::print(){
+  std::cout << "Abort type: ";
+  switch( type ){
+  case ABORT_TYPE::UNKNOWN:
+    std::cout << "Unknown\n";
+    break;
+  case ABORT_TYPE::MODEL:
+    std::cout << "Model\n";
+    break;
+  case ABORT_TYPE::PSN:
+    std::cout << "Psn\n";
+    break;
+  case ABORT_TYPE::OTHER:
+    std::cout << "Other/fallthrough\n";
+    break;
+  }
+}
+
+
+
 namespace klee {
   RNG theRNG;
 }
@@ -529,10 +627,8 @@ double run_tmp_3_time = 0;
 double mem_op_eval_time = 0;
 double mo_resolve_time = 0;
 
-int BB_UR = 0; //Unknown return codes
-int BB_MOD = 0; //Modeled return
-int BB_PSN = 0; //PSN return
-int BB_OTHER = 0;//Other return
+
+
 
 
 void reset_run_timers() {
@@ -558,10 +654,7 @@ void reset_run_timers() {
   mo_resolve_time = 0;
 
 
-  BB_UR = 0;
-  BB_MOD = 0;
-  BB_PSN = 0;
-  BB_OTHER = 0;
+  abort_info.reset_counts();
 }
 
 void print_run_timers() {
@@ -590,17 +683,10 @@ void print_run_timers() {
     printf("   -mo_resolve_t  : %lf \n", mo_resolve_time);
 
     if (taseDebug) {
-      printf("BB_UR:    %d \n", BB_UR);
-      printf("BB_MOD:   %d \n", BB_MOD);
-      printf("BB_PSN:   %d \n", BB_PSN);
-      printf("BB_OTHER: %d \n", BB_OTHER);
+      abort_info.print();
     }
+    abort_info.reset_counts();
 
-
-    BB_UR = 0; //Unknown return codes
-    BB_MOD = 0; //Modeled return
-    BB_PSN = 0; //PSN return
-    BB_OTHER = 0;//Other return
 
     FILE * logFile = fopen(curr_unique_log_ID.c_str(), "w+");
     fprintf(logFile, "Prev log name, Round, Pass, Total Runtime, Interp Time, Solver Time, Fork Time, Core Interp Time,TMP1, TMP2, TMP3, RUN INTERP TRAPS, RUN BB COUNT, RUN MODEL COUNT \n");
@@ -692,7 +778,7 @@ void measure_interp_time(uint64_t interpCtr_init, uint64_t rip) {
   }
 
   if (!noLog) {
-    printf("Elapsed time is %lf at interpCtr %lu rip 0x%lx with %lu interpreter loops and abort code 0x%08lx \n", diff_time, interpCtr, rip, interpCtr - interpCtr_init, target_ctx.abort_status);
+    printf("Elapsed time is %lf at interpCtr %lu rip 0x%lx with %lu interpreter loops and abort code 0x%08x \n", diff_time, interpCtr, rip, interpCtr - interpCtr_init, target_ctx.abort_status);
     printf("------------------------------\n");
   }
 }
@@ -3831,10 +3917,8 @@ extern "C" void target_exit() {
 
 }
 
-bool canBounceback( uint32_t abortStatus , uint64_t rip);
 
 uint64_t init_trap_RIP = 0;
-//bool dont_model = false;
 
 extern "C" void klee_interp () {
   uint64_t interpCtr_init = interpCtr;
@@ -3846,15 +3930,28 @@ extern "C" void klee_interp () {
   if (taseDebug) {
     std::cout << "---------------ENTERING KLEE_INTERP ---------------------- " << std::endl;
   }
-  
-  if (canBounceback(target_ctx.abort_status, target_ctx_gregs[GREG_RIP].u64))
-    {    
-      target_ctx_gregs[GREG_RIP].u64 -= bounceback_offset;
-      if (taseDebug) 
-	std::cout << "After adjusting offset, attempting to bounceback to 0x" << std::hex << target_ctx_gregs[GREG_RIP].u64 << std::dec << std::endl;
-      return;
-    }
 
+  abort_info.classify_and_count();
+  if( modelDebug ) {
+    abort_info.print();
+  }
+
+  tran_max = (abort_info.type & (ABORT_INFO::UNKNOWN | ABORT_INFO::OTHER)) == 0 ?
+    (abort_info.type & ABORT_INFO::PSN ) == 0 ? tran_max :  (uint64_t) ((uint8_t) (target_ctx.abort_status >> 24)) :
+    tran_max/2; 
+
+  ex_state.update();
+  
+  if( ex_state.bounceBack( abort_info.type ) ){
+    if (taseDebug){
+      printf("Attempting to bounceback to native execution at RIP 0x%lx \n", target_ctx_gregs[GREG_RIP].u64);
+    }
+    return;
+  }
+  if (taseDebug) {
+    printf("Not attempting to bounceback to native execution at RIP 0x%lx \n", target_ctx_gregs[GREG_RIP].u64);
+  }
+  
   target_ctx_gregs[GREG_R14].u64 = 0; //Kill r14 because it's only used for instrumentation
   GlobalInterpreter->klee_interp_internal();
   
@@ -3865,71 +3962,6 @@ extern "C" void klee_interp () {
   return; //Returns to loop in main
 }
 
-int retryCtr = 0;
-enum class ABORT_TYPE {
-		       MODEL,
-		       PSN,
-		       UNKNOWN,
-		       OTHER
-};
-
-bool canBounceback (uint32_t abort_status, uint64_t rip) {
-  bool tsx = abort_status & (1<<TSX_XABORT), model = (abort_status & TSX_XABORT_MASK) == 0xff000000, unknown = ( abort_status & 0xff ) == 0;
-  ABORT_TYPE type = tsx ? (model ? ABORT_TYPE::MODEL : ABORT_TYPE::PSN ) : (unknown ? ABORT_TYPE::UNKNOWN : ABORT_TYPE::OTHER); 
- 
-  if (modelDebug) {
-    printf("Trapped at rip 0x%lx \n", rip);
-  }
-
-  retryCtr += rip == init_trap_RIP ? 1 : 0;
-  
-  switch( type ){
-  case ABORT_TYPE::MODEL:
-    if (modelDebug) {
-      printf("Model abort \n");
-    }
-    interp_state = INTERP_STATE::MODEL;
-    BB_MOD++;
-    break;
-  case ABORT_TYPE::PSN:
-    if (modelDebug) {
-      printf("Psn abort \n");
-    }
-    tran_max = (uint64_t) ((uint8_t) (abort_status >> 24));
-    BB_PSN++;
-    break;
-  case ABORT_TYPE::UNKNOWN:
-    if (modelDebug){
-      printf("Bounceback unknown return code %x\n", abort_status);
-    }
-    tran_max = tran_max/2;
-    BB_UR++;
-    break;
-  case ABORT_TYPE::OTHER:
-    if (modelDebug){
-      printf("Bounceback fall-through case \n");
-    }
-    tran_max = tran_max/2;
-    BB_OTHER++;
-    break;
-  }
-
-  if (execMode == MIXED && !singleStepping && type != ABORT_TYPE::MODEL && tran_max > 0) {
-    if (modelDebug){
-      printf("Attempting to bounceback to native execution at RIP 0x%lx \n", rip);
-    }
-    return true;
-    
-  } else {
-    if (modelDebug) {
-      if (tran_max <= 0) {
-	interp_state = INTERP_STATE::FAULT;
-      }
-      printf("Not attempting to bounceback to native execution at RIP 0x%lx \n", rip);
-    } 
-    return false;
-  }
-}
 
 
 //This function's purpose is to take a context from native execution 
@@ -4017,7 +4049,7 @@ void Executor::tase_make_symbolic_internal(uint64_t addr, uint64_t len, const ch
 }
 
 void Executor::tase_make_symbolic_bytewise(uint64_t addr, uint64_t len, const char * name) {
-  for (int i = 0; i < len; i++) {
+  for (uint64_t i = 0; i < len; i++) {
     std::string s = "_byte_" + std::to_string(i); 
     std::string varName = std::string(name) + s;
 
@@ -4037,8 +4069,8 @@ void Executor::model_sb_reopen() {
 void Executor::model_exit_tase() {
   print_run_timers();
 
-  fprintf(stdout,"Successfully exited from target.  Shutting down with %d x86 blocks interpreted \n", interpCtr);
-  fprintf(stdout,"%d total LLVM IR instructions interpreted \n", instCtr);
+  fprintf(stdout,"Successfully exited from target.  Shutting down with %ld x86 blocks interpreted \n", interpCtr);
+  fprintf(stdout,"%ld total LLVM IR instructions interpreted \n", instCtr);
   fflush(stdout);
   fflush(stderr);
   worker_exit();
@@ -4250,7 +4282,7 @@ bool Executor::tase_map(const FILE& t){
 //Todo: See if we can make this faster with the poison checking scheme.
 //tase_helper_write: Helper function similar to tase_helper_read
 //that helps us avoid rewriting the offset-lookup logic over and over.
-void Executor::tase_helper_write (uint64_t addr, ref<Expr> val) {
+void Executor::tase_helper_write(uint64_t addr, ref<Expr> val) {
   
   ref<Expr> addrExpr = ConstantExpr::create(addr, Expr::Int64);
 
@@ -4273,52 +4305,26 @@ void Executor::tase_helper_write (uint64_t addr, ref<Expr> val) {
 
 }
 
-//Todo: Update if we switch to supporting SIMD instructions
-bool Executor::gprsAreConcrete() {
-  return !tase_buf_has_taint((void *) &target_ctx_gregs[0], TASE_NGREG * TASE_GREG_SIZE);
-}
 
 //CAUTION: This only works if the pc points to the beginning of the cartridge 
 bool cartridgeHasFlagsDead(uint64_t pc) {
   return (cartridges_with_flags_live.find(pc) == cartridges_with_flags_live.end());
 }
 
-#ifdef TASE_OPENSSL
-bool isProhibFn(uint64_t pc) {
-  return  std::find(std::begin(prohib_fns), std::end(prohib_fns), pc) != std::end(prohib_fns);
-}
-#endif
-bool Executor::instructionBeginsTransaction(uint64_t pc) {
-  return singleStepping || (cartridge_entry_points.find(pc) != cartridge_entry_points.end());
-}
 
-bool Executor::resumeNativeExecution (){
-  if ( execMode != INTERP_ONLY && instructionBeginsTransaction(target_ctx_gregs[GREG_RIP].u64) ) {
-    #ifdef TASE_OPENSSL
-    if (isProhibFn(target_ctx_gregs[GREG_RIP].u64))
-	return false;
-    #endif
-    
-    if (taseDebug)
-      printf("Inst begins transaction \n");
-
-    if ( gprsAreConcrete() ) {
-      if (taseDebug)
-	printf("Registers are concrete \n");
-      return true;
-
-    } else {
-      if (taseDebug)
-	printf("Registers aren't concrete \n");
-      return false;
-    }
-
-  } else {
-    if (taseDebug)
-      printf("Inst doesn't begin transaction \n");
-    return false;
+bool Executor::resumeNativeExecution() {
+  if(taseDebug) {
+    std::cout << "Inst " << (ex_state.is_txn_start() ? "begins" : "doesn't begin") << " transaction\n";
+    std::cout << "Registers " << (ex_state.is_concrete() ? "are" : "aren't") << " concrete" << std::endl;
   }
+
+#ifdef TASE_OPENSSL
+  return ex_state.is_txn_start() && ex_state.is_concrete() && isProhibFn(target_ctx_gregs[GREG_RIP].u64);
+#else
+  return ex_state.is_txn_start() && ex_state.is_concrete();
+#endif
 }
+
 
 void Executor::model_tase_make_symbolic() {
 
@@ -4354,9 +4360,9 @@ static int model_malloc_calls = 0;
 
 
 
-//Macro for (M)odeled (F)unction (E)ntries
-//#define MFE(x, y) fnModelMap.insert(std::make_pair( (uint64_t)   &x , &klee::Executor::y )); \
-//  fnModelMap.insert(std::make_pair( (uint64_t)   &x  + trap_off, &klee::Executor::y ))
+/*Macro for (M)odeled (F)unction (E)ntries
+#define MFE(x, y) fnModelMap.insert(std::make_pair( (uint64_t)   &x , &klee::Executor::y )); \
+fnModelMap.insert(std::make_pair( (uint64_t)   &x  + trap_off, &klee::Executor::y ))*/
 
 /* Example for MFE(calloc_tase, model_calloc):
 fnModelMap.insert(std::make_pair( (uint64_t) &calloc_tase , &klee::Executor::model_calloc ));
@@ -4565,7 +4571,7 @@ void Executor::loadFnModelMap() {
   std::map<uint64_t , void (Executor::*) (void) > cpy(fnModelMap);
   printf("fnModelMap locations:\n");
   for(auto& x : cpy){
-    printf("maploc: %x, %x\n", x.first, x.first + trap_off);
+    printf("maploc: %lx, %lx\n", x.first, x.first + trap_off);
     fnModelMap.insert({x.first + trap_off, x.second});
   }
   //printf("Loading float emulation models \n");
@@ -4748,35 +4754,89 @@ scanright (uint64_t target, uint64_t pattern, uint64_t mask)
     return scan< 0 >(target, pattern, mask) == 0 ? I : scanright < I+1, J >(target, pattern >> 8, mask >> 8);
 }
 
-static std::string print_interp_state(INTERP_STATE state){
-  switch(state){
-  case INTERP_STATE::START:
-    return "START";
-  case INTERP_STATE::START_RESUME:
-    return "START_RESUME";
-  case INTERP_STATE::FAULT:
-    return "FAULT";
-  case INTERP_STATE::MODEL:
-    return "MODEL";
-  case INTERP_STATE::PROHIB:
-    return "PROHIB";
-  case INTERP_STATE::RESUME:
-    return "RESUME";
-  case INTERP_STATE::SKIP:
-    return "SKIP";
-  case INTERP_STATE::SKIP_RESUME:
-    return "SKIP_RESUME";
-  case INTERP_STATE::INTERP:
-    return "INTERP";
-  case INTERP_STATE::PROHIB_RESUME:
-    return "PROHIB_RESUME";
-  case INTERP_STATE::PROHIB_FAULT:
-    return "PROHIB_FAULT";
+
+void Executor::single_step_match(uint64_t cc[2]){
+  if( scan<0>(cc[0], 0x0000000000f6314d, 0x0000000000ffffff) >= 0 ) { 
+    Executor::tase_helper_write((uint64_t) &(target_ctx_gregs[GREG_EFL].u64), klee::ConstantExpr::create(0, Expr::Int64));
+    target_ctx_gregs[GREG_RIP].u64 += 3; // xor %r14,%r14
+    if( modelDebug ) {
+      std::cout << "Killing Flags (xor)" << std::endl;
+    }
+    ex_state = EXECUTION_STATE::SKIP;
+  } else if ( cc[0] == 0x4566363c751101c4 && scan< 0 >(cc[1], 0x0000850fff17380f, 0x0000ffffffffffff) >= 0 ) { 
+    target_ctx_gregs[GREG_RIP].u64 += 32; // vpcmpeqw/ptest/movq/leaq/jne
+    if( modelDebug ){
+      std::cout << "Skipping eager instrumentation (A)..." << std::endl;
+    }
+    ex_state = EXECUTION_STATE::SKIP;	
+  } else if ( scan< 0 >(cc[0], 0x9e00000000008948, 0xff0000000000ffff) >= 0 ) { 
+    // movq/lahf/movl/shrxq/vpcmpeqw/ptest/movq/leaq/jne/sahf/movq
+    target_ctx_gregs[GREG_RIP].u64 += 53;
+	
+    if( modelDebug ){                                                                                       
+      std::cout << "Skipping eager instrumentation (B)..." << std::endl;                                    
+    }
+    ex_state = EXECUTION_STATE::SKIP;	  
+  } else if ( scan< 0 >(cc[0], 0x000000000000009f, 0x00000000000000ff) == 0 ) {
+    // lahf/movl/shrxq/vpcmpeqw/ptest/movq/leaq/jne/sahf
+    target_ctx_gregs[GREG_RIP].u64 += 37;
+	
+    if( modelDebug ){                                                                                       
+      std::cout << "Skipping eager instrumentation (C)..." << std::endl;                                    
+    }
+    ex_state = EXECUTION_STATE::SKIP;	  
+  } else if ( scan< 0 >(cc[0], 0x0000000000308d44, 0x00000000000038fff4) == 0 ) {
+    // leaq -> r14
+    // get length: https://wiki.osdev.org/X86-64_Instruction_Encoding#64-bit_addressing
+    //        MOD
+    //  B.RM       0.000-0.011(0-3) 0.100  0.101  0.110-1.011(6-11) 1.100 1.101  1.110-1.111(14-15)
+    //         00        3           SIB      7         3             SIB     7        3
+    //         01        4           SIB      4         4             SIB     4        4
+    //         10        7           SIB      7         7             SIB     7        7
+    // SIB -> check base. If mod == 00 and base is 0.101 or 1.101 then size = 8, o.w. size = 4. If mod == 10, size = 8. If mod == 01, size = 5.
+	
+    auto brm = ((0x00000000000001 & cc[0]) << 3) | ((0x0000000000070000 & cc[0]) >> 16);
+    auto mod = (0x0000000000c00000 & cc[0]) >> 22;
+    auto size = 0;
+	
+    if ( brm == 4 || brm == 12 ) {
+      auto base = (0x00000007000000 & cc[0]) >> 6*4;
+      size = mod == 0 ? ( base == 5 ? 8 : 4 ) : ( mod == 2 ? 8 : 5 );
+    } else if ( brm == 5 || brm == 13 ) {
+      size = mod < 1 ? 7 : mod < 2 ? 4 : 7;
+    } else {
+      size = mod < 1 ? 3 : mod < 2 ? 4 : 7;
+    }
+
+    uint64_t c = 0;
+
+    if ( size < 8 ) {
+      c = (cc[0] >> ((size)*8)) | (cc[1] << ((8-size)*8)); // skip past current instr
+    } else {
+      c = cc[1];
+    }
+	
+    // check for potential next instrs, take earliest appearance
+    auto shr = scanleft< 0, 7 >(c, 0x0000000000eed149, 0x0000000000ffffff); // shrq ( eflags dead and rax dead )
+    auto mov = scanleft< 0, 7 >(c, 0x0000000000008948, 0x000000000000ffff); // movq ( eflags live and rax live )
+    auto lah = scanleft< 0, 7 >(c, 0x000000000000009f, 0x00000000000000ff); // lahf ( eflags live only )
+    shr = shr >= 0 ? shr : 8;
+    mov = mov >= 0 ? mov : 8;
+    lah = lah >= 0 ? lah : 8;
+
+    auto update = shr < mov ? ( shr < lah ? 35 : 37 ) : ( mov < lah ? 51 : 37 );
+    target_ctx_gregs[GREG_RIP].u64 += size + update;
+
+    if ( modelDebug ) {
+      std::cout << "Skipping eager instrumentation (D[" << size << "][" << shr << "][" << mov << "][" << lah << "])... " << std::hex << c << std::endl;
+    }
+    ex_state = EXECUTION_STATE::SKIP;	  
   }
 }
+
+
   
-  
-void Executor::klee_interp_internal () {
+void Executor::klee_interp_internal() {
   run_interp_traps++;
 
   while (true) {
@@ -4784,46 +4844,38 @@ void Executor::klee_interp_internal () {
     interpCtr++;
     if (taseDebug)
       printDebugInterpHeader();
-    
+
     uint64_t rip = target_ctx_gregs[GREG_RIP].u64;
     uint64_t rip_init = rip;
 
+    
+    auto mod = fnModelMap.find(rip);
+    auto resume = resumeNativeExecution();
+
     if (modelDebug) {
-      printf("RIP at top of klee_interp_internal loop is 0x%lx \n", rip);
-      fflush(stdout);
+      std::cout << "RIP at top of klee_interp_internal loop is " << std::hex << rip << std::dec << std::endl;
+      std::cout << "interp_state: " << ex_state.print_istate() << "\n";
+      std::cout << "Model found: " << (mod == fnModelMap.end() ? "false" : "true") << "\n";
+      std::cout << "resumeNative: " << (resume ? "true" : "false") << "\n";
     }
       
-    //IMPORTANT -- The springboard is written assuming we never try to
+    //IMPORTANT -- The (TSX) springboard is written assuming we never try to
     // jump right back into a modeled fn.  The sb_modeled label immediately XENDs, which will
     // cause a segfault if the process isn't executing a transaction.
 
-    //dont_model is used to force execution in interpreter when a register is tainted (but no args are symbolic) for a modeled fn
-    auto mod = fnModelMap.find(rip);
-    auto resume = resumeNativeExecution();
-    if( modelDebug ){
-      std::cout << "previous interp_state: " << print_interp_state(interp_state) << "\n";
-      std::cout << "Model found: " << (mod == fnModelMap.end() ? "false" : "true") << "\n";
-      std::cout << "resumeNative: " << (resume ? "true" : "false") << "\n";
-
-    }
-
-    if( (interp_state & (INTERP_STATE::PROHIB | INTERP_STATE::FAULT)) == 0 && mod != fnModelMap.end() ){
+    if( ex_state.istate_none_of(EXECUTION_STATE::PROHIB_RESUME | EXECUTION_STATE::PROHIB_FAULT | EXECUTION_STATE::FAULT) && mod != fnModelMap.end() ){
       if( taseDebug ){
         std::cout << "INTERPRETER: FOUND SPECIAL MODELED INST at rip " << std::hex << rip << std::dec << "\n";
       }
-      interp_state = INTERP_STATE::MODEL;
+      ex_state = EXECUTION_STATE::MODEL;
       void (klee::Executor::*fp)() = mod->second;
       (this->*fp)();
 
-    } else if( (interp_state & (INTERP_STATE::PROHIB | INTERP_STATE::FAULT | INTERP_STATE::START_RESUME)) == 0 && resume ){
-      interp_state = interp_state == INTERP_STATE::START ? INTERP_STATE::START_RESUME : INTERP_STATE::RESUME;
+    } else if( ex_state.istate_none_of(EXECUTION_STATE::PROHIB | EXECUTION_STATE::PROHIB_RESUME | EXECUTION_STATE::PROHIB_FAULT | EXECUTION_STATE::FAULT) && resume ){
+      ex_state = EXECUTION_STATE::RESUME;
       break;
 
     } else {
-
-      if( !singleStepping ){
-        tryKillFlags(target_ctx_gregs);
-      }
       
       if( taseDebug ) {
 	std::cout << "Checking for skippable instrs" << std::endl;
@@ -4831,97 +4883,25 @@ void Executor::klee_interp_internal () {
 
       uint64_t cc[2] = {*(uint64_t*)target_ctx_gregs[GREG_RIP].u64, *(((uint64_t*)target_ctx_gregs[GREG_RIP].u64)+1)};
 
-      if( singleStepping ) {
-	if( scan<0>(cc[0], 0x0000000000f6314d, 0x0000000000ffffff) >= 0 ) { 
-	  tase_helper_write((uint64_t) &(target_ctx_gregs[GREG_EFL].u64), ConstantExpr::create(0, Expr::Int64));
-	  target_ctx_gregs[GREG_RIP].u64 += 3; // xor %r14,%r14
-	  if( modelDebug ) {
-	    std::cout << "Killing Flags (xor)" << std::endl;
-	  }
-	  interp_state = INTERP_STATE::SKIP;
-	} else if ( cc[0] == 0x4566363c751101c4 && scan< 0 >(cc[1], 0x0000850fff17380f, 0x0000ffffffffffff) >= 0 ) { 
-	  target_ctx_gregs[GREG_RIP].u64 += 32; // vpcmpeqw/ptest/movq/leaq/jne
-	  if( modelDebug ){
-	    std::cout << "Skipping eager instrumentation (A)..." << std::endl;
-	  }
-	  interp_state = INTERP_STATE::SKIP;	
-	} else if ( scan< 0 >(cc[0], 0x9e00000000008948, 0xff0000000000ffff) >= 0 ) { 
-	  // movq/lahf/movl/shrxq/vpcmpeqw/ptest/movq/leaq/jne/sahf/movq
-	  target_ctx_gregs[GREG_RIP].u64 += 53;
+      if( ex_state.is_singleStepping() ) { // noTSX - skip or interpret
+	single_step_match(cc);
+      }	else {               // TSX - kill flags, skip or interpret
+	tryKillFlags();
 	
-	  if( modelDebug ){                                                                                       
-	    std::cout << "Skipping eager instrumentation (B)..." << std::endl;                                    
-	  }
-	  interp_state = INTERP_STATE::SKIP;	  
-	} else if ( scan< 0 >(cc[0], 0x000000000000009f, 0x00000000000000ff) == 0 ) {
-	  // lahf/movl/shrxq/vpcmpeqw/ptest/movq/leaq/jne/sahf
-	  target_ctx_gregs[GREG_RIP].u64 += 37;
-	
-	  if( modelDebug ){                                                                                       
-	    std::cout << "Skipping eager instrumentation (C)..." << std::endl;                                    
-	  }
-	  interp_state = INTERP_STATE::SKIP;	  
-	} else if ( scan< 0 >(cc[0], 0x0000000000308d44, 0x00000000000038fff4) == 0 ) {
-	  // leaq -> r14
-	  // get length: https://wiki.osdev.org/X86-64_Instruction_Encoding#64-bit_addressing
-	  //        MOD
-	  //  B.RM       0.000-0.011(0-3) 0.100  0.101  0.110-1.011(6-11) 1.100 1.101  1.110-1.111(14-15)
-	  //         00        3           SIB      7         3             SIB     7        3
-	  //         01        4           SIB      4         4             SIB     4        4
-	  //         10        7           SIB      7         7             SIB     7        7
-	  // SIB -> check base. If mod == 00 and base is 0.101 or 1.101 then size = 8, o.w. size = 4. If mod == 10, size = 8. If mod == 01, size = 5.
-	
-	  auto brm = ((0x00000000000001 & cc[0]) << 3) | ((0x0000000000070000 & cc[0]) >> 16);
-	  auto mod = (0x0000000000c00000 & cc[0]) >> 22;
-	  auto size = 0;
-	
-	  if ( brm == 4 || brm == 12 ) {
-	    auto base = (0x00000007000000 & cc[0]) >> 6*4;
-	    size = mod == 0 ? ( base == 5 ? 8 : 4 ) : ( mod == 2 ? 8 : 5 );
-	  } else if ( brm == 5 || brm == 13 ) {
-	    size = mod < 1 ? 7 : mod < 2 ? 4 : 7;
-	  } else {
-	    size = mod < 1 ? 3 : mod < 2 ? 4 : 7;
-	  }
-
-	  uint64_t c = 0;
-
-	  if ( size < 8 ) {
-	    c = (cc[0] >> ((size)*8)) | (cc[1] << ((8-size)*8)); // skip past current instr
-	  } else {
-	    c = cc[1];
-	  }
-	
-	  // check for potential next instrs, take earliest appearance
-	  auto shr = scanleft< 0, 7 >(c, 0x0000000000eed149, 0x0000000000ffffff); // shrq ( eflags dead and rax dead )
-	  auto mov = scanleft< 0, 7 >(c, 0x0000000000008948, 0x000000000000ffff); // movq ( eflags live and rax live )
-	  auto lah = scanleft< 0, 7 >(c, 0x000000000000009f, 0x00000000000000ff); // lahf ( eflags live only )
-	  shr = shr >= 0 ? shr : 8;
-	  mov = mov >= 0 ? mov : 8;
-	  lah = lah >= 0 ? lah : 8;
-
-	  auto update = shr < mov ? ( shr < lah ? 35 : 37 ) : ( mov < lah ? 51 : 37 );
-	  target_ctx_gregs[GREG_RIP].u64 += size + update;
-
-	  if ( modelDebug ) {
-	    std::cout << "Skipping eager instrumentation (D[" << size << "][" << shr << "][" << mov << "][" << lah << "])... " << std::hex << c << std::endl;
-	  }
-	  interp_state = INTERP_STATE::SKIP;	  
+	if( scan< 0 >(cc[0], 0x00000000053d8d4c, 0x00ffffffffffffff) >= 0 ){
+          target_ctx_gregs[GREG_RIP].u64 += trap_off; // lea/jmpq
+          if( modelDebug ) {
+            std::cout << "Skipping LEA and jmp..." << std::endl;
+          }
+	  ex_state = EXECUTION_STATE::SKIP;
 	}
-      }	else if( !singleStepping && scan< 0 >(cc[0], 0x00000000053d8d4c, 0x00ffffffffffffff) >= 0 ){
-        target_ctx_gregs[GREG_RIP].u64 += trap_off; // lea/jmpq
-        if( modelDebug ) {
-          std::cout << "Skipping LEA and jmp..." << std::endl;
-        }
-
-	interp_state = INTERP_STATE::SKIP;
       }
 
-      if( (interp_state & INTERP_STATE::SKIP) == 0 ){
-	interp_state = INTERP_STATE::INTERP;
+      if( ex_state.istate_none_of(EXECUTION_STATE::SKIP) ){
+	  ex_state = EXECUTION_STATE::INTERP;
         runCoreInterpreter(target_ctx_gregs);
       } else {
-	interp_state = INTERP_STATE::SKIP_RESUME;
+	ex_state = EXECUTION_STATE::SKIP_RESUME;
       }
     }
 
@@ -4941,25 +4921,28 @@ void Executor::klee_interp_internal () {
     }
 
     //Kludge to get us back to native execution for prohib fns with concrete input
-    if( interp_state == INTERP_STATE::PROHIB_RESUME ) {
-      if ( execMode != INTERP_ONLY && gprsAreConcrete() ) {
+    if( ex_state == EXECUTION_STATE::PROHIB_RESUME ) {
+      if ( ex_state.is_concrete() ) {
 	//This case is for attempts to execute natively that repeatedly result in
 	//page faults.  We have to interpret in that case to map the page in.
         if ( tran_max == 0 && target_ctx_gregs[GREG_RIP].u64 == init_trap_RIP ) {
           if (taseDebug) {
             std::cout << "Repeated faults detected for prohib function" << std::endl;
           }
-	  interp_state = INTERP_STATE::PROHIB_FAULT;
+	  ex_state = EXECUTION_STATE::PROHIB_FAULT;
 
         } else {
 	  if( taseDebug ) {
             std::cout << "Trying to return to native execution" << std::endl;
 	  }
+
+	  ex_state = EXECUTION_STATE::PROHIB_RESUME;
 	  break;
         }
       }
     }
-  }
+    ex_state.update();
+  } // end while
   
 
   static int numReturns = 0;
@@ -4975,43 +4958,18 @@ void Executor::klee_interp_internal () {
   return;
 }
 
-//If instruction ptr points to instrumentation instruction, skip it
-//without interpreting the instruction via IR.  Returns true if
-//we skip, and performs the skipping.
 
-//Only implemented for lea for now.
-/*bool Executor::skipInstrumentationInstruction (tase_greg_t * gregs) {
-  uint64_t rip = gregs[GREG_RIP].u64;
-
-  //Opt to skip LEAs.  Specifically, we're looking to skip instructions like
-  // 4c 8d 3d 05 00 00 00    lea    0x5(%rip),%r15
-  //and its following 5-byte jmp instruction.
-  uint64_t tmp =  *((uint64_t *) rip) ; //get 8 bytes of next instructions
-  uint64_t maskedVal = tmp & 0x00ffffffffffffff; //grab first 7 bytes
-  if (maskedVal == 0x00000000053d8d4c ) {
-    gregs[GREG_RIP].u64 += trap_off;
-    if (modelDebug) {
-      printf("Skipping LEA ... \n");
-    }
-    return true;
-  } else {
-    return false;
-    }
-
-  return (*(uint64_t*)gregs[GREG_RIP].u64 & 0x00ffffffffffffff) == 0x00000000053d8d4c;
-}*/
-
-void Executor::tryKillFlags(tase_greg_t * gregs) {
+void Executor::tryKillFlags() {
   if (killFlags) {
-    uint64_t rip = gregs[GREG_RIP].u64;
-    if (instructionBeginsTransaction(rip)) {
+    uint64_t rip = target_ctx_gregs[GREG_RIP].u64;
+    if ( ex_state.is_txn_start() ) {
       if (cartridgeHasFlagsDead(rip)) {
 	if (taseDebug) {
 	  printf("Killing flags \n");
 	}
 	uint64_t zero = 0;
 	ref<ConstantExpr> zeroExpr = ConstantExpr::create(zero, Expr::Int64);
-	tase_helper_write((uint64_t) &gregs[GREG_EFL], zeroExpr);
+	tase_helper_write((uint64_t) &target_ctx_gregs[GREG_EFL], zeroExpr);
       }
     }
   }

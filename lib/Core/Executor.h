@@ -95,6 +95,128 @@ namespace klee {
   template<class T> class ref;
 
 
+  struct ABORT_INFO {
+    struct ABORT_COUNTS {
+      int unknown;      //Unknown return codes
+      int model;        //Modeled return
+      int psn;          //PSN return
+      int other;       //Other return
+    };
+  
+    enum ABORT_TYPE: uint8_t {
+			      MODEL   = 1,
+			      PSN     = 2,
+			      UNKNOWN = 4,
+			      OTHER   = 8
+    };
+
+    ABORT_COUNTS counts;
+    ABORT_TYPE type;
+
+    void print();
+    void print_counts();
+    void classify_and_count();
+    void reset_counts();
+  };
+
+
+  struct EXECUTION_STATE {
+    enum INTERP_STATE: uint16_t {
+				 FAULT         = 1,  // page fault
+				 MODEL         = 2,  // model fxn
+				 PROHIB        = 4,  // prohib fxn - don't resume native
+				 RESUME        = 8,  // resume native execution
+				 SKIP          = 16, // skipping instrs
+				 SKIP_RESUME   = 32, // resume native from skip
+				 INTERP        = 64, // interpret
+				 PROHIB_RESUME = 128,// resume native after prohib model
+				 PROHIB_FAULT  = 256 // page fault in prohib
+			 
+    };
+
+    enum EXECUTION_MODE: uint8_t {
+				  MIXED = 1,  // mixed mode
+				  SSTEP = 2,  // singleStepping
+				  BOUNCE = 4, // bounceback enabled
+    };
+
+    enum TRANSACTION_STATUS: uint8_t {
+				      CONCRETE = 1,  // gprArgs are concrete
+				      TXN_START = 2  // start of transaction
+    };
+
+    uint16_t istate;
+    uint8_t mode;
+    uint8_t txn_status;
+
+    EXECUTION_STATE(bool mixed, bool sstep, bool bounce)
+      : istate(mixed ? RESUME : INTERP)
+      , mode((mixed ? MIXED : 0) | (bounce ? BOUNCE : 0) | (sstep ? SSTEP : 0))
+      , txn_status(0)
+    {}
+
+    EXECUTION_STATE(){}
+    
+    // COMPARE w/ INTERP_STATE or EXECUTION_MODE
+    bool operator==(INTERP_STATE o){
+      return (istate & o) != 0;
+    }
+
+    bool operator==(EXECUTION_MODE o){
+      return (mode & o) != 0;
+    }
+
+    bool operator!=(INTERP_STATE o){
+      return istate != o;
+    }
+
+    bool operator!=(EXECUTION_MODE o){
+      return mode != 0;
+    }
+
+    // Assign INTERP_STATE
+    void operator=(INTERP_STATE o){
+      istate = o;
+    }
+
+    std::string print_istate(){
+      switch(istate){
+      case INTERP_STATE::FAULT:
+	return "FAULT";
+      case INTERP_STATE::MODEL:
+	return "MODEL";
+      case INTERP_STATE::PROHIB:
+	return "PROHIB";
+      case INTERP_STATE::RESUME:
+	return "RESUME";
+      case INTERP_STATE::SKIP:
+	return "SKIP";
+      case INTERP_STATE::SKIP_RESUME:
+	return "SKIP_RESUME";
+      case INTERP_STATE::INTERP:
+	return "INTERP";
+      case INTERP_STATE::PROHIB_RESUME:
+	return "PROHIB_RESUME";
+      case INTERP_STATE::PROHIB_FAULT:
+	return "PROHIB_FAULT";
+      }
+      return "NO STATE";
+    }
+    
+    bool is_concrete();
+    bool is_txn_start();
+    bool is_singleStepping();
+    bool is_mixedMode();
+    bool is_bouncing();
+    bool bounceBack(ABORT_INFO::ABORT_TYPE status);
+
+    void update();
+
+    bool istate_none_of(uint16_t mask);
+  };
+
+  
+
   /// \todo Add a context object to keep track of data only live
   /// during an instruction step. Should contain addedStates,
   /// removedStates, and haltExecution, among others.
@@ -374,9 +496,9 @@ private:
   void make_byte_symbolic_model();
 
   bool skipInstrumentationInstruction(tase_greg_t * gregs);
-  void tryKillFlags(tase_greg_t * gregs);
+  void tryKillFlags();
   void runCoreInterpreter(tase_greg_t * gregs);
-
+  void single_step_match(uint64_t cc[2]);
   //AH: Internal helper functions--------------------------
 
   //Tase helper to write an expr directly to an addr.  Width

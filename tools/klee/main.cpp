@@ -84,6 +84,7 @@ extern double last_message_verification_time;
 #include "tase_interp.h"
 extern target_ctx_t target_ctx;
 tase_greg_t * target_ctx_gregs = target_ctx.gregs;
+extern EXECUTION_STATE ex_state;
 
 uint64_t targetMemAddr;
 int glob_argc;
@@ -1502,13 +1503,16 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      std::transform(logFile.begin(), logFile.end(), std::back_inserter(loglower), [](unsigned char x){return tolower(x);});
      noLog = loglower == "false";
    }
-   singleStepping = singleSteppingArg;
+   
    taseDebug = taseDebugArg;
    modelDebug = modelDebugArg;
    bufferGuard = bufferGuardArg;
    dropS2C = dropS2CArg;
    enableTimeSeries = enableTimeSeriesArg;
 
+   //      singleStepping = singleSteppingArg;
+   ex_state = EXECUTION_STATE((bool) execMode == MIXED, (bool)singleSteppingArg, (bool) enableBounceback);
+   
    //If we don't explicitly give the project name, use some defaults.
    //This is particularly useful when running TASE from the projects directory because
    //it removes the number of args needed to launch TASE.
