@@ -488,10 +488,25 @@ bool EXECUTION_STATE::istate_none_of(uint16_t mask) const {
 }
 
 // check concreteness, transaction start, and if ssl check if prohib
-void EXECUTION_STATE::update(){
+void EXECUTION_STATE::update(ABORT_INFO::ABORT_TYPE type){
   bool conc = (mode & MIXED) != 0 && !tase_buf_has_taint((void *) &target_ctx_gregs[0], TASE_NGREG * TASE_GREG_SIZE);
   bool start = (mode & SSTEP) != 0 || cartridge_entry_points.find(target_ctx_gregs[GREG_RIP].u64) != cartridge_entry_points.end();
   txn_status = (conc ? CONCRETE : 0) | (start ? TXN_START : 0);
+
+  if( (mode & BOUNCE) != 0 && status != ABORT_INFO::MODEL ) {
+    if( tran_max > 0 ){
+    istate = BOUNCEBACK;
+    target_ctx_gregs[GREG_RIP].u64 -= bounceback_offset;
+    } else {
+#ifdef TASE_OPENSSL
+      istate = istate == PROHIB ? PROHIB_FAULT : FAULT;
+#else
+      istate = FAULT;
+#endif
+    }
+  } else if ( (mode & SSTEP) != 0 && status == ABORT_INFO::PSN && !conc ) {
+    istate = INTERP;
+  }
   
 #ifdef TASE_OPENSSL
   if( std::find(std::begin(prohib_fns), std::end(prohib_fns), target_ctx_gregs[GREG_RIP].u64) != std::end(prohib_fns) ){
@@ -501,7 +516,7 @@ void EXECUTION_STATE::update(){
 }
 
 
-bool EXECUTION_STATE::bounceBack(ABORT_INFO::ABORT_TYPE status){
+/*bool EXECUTION_STATE::bounceBack(ABORT_INFO::ABORT_TYPE status){
   if( is_bouncing() && status != ABORT_INFO::MODEL && tran_max > 0) {
     target_ctx_gregs[GREG_RIP].u64 -= bounceback_offset;
     return true;
@@ -512,12 +527,12 @@ bool EXECUTION_STATE::bounceBack(ABORT_INFO::ABORT_TYPE status){
 #else
       istate = FAULT;
 #endif      
-    } else if( ex_state.is_singleStepping() && status == ABORT_INFO::PSN ){
+    } else if( ex_state.is_singleStepping() && status == ABORT_INFO::PSN && !ex_state.is_concrete() ){ // poison in singleStepping -> don't try again, just interpret
       istate = INTERP;
     }
     return false;
   }
-}
+}*/
 
 
 void ABORT_INFO::print_counts() const {
@@ -3945,9 +3960,9 @@ extern "C" void klee_interp () {
     (abort_info.type & ABORT_INFO::PSN ) == 0 ? tran_max :  (uint64_t) ((uint8_t) (target_ctx.abort_status >> 24)) :
     tran_max/2; 
 
-  ex_state.update();
+  ex_state.update( abort_info.type );
   
-  if( ex_state.bounceBack( abort_info.type ) ){
+  if( ex_state == EXECUTION_STATE::BOUNCEBACK ) {
     if (taseDebug){
       printf("Attempting to bounceback to native execution at RIP 0x%lx \n", target_ctx_gregs[GREG_RIP].u64);
     }

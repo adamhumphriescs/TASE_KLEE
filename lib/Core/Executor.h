@@ -130,7 +130,8 @@ namespace klee {
 				 SKIP_RESUME   = 32, // resume native from skip
 				 INTERP        = 64, // interpret
 				 PROHIB_RESUME = 128,// resume native after prohib model
-				 PROHIB_FAULT  = 256 // page fault in prohib
+				 PROHIB_FAULT  = 256,// page fault in prohib
+				 BOUNCEBACK    = 512 // bounceback
 			 
     };
 
@@ -210,8 +211,7 @@ namespace klee {
     bool is_bouncing() const;
     bool istate_none_of(uint16_t mask) const;
 
-    void update();
-    bool bounceBack(ABORT_INFO::ABORT_TYPE status);
+    void update(ABORT_INFO::ABORT_TYPE status);
   };
 
   
