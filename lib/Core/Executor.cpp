@@ -4890,7 +4890,7 @@ void Executor::klee_interp_internal() {
 	ex_state = EXECUTION_STATE::PROHIB_FAULT;
       }
     case EXECUTION_STATE::RESUME:
-      break;
+      return;
 
     case EXECUTION_STATE::MODEL:
       (this->*fp)();
