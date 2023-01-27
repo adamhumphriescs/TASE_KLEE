@@ -99,13 +99,13 @@ namespace klee {
     struct ABORT_COUNTS {
       int unknown;      //Unknown return codes
       int model;        //Modeled return
-      int psn;          //PSN return
+      int poison;          //Poison return
       int other;       //Other return
     };
   
     enum ABORT_TYPE: uint8_t {
 			      MODEL   = 1,
-			      PSN     = 2,
+			      POISON  = 2,
 			      UNKNOWN = 4,
 			      OTHER   = 8
     };
@@ -127,12 +127,10 @@ namespace klee {
 				 PROHIB        = 4,  // prohib fxn - don't resume native
 				 RESUME        = 8,  // resume native execution
 				 SKIP          = 16, // skipping instrs
-				 SKIP_RESUME   = 32, // resume native from skip
-				 INTERP        = 64, // interpret
-				 PROHIB_RESUME = 128,// resume native after prohib model
-				 PROHIB_FAULT  = 256,// page fault in prohib
-				 BOUNCEBACK    = 512 // bounceback
-			 
+				 INTERP        = 32, // interpret
+				 PROHIB_RESUME = 64,// resume native after prohib model
+				 PROHIB_FAULT  = 128,// page fault in prohib
+				 BOUNCEBACK    = 256 // bounceback			 
     };
 
     enum EXECUTION_MODE: uint8_t {
@@ -192,8 +190,6 @@ namespace klee {
 	return "RESUME";
       case INTERP_STATE::SKIP:
 	return "SKIP";
-      case INTERP_STATE::SKIP_RESUME:
-	return "SKIP_RESUME";
       case INTERP_STATE::INTERP:
 	return "INTERP";
       case INTERP_STATE::PROHIB_RESUME:

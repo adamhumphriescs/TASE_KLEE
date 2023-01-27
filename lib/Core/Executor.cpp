@@ -487,70 +487,55 @@ bool EXECUTION_STATE::istate_none_of(uint16_t mask) const {
   return (istate & mask) == 0;
 }
 
-// check concreteness, transaction start, and if ssl check if prohib
+// check concreteness, transaction start, and update state based on abort type
 void EXECUTION_STATE::update(ABORT_INFO::ABORT_TYPE type){
   bool conc = (mode & MIXED) != 0 && !tase_buf_has_taint((void *) &target_ctx_gregs[0], TASE_NGREG * TASE_GREG_SIZE);
   bool start = (mode & SSTEP) != 0 || cartridge_entry_points.find(target_ctx_gregs[GREG_RIP].u64) != cartridge_entry_points.end();
   txn_status = (conc ? CONCRETE : 0) | (start ? TXN_START : 0);
 
-  if( (mode & BOUNCE) != 0 && type != ABORT_INFO::MODEL ) {
-    if( tran_max > 0 ){
-    istate = BOUNCEBACK;
-    target_ctx_gregs[GREG_RIP].u64 -= bounceback_offset;
-    } else {
-#ifdef TASE_OPENSSL
-      istate = istate == PROHIB ? PROHIB_FAULT : FAULT;
-#else
-      istate = FAULT;
-#endif
+  switch( type ){
+  case ABORT_INFO::MODEL:
+    istate = MODEL;
+    break;
+  case ABORT_INFO::POISON:
+    if( (mode & SSTEP) != 0 ) {
+      istate = INTERP;
+      break;
     }
-  } else if ( (mode & SSTEP) != 0 && type == ABORT_INFO::PSN ) {
-    istate = INTERP;
+  case ABORT_INFO::UNKNOWN:
+  case ABORT_INFO::OTHER:
+    if( (mode & BOUNCE) != 0 ) {
+      if( tran_max > 0 ) {
+	istate = BOUNCEBACK;
+	target_ctx_gregs[GREG_RIP].u64 -= bounceback_offset;
+      } else {
+	istate = FAULT;
+      }
+    }
   }
-  
-#ifdef TASE_OPENSSL
-  if( std::find(std::begin(prohib_fns), std::end(prohib_fns), target_ctx_gregs[GREG_RIP].u64) != std::end(prohib_fns) ){
-    istate = PROHIB;
-  }
-#endif
 }
+
 
 void EXECUTION_STATE::update(){
   bool conc = (mode & MIXED) != 0 && !tase_buf_has_taint((void *) &target_ctx_gregs[0], TASE_NGREG * TASE_GREG_SIZE);
   bool start = (mode & SSTEP) != 0 || cartridge_entry_points.find(target_ctx_gregs[GREG_RIP].u64) != cartridge_entry_points.end();
   txn_status = (conc ? CONCRETE : 0) | (start ? TXN_START : 0);
 
-#ifdef TASE_OPENSSL
-  if( std::find(std::begin(prohib_fns), std::end(prohib_fns), target_ctx_gregs[GREG_RIP].u64) != std::end(prohib_fns) ){
-    istate = PROHIB;
+  if( (mode & MIXED) != 0 && taseDebug ) {
+    std::cout << "Inst " << (start ? "begins" : "doesn't begin") << " transaction\n";
+    std::cout << "Registers " << (conc ? "are" : "aren't") << " concrete" << std::endl;    
   }
-#endif
+  
+  if( conc && start ) {
+    istate = RESUME;
+  }
 }
 
 
-/*bool EXECUTION_STATE::bounceBack(ABORT_INFO::ABORT_TYPE status){
-  if( is_bouncing() && status != ABORT_INFO::MODEL && tran_max > 0) {
-    target_ctx_gregs[GREG_RIP].u64 -= bounceback_offset;
-    return true;
-  } else {
-    if (tran_max <= 0) {
-#ifdef TASE_OPENSSL      
-      istate = istate == PROHIB ? PROHIB_FAULT : FAULT;
-#else
-      istate = FAULT;
-#endif      
-    } else if( ex_state.is_singleStepping() && status == ABORT_INFO::PSN && !ex_state.is_concrete() ){ // poison in singleStepping -> don't try again, just interpret
-      istate = INTERP;
-    }
-    return false;
-  }
-}*/
-
-
 void ABORT_INFO::print_counts() const {
-  std::cout << "BB_UR: " << counts.unknown << "\n";
-  std::cout << "BB_MOD: " << counts.model << "\n";
-  std::cout << "BB_PSN: " << counts.psn << "\n";
+  std::cout << "BB_UNKNOWN: " << counts.unknown << "\n";
+  std::cout << "BB_MODEL: " << counts.model << "\n";
+  std::cout << "BB_POISON: " << counts.poison << "\n";
   std::cout << "BB_OTHER: " << counts.other << "\n";
 }
 
@@ -560,24 +545,33 @@ void ABORT_INFO::reset_counts(){
 }
 
 
+
+/*
+  uint32_t abort_status: first bit is for xabort (or fake xabort)
+  high 8 bits are for xabort return value 
+
+  model abort is fake xabort with ff in high bits
+  poison is xabort with 0-15 (0x00-0x0f - high bits
+ */
 void ABORT_INFO::classify_and_count(){
+  uint8_t high_bits = (uint8_t) ((target_ctx.abort_status & TSX_XABORT_MASK)>>24);
   bool tsx = target_ctx.abort_status & (1<<TSX_XABORT);
-  bool model = (target_ctx.abort_status & TSX_XABORT_MASK) == 0xff000000;
-  bool unknown = ( target_ctx.abort_status & 0xff ) == 0;
 
-  type = tsx ?
-    (model ? ABORT_TYPE::MODEL : ABORT_TYPE::PSN ) :
-    (unknown ? ABORT_TYPE::UNKNOWN : ABORT_TYPE::OTHER); 
+  type = tsx ? ( high_bits == 0xff ? ABORT_TYPE::MODEL : (high_bits < 16) ?  ABORT_TYPE::POISON : ABORT_TYPE::UNKNOWN ) :
+               high_bits == 0 ? ABORT_TYPE::UNKNOWN :
+                                ABORT_TYPE::OTHER; 
 
-  // if singleStepping not really an xabort
+  tran_max = (type & (ABORT_TYPE::UNKNOWN | ABORT_TYPE::OTHER)) == 0 ?
+    (type & ABORT_TYPE::POISON) == 0 ? tran_max : high_bits :
+    tran_max/2; 
   
   switch( type ){
   case ABORT_TYPE::MODEL:
     ex_state = EXECUTION_STATE::MODEL;
     counts.model++;
     break;
-  case ABORT_TYPE::PSN:
-    counts.psn++;
+  case ABORT_TYPE::POISON:
+    counts.poison++;
     break;
   case ABORT_TYPE::UNKNOWN:
     counts.unknown++;
@@ -587,7 +581,8 @@ void ABORT_INFO::classify_and_count(){
     break;
   }
 }
-  
+
+
 void ABORT_INFO::print() const {
   std::cout << "Abort type: ";
   switch( type ){
@@ -597,8 +592,8 @@ void ABORT_INFO::print() const {
   case ABORT_TYPE::MODEL:
     std::cout << "Model\n";
     break;
-  case ABORT_TYPE::PSN:
-    std::cout << "Psn\n";
+  case ABORT_TYPE::POISON:
+    std::cout << "Poison\n";
     break;
   case ABORT_TYPE::OTHER:
     std::cout << "Other/fallthrough\n";
@@ -3968,10 +3963,6 @@ extern "C" void klee_interp () {
     abort_info.print();
   }
 
-  tran_max = (abort_info.type & (ABORT_INFO::UNKNOWN | ABORT_INFO::OTHER)) == 0 ?
-    (abort_info.type & ABORT_INFO::PSN ) == 0 ? tran_max :  (uint64_t) ((uint8_t) (target_ctx.abort_status >> 24)) :
-    tran_max/2; 
-
   ex_state.update( abort_info.type );
   
   if( ex_state == EXECUTION_STATE::BOUNCEBACK ) {
@@ -3994,6 +3985,10 @@ extern "C" void klee_interp () {
   return; //Returns to loop in main
 }
 
+
+bool Executor::resumeNativeExecution() {
+  return false;
+}
 
 
 //This function's purpose is to take a context from native execution 
@@ -4341,20 +4336,6 @@ void Executor::tase_helper_write(uint64_t addr, ref<Expr> val) {
 //CAUTION: This only works if the pc points to the beginning of the cartridge 
 bool cartridgeHasFlagsDead(uint64_t pc) {
   return (cartridges_with_flags_live.find(pc) == cartridges_with_flags_live.end());
-}
-
-
-bool Executor::resumeNativeExecution() {
-  if(taseDebug) {
-    std::cout << "Inst " << (ex_state.is_txn_start() ? "begins" : "doesn't begin") << " transaction\n";
-    std::cout << "Registers " << (ex_state.is_concrete() ? "are" : "aren't") << " concrete" << std::endl;
-  }
-
-#ifdef TASE_OPENSSL
-  return ex_state.is_txn_start() && ex_state.is_concrete() && isProhibFn(target_ctx_gregs[GREG_RIP].u64);
-#else
-  return ex_state.is_txn_start() && ex_state.is_concrete();
-#endif
 }
 
 
@@ -4863,6 +4844,8 @@ void Executor::single_step_match(uint64_t cc[2]){
       std::cout << "Skipping eager instrumentation (D[" << size << "][" << shr << "][" << mov << "][" << lah << "])... " << std::hex << c << std::endl;
     }
     ex_state = EXECUTION_STATE::SKIP;	  
+  } else {
+    ex_state = EXECUTION_STATE::INTERP;
   }
 }
 
@@ -4879,65 +4862,79 @@ void Executor::klee_interp_internal() {
 
     uint64_t rip = target_ctx_gregs[GREG_RIP].u64;
     uint64_t rip_init = rip;
-
     
     auto mod = fnModelMap.find(rip);
-    auto resume = resumeNativeExecution();
-
+    void (klee::Executor::*fp)() = mod == fnModelMap.end() ? NULL : mod->second;
+    
     if (modelDebug) {
-      std::cout << "RIP at top of klee_interp_internal loop is " << std::hex << rip << std::dec << std::endl;
+      std::cout << "RIP at top of klee_interp_internal loop is " << std::hex << rip << std::dec << "\n";
       std::cout << "interp_state: " << ex_state.print_istate() << "\n";
-      std::cout << "Model found: " << (mod == fnModelMap.end() ? "false" : "true") << "\n";
-      std::cout << "resumeNative: " << (resume ? "true" : "false") << "\n";
+      std::cout << "Model found: " << (mod == fnModelMap.end() ? "false" : "true") << std::endl;
+    }
+
+    // in the case we advance within the while loop to a model
+    if( ex_state != EXECUTION_STATE::MODEL && ex_state != EXECUTION_STATE::PROHIB && mod != fnModelMap.end() ){
+      if( modelDebug ) {
+	std::cout << "Updating interp_state to " << ex_state.print_istate() << std::endl;
+      }
+      
+      ex_state = EXECUTION_STATE::MODEL;
     }
       
-    //IMPORTANT -- The (TSX) springboard is written assuming we never try to
-    // jump right back into a modeled fn.  The sb_modeled label immediately XENDs, which will
-    // cause a segfault if the process isn't executing a transaction.
-
-    if( ex_state.istate_none_of(EXECUTION_STATE::PROHIB_RESUME | EXECUTION_STATE::PROHIB_FAULT | EXECUTION_STATE::FAULT) && mod != fnModelMap.end() ){
-      if( taseDebug ){
-        std::cout << "INTERPRETER: FOUND SPECIAL MODELED INST at rip " << std::hex << rip << std::dec << "\n";
+    switch( ex_state.istate ) {
+    case EXECUTION_STATE::PROHIB_RESUME:
+      if ( ex_state.is_concrete() && tran_max == 0 && target_ctx_gregs[GREG_RIP].u64 == init_trap_RIP ) {
+	if (taseDebug) {
+	  std::cout << "Repeated faults detected for prohib function" << std::endl;
+	}
+	ex_state = EXECUTION_STATE::PROHIB_FAULT;
       }
-      ex_state = EXECUTION_STATE::MODEL;
-      void (klee::Executor::*fp)() = mod->second;
-      (this->*fp)();
+    case EXECUTION_STATE::RESUME:
+      break;
 
-    } else if( ex_state.istate_none_of(EXECUTION_STATE::PROHIB | EXECUTION_STATE::PROHIB_RESUME | EXECUTION_STATE::PROHIB_FAULT | EXECUTION_STATE::FAULT) && resume ){
+    case EXECUTION_STATE::MODEL:
+      (this->*fp)();
       ex_state = EXECUTION_STATE::RESUME;
       break;
 
-    } else {
+    case EXECUTION_STATE::FAULT:
+    case EXECUTION_STATE::PROHIB_FAULT:
+    case EXECUTION_STATE::PROHIB:
+      //    case EXECUTION_STATE::SKIP:
+    case EXECUTION_STATE::INTERP:
+      runCoreInterpreter(target_ctx_gregs);
+      ex_state = EXECUTION_STATE::INTERP;
+      break;
+    case EXECUTION_STATE::BOUNCEBACK:
+      assert(false && "BOUNCEBACK state found in klee_interp_internal!");
+      break;
+    }
+
+    if( taseDebug ) {
+      std::cout << "Checking for skippable instrs" << std::endl;
+    }
+
+    uint64_t cc[2] = {*(uint64_t*)target_ctx_gregs[GREG_RIP].u64, *(((uint64_t*)target_ctx_gregs[GREG_RIP].u64)+1)};
+
+    if( ex_state.is_singleStepping() ) {
+      single_step_match(cc);
       
-      if( taseDebug ) {
-	std::cout << "Checking for skippable instrs" << std::endl;
-      }
-
-      uint64_t cc[2] = {*(uint64_t*)target_ctx_gregs[GREG_RIP].u64, *(((uint64_t*)target_ctx_gregs[GREG_RIP].u64)+1)};
-
-      if( ex_state.is_singleStepping() ) { // noTSX - skip or interpret
-	single_step_match(cc);
-      }	else {               // TSX - kill flags, skip or interpret
-	tryKillFlags();
+    } else {
+      tryKillFlags();
 	
-	if( scan< 0 >(cc[0], 0x00000000053d8d4c, 0x00ffffffffffffff) >= 0 ){
-          target_ctx_gregs[GREG_RIP].u64 += trap_off; // lea/jmpq
-          if( modelDebug ) {
-            std::cout << "Skipping LEA and jmp..." << std::endl;
-          }
-	  ex_state = EXECUTION_STATE::SKIP;
+      if( scan< 0 >(cc[0], 0x00000000053d8d4c, 0x00ffffffffffffff) >= 0 ){
+	target_ctx_gregs[GREG_RIP].u64 += trap_off; // lea/jmpq
+	if( modelDebug ) {
+	  std::cout << "Skipping LEA and jmp..." << std::endl;
 	}
-      }
-
-      if( ex_state.istate_none_of(EXECUTION_STATE::SKIP) ){
-	  ex_state = EXECUTION_STATE::INTERP;
-        runCoreInterpreter(target_ctx_gregs);
+	ex_state = EXECUTION_STATE::SKIP;
       } else {
-	ex_state = EXECUTION_STATE::SKIP_RESUME;
+	ex_state = EXECUTION_STATE::INTERP;
       }
     }
 
-    if(tase_buf_has_taint((void *) &(target_ctx_gregs[GREG_RIP].u64), 8) ) { // fast check for potential taint
+    // fast check here is a subset of is_concrete's check and it's run already
+    if( ex_state.is_concrete() || tase_buf_has_taint((void *) &(target_ctx_gregs[GREG_RIP].u64), 8) ) { // fast check for potential taint
       ref<Expr> RIPExpr = tase_helper_read((uint64_t) &(target_ctx_gregs[GREG_RIP].u64), 8); // full/slow check
       if (!(isa<ConstantExpr>(RIPExpr))) {
         forkOnPossibleRIPValues(RIPExpr, rip_init);
@@ -4952,27 +4949,6 @@ void Executor::klee_interp_internal() {
       }
     }
 
-    //Kludge to get us back to native execution for prohib fns with concrete input
-    if( ex_state == EXECUTION_STATE::PROHIB_RESUME ) {
-      if ( ex_state.is_concrete() ) {
-	//This case is for attempts to execute natively that repeatedly result in
-	//page faults.  We have to interpret in that case to map the page in.
-        if ( tran_max == 0 && target_ctx_gregs[GREG_RIP].u64 == init_trap_RIP ) {
-          if (taseDebug) {
-            std::cout << "Repeated faults detected for prohib function" << std::endl;
-          }
-	  ex_state = EXECUTION_STATE::PROHIB_FAULT;
-
-        } else {
-	  if( taseDebug ) {
-            std::cout << "Trying to return to native execution" << std::endl;
-	  }
-
-	  ex_state = EXECUTION_STATE::PROHIB_RESUME;
-	  break;
-        }
-      }
-    }
     ex_state.update();
   } // end while
   

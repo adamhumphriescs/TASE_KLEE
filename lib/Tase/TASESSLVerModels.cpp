@@ -1703,12 +1703,8 @@ void Executor::model_SHA1_Update () {
       printf("SHA1 data buf is \n");
       printBuf(stdout,(void *) data, len);
     }
-    bool hasSymbolicInput = false;
 
-    if (!isBufferEntirelyConcrete((uint64_t) c, sizeof(SHA_CTX)) || !isBufferEntirelyConcrete((uint64_t) data, len))
-      hasSymbolicInput = true;
-
-    if (hasSymbolicInput) {
+    if ( !isBufferEntirelyConcrete((uint64_t) c, sizeof(SHA_CTX)) || !isBufferEntirelyConcrete((uint64_t) data, len) ) {
       std::string nameString = "SHA1_Update_Output" + std::to_string(SHA1_Update_calls);
       const char * constCopy = nameString.c_str();
       char name [40];//Arbitrary number
