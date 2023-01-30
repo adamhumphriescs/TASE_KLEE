@@ -4914,7 +4914,9 @@ void Executor::klee_interp_internal() {
 
       if( ex_state.is_singleStepping() ) {
 	single_step_match(cc);
-      
+        if ( ex_state == EXECUTION_STATE::SKIP ) {
+	  break;
+	}
       } else {
 	tryKillFlags();
 	
@@ -4924,13 +4926,14 @@ void Executor::klee_interp_internal() {
 	    std::cout << "Skipping LEA and jmp..." << std::endl;
 	  }
 	  ex_state = EXECUTION_STATE::SKIP;
-	} else {
-	  runCoreInterpreter(target_ctx_gregs);
-	  ex_state = EXECUTION_STATE::INTERP;
+	  break;
 	}
       }
+      runCoreInterpreter(target_ctx_gregs);
+      ex_state = EXECUTION_STATE::INTERP;
       break;
     }
+      
 
 
     // fast check here is a subset of is_concrete's check and it's run already
