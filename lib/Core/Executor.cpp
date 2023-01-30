@@ -4880,7 +4880,9 @@ void Executor::klee_interp_internal() {
       
       ex_state = EXECUTION_STATE::MODEL;
     }
-      
+
+    uint64_t cc[2] = {*(uint64_t*)target_ctx_gregs[GREG_RIP].u64, *(((uint64_t*)target_ctx_gregs[GREG_RIP].u64)+1)};
+    
     switch( ex_state.istate ) {
     case EXECUTION_STATE::PROHIB_RESUME:
       if ( ex_state.is_concrete() && tran_max == 0 && target_ctx_gregs[GREG_RIP].u64 == init_trap_RIP ) {
@@ -4894,44 +4896,42 @@ void Executor::klee_interp_internal() {
 
     case EXECUTION_STATE::MODEL:
       (this->*fp)();
-      ex_state = EXECUTION_STATE::RESUME;
+      ex_state = ex_state.is_mixedMode() ? EXECUTION_STATE::RESUME : EXECUTION_STATE::INTERP;
       break;
 
-    case EXECUTION_STATE::FAULT:
-    case EXECUTION_STATE::PROHIB_FAULT:
-    case EXECUTION_STATE::PROHIB:
-      //    case EXECUTION_STATE::SKIP:
-    case EXECUTION_STATE::INTERP:
-      runCoreInterpreter(target_ctx_gregs);
-      ex_state = EXECUTION_STATE::INTERP;
-      break;
     case EXECUTION_STATE::BOUNCEBACK:
       assert(false && "BOUNCEBACK state found in klee_interp_internal!");
       break;
-    }
 
-    if( taseDebug ) {
-      std::cout << "Checking for skippable instrs" << std::endl;
-    }
-
-    uint64_t cc[2] = {*(uint64_t*)target_ctx_gregs[GREG_RIP].u64, *(((uint64_t*)target_ctx_gregs[GREG_RIP].u64)+1)};
-
-    if( ex_state.is_singleStepping() ) {
-      single_step_match(cc);
-      
-    } else {
-      tryKillFlags();
-	
-      if( scan< 0 >(cc[0], 0x00000000053d8d4c, 0x00ffffffffffffff) >= 0 ){
-	target_ctx_gregs[GREG_RIP].u64 += trap_off; // lea/jmpq
-	if( modelDebug ) {
-	  std::cout << "Skipping LEA and jmp..." << std::endl;
-	}
-	ex_state = EXECUTION_STATE::SKIP;
-      } else {
-	ex_state = EXECUTION_STATE::INTERP;
+    case EXECUTION_STATE::SKIP:
+    case EXECUTION_STATE::FAULT:
+    case EXECUTION_STATE::PROHIB_FAULT:
+    case EXECUTION_STATE::PROHIB:
+    case EXECUTION_STATE::INTERP:
+      if( taseDebug ) {
+	std::cout << "Checking for skippable instrs" << std::endl;
       }
+
+      if( ex_state.is_singleStepping() ) {
+	single_step_match(cc);
+      
+      } else {
+	tryKillFlags();
+	
+	if( scan< 0 >(cc[0], 0x00000000053d8d4c, 0x00ffffffffffffff) >= 0 ){
+	  target_ctx_gregs[GREG_RIP].u64 += trap_off; // lea/jmpq
+	  if( modelDebug ) {
+	    std::cout << "Skipping LEA and jmp..." << std::endl;
+	  }
+	  ex_state = EXECUTION_STATE::SKIP;
+	} else {
+	  runCoreInterpreter(target_ctx_gregs);
+	  ex_state = EXECUTION_STATE::INTERP;
+	}
+      }
+      break;
     }
+
 
     // fast check here is a subset of is_concrete's check and it's run already
     if( ex_state.is_concrete() || tase_buf_has_taint((void *) &(target_ctx_gregs[GREG_RIP].u64), 8) ) { // fast check for potential taint
