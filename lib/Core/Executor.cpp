@@ -95,6 +95,8 @@
 #include <errno.h>
 #include <cxxabi.h>
 
+#include <immintrin.h>
+
 using namespace llvm;
 using namespace klee;
 
@@ -134,11 +136,11 @@ extern char ** environ;
 extern int * __errno_location();
 extern "C" int __isoc99_sscanf ( const char * s, const char * format, ...);
 
+
 //TASE internals--------------------
 extern uint16_t poison_val;
 extern target_ctx_t target_ctx;
 extern tase_greg_t * target_ctx_gregs;
-//extern xmmreg_t * target_ctx_xmms;
 
 extern int retryMax;
 extern Module * interpModule;
@@ -180,9 +182,9 @@ extern std::string prev_worker_ID;
 FILE * prev_stdout_log = NULL;
 FILE * prev_stderr_log = NULL;
 
-void cycleTASELogs(bool isReplay);
+extern "C" void cycleTASELogs(bool isReplay);
 //bool isSpecialInst(uint64_t rip);
-bool tase_buf_has_taint (void * ptr, int size);
+extern "C" bool tase_buf_has_taint (const void * ptr, const int size);
 void printCtx(tase_greg_t *);
 
 //Multipass
@@ -1319,12 +1321,15 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     TimerStatIncrementer timer(stats::forkTime);
     ExecutionState *falseState, *trueState = &current;
     ++stats::forks;
-    
+
+    if ( taseDebug ) {
+      std::cout << "tase_fork call in Executor::fork" << std::endl;
+    }
     //ABH: This, along with "forkOnPossibleRIPValues", is one of
     //the two places we fork during path exploration in TASE.
     int parentPID = getpid();
     uint64_t rip = target_ctx_gregs[GREG_RIP].u64;
-    int pid  = tase_fork(parentPID,rip);
+    int pid  = tase_fork(parentPID, rip);
 
     if (pid ==0 ) {      
       addConstraint(*GlobalExecutionStatePtr, Expr::createIsZero(condition));
@@ -3967,7 +3972,8 @@ extern "C" void klee_interp () {
   
   if( ex_state == EXECUTION_STATE::BOUNCEBACK ) {
     if (taseDebug){
-      printf("Attempting to bounceback to native execution at RIP 0x%lx \n", target_ctx_gregs[GREG_RIP].u64);
+      std::cout << "Attempting to bounceback to native execution at RIP " << std::hex
+		<< target_ctx_gregs[GREG_RIP].u64 << std::dec << " and tran_max = " << tran_max << std::endl;
     }
     return;
   }
@@ -3981,7 +3987,7 @@ extern "C" void klee_interp () {
   if (measureTime) 
     measure_interp_time(interpCtr_init, target_ctx_gregs[GREG_R15].u64);
 
-  tran_max = 16;
+  tran_max = tranMaxArg;
   return; //Returns to loop in main
 }
 
@@ -4084,9 +4090,9 @@ void Executor::tase_make_symbolic_bytewise(uint64_t addr, uint64_t len, const ch
   }		       
 }
 
-void Executor::model_sb_disabled() {
+/*void Executor::model_sb_disabled() {
   target_ctx_gregs[GREG_RIP].u64 = target_ctx_gregs[GREG_R15].u64;
-}
+  }*/
 
 void Executor::model_sb_reopen() {
   target_ctx_gregs[GREG_RIP].u64 = target_ctx_gregs[GREG_RAX].u64;
@@ -4453,7 +4459,7 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &realloc_tase,  &Executor::model_realloc},
   //  {(uint64_t) &realloc_tase_shim, &Executor::model_realloc},
   {(uint64_t) &rewind_tase,  &Executor::model_rewind},
-  {(uint64_t) &sb_disabled,  &Executor::model_sb_disabled},
+  //  {(uint64_t) &sb_disabled,  &Executor::model_sb_disabled},
   {(uint64_t) &sb_reopen,  &Executor::model_sb_reopen},
   //  {(uint64_t) &sb_eject, &Executor::model_sb_eject},
   {(uint64_t) &sprintf_tase,  &Executor::model_sprintf},
@@ -4662,41 +4668,134 @@ void Executor::printDebugInterpFooter() {
 }
 
 
+// set based on poison_size and xmm vs zmm in main
+extern "C" bool (*large_buf_has_taint)(const uint16_t*, const int);
+
 //Fast-path check for poison tag in buffer.
 //Todo -- double check the corner cases
-bool tase_buf_has_taint (void * ptr, int size) {
-  //Promote size to an even number
-  //printf("Input args to tase_buf_has_taint: ptr 0x%lx, size %d \n", (uint64_t) ptr, size);
-  int checkSize;
-  uint16_t * checkBase;
-  
-  if ( (uint64_t) ptr % 2 == 1) {
-    checkBase = (uint16_t *)  ((uint64_t) ptr -1);
-    if (size % 2 == 0)
-      checkSize  = size + 2;
-    else
-      checkSize = size + 1;
+extern "C" bool tase_buf_has_taint (const void * ptr, const int size) {
+  const uint16_t * checkBase = ((uint64_t) ptr) % 2 == 1 ? (uint16_t *) ((uint64_t) ptr - 1 ) : (uint16_t *) ptr;
+  const int checkSize = ( ((uint8_t*) ptr + size + 1 ) - (uint8_t*) checkBase ) / 2;
+
+  if( checkSize > 4 ) {
+    return large_buf_has_taint(checkBase, checkSize);
+  }
+
+  if( target_ctx.poisonSize == 2 ) {
+    for ( int i = 0; i < checkSize; i++ ) {
+      if ( *( checkBase + i ) == poison_val )
+        return true;
+    }
+    return false;
   } else {
-    checkBase = (uint16_t *) ptr;
-    if (size % 2 ==0)
-      checkSize = size;
-    else
-      checkSize = size +1;
+    for( int i = 0; i < checkSize/2; i++ ) {
+      if( *( checkBase + 2*i ) == poison_val && *( checkBase + 2*i + 1 ) == poison_val )
+	return true;
+    }
+    return false;
   }
-
-  //We're checking in 2-byte aligned chunks, so cut size in half.
-  //Checksize and Checkbase must be even by now.
-
-  checkSize = checkSize/2;
-  
-  //printf("After normalization, args to tase_buf_has_taint: 0x%lx, size %d \n", (uint64_t) checkBase, checkSize);
-  for (int i = 0; i < checkSize; i++) {
-    if ( *( checkBase +i ) == poison_val)
-      return true;
-  }
-
-  return false;
 }
+
+
+// pretty much what we do in the springboard
+extern "C" bool large_buf_has_taint_16_128(const uint16_t * checkBase, const int checkSize){
+  const int x = checkSize % 8;
+  const int rounds = x == 0 ? (checkSize / 8) : (checkSize / 8) + 1;
+
+  // mask off leftovers
+  const __m128i mask = _mm_setr_epi16( x == 0 ? 0xffff : 0x0000, x > 6 ? 0xffff : 0x0000, x > 5 ? 0xffff : 0x0000, x > 4 ? 0xffff : 0x0000,
+				       x  > 3 ? 0xffff : 0x0000, x > 2 ? 0xffff : 0x0000, x > 1 ? 0xffff : 0x0000, x > 0 ? 0xffff : 0x0000  );
+
+  __m128i acc;
+  for(int i = 0; i < rounds; i++) {
+    const __m128i a = _mm_load_si128((__m128i*)checkBase);
+    const __m128i b = _mm_load_si128((__m128i*)&target_ctx.reference);
+    
+    __m128i cmp = _mm_cmpeq_epi16(a, b);
+    if ( i == rounds - 1 ){
+      cmp = _mm_or_si128(cmp, mask);
+    }
+    acc = _mm_or_si128(cmp, acc);
+  }
+  return _mm_testz_si128(acc, acc) != 0;
+}
+
+
+extern "C" bool large_buf_has_taint_32_128(const uint16_t * checkBase, const int checkSize){
+  const int x = ( checkSize / 2 ) % 4;
+  const int rounds = x == 0 ? (checkSize / 8) : (checkSize / 8) + 1;
+  
+  // mask off leftovers
+  const __m128i mask = _mm_setr_epi32( x == 0 ? 0xffffffff : 0x00000000, x > 3 ? 0xffffffff : 0x00000000,
+				       x > 2  ? 0xffffffff : 0x00000000, x > 1 ? 0xffffffff : 0x00000000 );
+
+  __m128i acc;
+  for(int i = 0; i < rounds; i++) {
+    const __m128i a = _mm_load_si128((__m128i*)checkBase);
+    const __m128i b = _mm_load_si128((__m128i*)&target_ctx.reference);
+    __m128i cmp = _mm_cmpeq_epi32(a, b);
+    if ( i == rounds - 1 ){
+      cmp = _mm_or_si128(cmp, mask);
+    }
+    acc = _mm_or_si128(cmp, acc);
+  }
+  return _mm_testz_si128(acc, acc) != 0;
+}
+
+
+
+extern "C" bool large_buf_has_taint_32_256(const uint16_t * checkBase, const int checkSize){
+  const int x = ( checkSize / 2 ) % 8;
+  const int rounds = x ? (checkSize / 8) : (checkSize / 8) + 1;
+  
+  // mask off leftovers
+  const __m256i mask = _mm256_setr_epi32( x == 0 ? 0xffffffff : 0x00000000, x > 7  ? 0xffffffff : 0x00000000,
+					  x > 6  ? 0xffffffff : 0x00000000, x > 5  ? 0xffffffff : 0x00000000,
+					  x > 4  ? 0xffffffff : 0x00000000, x > 3  ? 0xffffffff : 0x00000000,
+					  x > 2  ? 0xffffffff : 0x00000000, x > 1  ? 0xffffffff : 0x00000000 );
+
+  __m256i acc;
+  for(int i = 0; i < rounds; i++) {
+    const __m256i a = _mm256_load_si256((__m256i*)checkBase);
+    const __m256i b = _mm256_load_si256((__m256i*)&target_ctx.reference);
+    
+    __m256i cmp = _mm256_cmpeq_epi32(a, b);
+    if ( i == rounds - 1 ){
+      cmp = _mm256_or_si256(cmp, mask);
+    }
+    acc = _mm256_or_si256(cmp, acc);
+  }
+  return _mm256_testz_si256(acc, acc) != 0;
+}
+
+
+extern "C" bool large_buf_has_taint_16_256(const uint16_t * checkBase, const int checkSize){
+  const int rounds = checkSize % 16 == 0 ? (checkSize / 16) : (checkSize / 16) + 1;
+  const int x = checkSize % 16;
+
+  // mask off leftovers
+  const __m256i mask = _mm256_setr_epi32( x == 0 ? 0xffffffff : (x > 15 ? 0x0000ffff : 0x00000000),
+					  x > 14 ? 0xffffffff : (x > 13 ? 0x0000ffff : 0x00000000),
+					  x > 12 ? 0xffffffff : (x > 11 ? 0x0000ffff : 0x00000000),
+					  x > 10 ? 0xffffffff : (x > 9  ? 0x0000ffff : 0x00000000),
+					  x > 8  ? 0xffffffff : (x > 7  ? 0x0000ffff : 0x00000000),
+					  x > 6  ? 0xffffffff : (x > 5  ? 0x0000ffff : 0x00000000),
+					  x > 4  ? 0xffffffff : (x > 3  ? 0x0000ffff : 0x00000000),
+					  x > 2  ? 0xffffffff : (x > 1  ? 0x0000ffff : 0x00000000) );
+
+  __m256i acc;
+  for(int i = 0; i < rounds; i++) {
+    const __m256i a = _mm256_load_si256((__m256i*)checkBase);  // 32-byte aligned load
+    const __m256i b = _mm256_load_si256((__m256i*)&target_ctx.reference);
+    __m256i cmp = _mm256_cmpeq_epi16(a, b);
+    if ( i == rounds - 1 ){
+      cmp = _mm256_or_si256(cmp, mask);
+    }
+    acc = _mm256_or_si256(cmp, acc);
+  }
+  return _mm256_testz_si256(acc, acc) != 0;
+}
+
 
 template < int I > inline int
 scan (uint64_t target, uint64_t pattern, uint64_t mask) { return ((target >> 8 * I) & mask) == pattern ? I : -1; }
@@ -4940,6 +5039,9 @@ void Executor::klee_interp_internal() {
     if( ex_state.is_concrete() || tase_buf_has_taint((void *) &(target_ctx_gregs[GREG_RIP].u64), 8) ) { // fast check for potential taint
       ref<Expr> RIPExpr = tase_helper_read((uint64_t) &(target_ctx_gregs[GREG_RIP].u64), 8); // full/slow check
       if (!(isa<ConstantExpr>(RIPExpr))) {
+	if ( taseDebug ) {
+	  std::cout << "Forking on possible RIP values in klee_interp_internal" << std::endl;
+	}
         forkOnPossibleRIPValues(RIPExpr, rip_init);
 
         if ( taseDebug ) {

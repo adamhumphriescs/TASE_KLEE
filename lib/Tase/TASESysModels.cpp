@@ -113,7 +113,19 @@ extern bool noLog;
 extern bool gprsAreConcrete();
 extern void tase_exit(int);
 extern void printCtx(tase_greg_t *);
-extern bool tase_buf_has_taint(void * addr, int size);
+inline bool tase_buf_has_taint(const void * addr, const int size);
+
+bool tase_buf_has_taint (const void * ptr, const int size) {
+  const uint16_t * checkBase = ((uint64_t) ptr) % 2 == 1 ? (uint16_t *) ((uint64_t) ptr - 1 ) : (uint16_t *) ptr;
+  const int checkSize = ( ((uint8_t*) ptr + size + 1 ) - (uint8_t*) checkBase ) / 2;
+  
+  for ( int i = 0; i < checkSize; i++ ) {
+    if ( *( checkBase + i ) == poison_val )
+      return true;
+  }
+  return false;
+}
+
 
 bool roundUpHeapAllocations = true; //Round the size Arg of malloc, realloc, and calloc up to a multiple of 8
 //This matters because it controls the size of the MemoryObjects allocated in klee.  Reads executed by

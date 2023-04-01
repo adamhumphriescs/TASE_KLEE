@@ -15,6 +15,8 @@
 enum runType : int {INTERP_ONLY, MIXED};
 enum TASETestType : int {EXPLORATION, VERIFICATION};
 enum TASEExplorationType : int {DFS, BFS};
+enum PoisonSize : uint8_t { WORD = 2, DWORD = 4 };
+enum SIMDType : uint32_t { XMM = 128, YMM = 256, ZMM = 512 };
 
 namespace klee {
 
@@ -22,6 +24,8 @@ namespace klee {
   extern llvm::cl::opt<runType> execMode;
   extern llvm::cl::opt<TASETestType> testType;
   extern llvm::cl::opt<TASEExplorationType> explorationType;
+  extern llvm::cl::opt<PoisonSize> poisonSize;
+  extern llvm::cl::opt<SIMDType> simdType;
   extern llvm::cl::opt<std::string> verificationLog;
   extern llvm::cl::opt<std::string> masterSecretFile;
   extern llvm::cl::opt<bool> skipFree;

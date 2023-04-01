@@ -6,6 +6,10 @@
 # License. See LICENSE.TXT for details.
 #
 #===------------------------------------------------------------------------===#
+klee_component_add_cxx_flag(-msse4.1 REQUIRED)
+klee_component_add_cxx_flag(-mavx REQUIRED)
+klee_component_add_cxx_flag(-mavx2 REQUIRED)
+
 klee_add_component(kleeCore
   AddressSpace.cpp
   MergeHandler.cpp
@@ -27,7 +31,7 @@ klee_add_component(kleeCore
   StatsTracker.cpp
   TimingSolver.cpp
   UserSearcher.cpp
-)
+  )
 
 # TODO: Work out what the correct LLVM components are for
 # kleeCore.

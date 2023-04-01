@@ -94,9 +94,15 @@ extern KTestObjectVector ktov;
 extern "C" void begin_target_inner(int argc, char** argv);
 extern "C" void klee_interp();
 
+extern "C" bool large_buf_has_taint_16_128(const uint16_t*, const int);
+extern "C" bool large_buf_has_taint_32_128(const uint16_t*, const int);
+extern "C" bool large_buf_has_taint_16_256(const uint16_t*, const int);
+extern "C" bool large_buf_has_taint_32_256(const uint16_t*, const int);
+
+extern "C" bool (*large_buf_has_taint)(const uint16_t*, const int) = NULL;
+
 std::unordered_set<uint64_t> cartridge_entry_points;
 std::unordered_set<uint64_t> cartridges_with_flags_live;
-//std::unordered_set<uint64_t> kill_flags;
 
 #ifdef TASE_OPENSSL
 extern "C" void s_client_main(int argc, char ** argv);
@@ -179,6 +185,22 @@ namespace klee {
 			     KLEE_LLVM_CL_VAL_END),
 
 		  cl::init(BFS));
+
+  cl::opt<PoisonSize>
+  poisonSize("poisonSize", cl::desc("WORD or DWORD"),
+	      cl::values(clEnumValN(WORD, "WORD", "2 bytes"),
+			 clEnumValN(DWORD, "DWORD", "4 bytes")
+			 KLEE_LLVM_CL_VAL_END),
+	      cl::init(WORD));
+
+  cl::opt<SIMDType>
+  simdType("SIMDType", cl::desc("XMM or YMM"),
+	   cl::values(clEnumValN(XMM, "XMM", "XMM Registers, 128-bit"),
+		      clEnumValN(YMM, "YMM", "YMM Registers, 256-bit")
+		      //clEnumValN(ZMM, "ZMM", "ZMM Registers, 512-bit")
+		      KLEE_LLVM_CL_VAL_END),
+	   cl::init(XMM));
+  
   
   cl::opt<std::string> verificationLog("verificationLog", cl::desc("ktest file to verify against for OpenSSL "), cl::init("./ssl.ktest"));
 
@@ -1363,6 +1385,8 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    printf("\t modelDebug output: %d \n", (bool) modelDebug);
    printf("\t noLog      output: %d \n", (bool) noLog);
    printf("\t dontFork  output: %d \n", (bool) dontFork);
+   printf("\t poisonSize: %d \n", (uint8_t) poisonSize);
+   printf("\t simdType: %s \n", simdType == XMM ? "XMM" : "YMM");
    
    printf("\t killFlags      output : %d \n", (bool) killFlags);
    printf("\t skipFree           output : %d \n", (bool) skipFree);
@@ -1439,14 +1463,11 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      target_ctx.rsp.u64 = (uint64_t)(&target_ctx.target_exit_addr);
      // Just to be careful.  rbp should not be necessary but debuggers like it.
      target_ctx.rbp.u64 = target_ctx.rsp.u64 + sizeof(uintptr_t);
-
-     tase_springboard = (void *) &sb_disabled;
     
      klee_interp();
     
    } else {
      int sbArg = 1;
-     //     enter_tase(&begin_target_inner + trap_off, sbArg);
      enter_tase(&begin_target_inner, sbArg);
      if (taseDebug) {
        printf("TASE - returned from enter_tase... \n");
@@ -1483,7 +1504,9 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
  int main (int argc, char **argv, char **envp) {
 
    signal(SIGCHLD, SIG_IGN);
-     
+   signal(SIGRTMIN+1, SIG_IGN);
+   setpgid(0, 0);
+   
    glob_argc = argc;
    glob_argv = argv;
    glob_envp = envp;
@@ -1510,7 +1533,6 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    dropS2C = dropS2CArg;
    enableTimeSeries = enableTimeSeriesArg;
 
-   //      singleStepping = singleSteppingArg;
    ex_state = EXECUTION_STATE((bool) execMode == MIXED, (bool)singleSteppingArg, (bool) enableBounceback);
    
    //If we don't explicitly give the project name, use some defaults.
@@ -1644,6 +1666,23 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      std::cout << "  " << x << std::endl;
    }
 
+   if( poisonSize == WORD ) {
+     target_ctx.poisonSize = 2;
+     if( simdType == XMM ) {
+       large_buf_has_taint = large_buf_has_taint_16_128;
+     } else {
+       large_buf_has_taint = large_buf_has_taint_16_256;
+     }
+   } else {
+     target_ctx.poisonSize = 4;
+     if( simdType == XMM ) {
+       large_buf_has_taint = large_buf_has_taint_32_128;
+     } else {
+       large_buf_has_taint = large_buf_has_taint_32_256;
+     }
+   }
+
+   
    std::vector<size_t> argsizes;
    pArgc = InputArgv.size() + 1;
    pArgv = new char *[pArgc];
@@ -1795,6 +1834,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
        std::cout << "Calling transferToTarget()" << std::endl;
      }
 
+     
      auto exe = static_cast<klee::Executor*>(interpreter);
      exe->tase_map(saved_rax, "saved_rax");
      for(int i = 0; i < pArgc; ++i){

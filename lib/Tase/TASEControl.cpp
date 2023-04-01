@@ -31,7 +31,7 @@ extern std::string prev_worker_ID;
 extern void deserializeAssignments ( void * buf, int bufSize, klee::Executor * exec, CVAssignment * cv);
 extern void reset_run_timers();
 extern void print_run_timers();
- void cycleTASELogs(bool isReplay);
+extern "C" void cycleTASELogs(bool isReplay);
 
 extern double run_start_time;
 extern double run_interp_time;
@@ -141,7 +141,7 @@ void DFS_push(int pid);
 void manage_verification_workers();
 void manage_exploration_workers();
 int tase_explorer_fork(int parentPID, uint64_t rip);
-
+extern "C" void update_pid(pid_t pid, pid_t newpid);
 
 extern int orig_stdout_fd;
 
@@ -149,8 +149,7 @@ void get_sem_lock () {
   int res =  semop(semID, &sem_lock, 1);
   if (res == 0) {
     return;
-  }
-  else {
+  } else {
     printf("Error getting sem lock \n");
     std::cout.flush();
     perror("Error in get_sem_lock");
@@ -160,9 +159,9 @@ void get_sem_lock () {
 
 void release_sem_lock () {
   int res = semop(semID, &sem_unlock,1);
-  if (res == 0)
+  if (res == 0) {
     return;
-  else {
+  } else {
     perror("Error in release_sem_lock");
     std::exit(EXIT_FAILURE);
   }
@@ -475,7 +474,6 @@ void select_verification_workers () {
       int res = kill(latestWorker->pid, SIGCONT);
       if (res == -1){
 	perror("Error during kill sigcont \n");
-	printf("Error during kill sigcont \n");
 	fflush(stdout);
       }
       if (taseDebug) {
@@ -672,7 +670,8 @@ int tase_explorer_fork(int parentPID, uint64_t rip) {
   //Fork off a child process for the "TRUE" branch, and add it to the queue/stack. ----------
 
   int trueChildPID = ::fork();
-
+  setpgid(0, 0);
+  
   if (trueChildPID == -1) {
     printf("FATAL ERROR during forking \n");
     fflush(stdout);
@@ -1405,7 +1404,6 @@ void manage_exploration_workers() {
     int res = kill(PID, SIGCONT);
     if (res == -1){
       perror("Error during kill sigcont \n");
-      printf("Error during kill sigcont \n");
       fflush(stdout);
     }
 
@@ -1424,4 +1422,17 @@ void manage_exploration_workers() {
 
     release_sem_lock();
   }
+}
+
+
+void update_pid(pid_t pid, pid_t new_pid){
+  int* end = (explorationType == BFS ? BFS_Back_Ptr : DFS_Stack_Ptr);
+  int* start = (int*)  (explorationType == BFS ? explorer_pid_queue_base : explorer_pid_stack_base);
+  get_sem_lock();
+  for(int* i = start; i < end; i++) {
+    if ( *i == pid ) {
+      *i = new_pid;
+    }
+  }
+  release_sem_lock();
 }

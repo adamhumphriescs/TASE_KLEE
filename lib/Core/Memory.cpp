@@ -41,7 +41,7 @@ namespace {
 
 //TASE Additions
 uint16_t poison_val = 0xDEAD;
-extern bool tase_buf_has_taint(void * ptr, int size);
+extern "C" bool tase_buf_has_taint(void * ptr, int size);
 
 /***/
 
