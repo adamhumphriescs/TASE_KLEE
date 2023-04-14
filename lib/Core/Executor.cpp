@@ -4677,9 +4677,9 @@ extern "C" bool tase_buf_has_taint (const void * ptr, const int size) {
   const uint16_t * checkBase = ((uint64_t) ptr) % 2 == 1 ? (uint16_t *) ((uint64_t) ptr - 1 ) : (uint16_t *) ptr;
   const int checkSize = ( ((uint8_t*) ptr + size + 1 ) - (uint8_t*) checkBase ) / 2;
 
-  if( checkSize > 4 ) {
+  /*  if( checkSize > 4 ) { // more than 64 bits/8 btyes -> use xmm/ymms.  
     return large_buf_has_taint(checkBase, checkSize);
-  }
+    }*/
 
   if( target_ctx.poisonSize == 2 ) {
     for ( int i = 0; i < checkSize; i++ ) {
