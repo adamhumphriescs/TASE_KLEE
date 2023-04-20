@@ -10,7 +10,7 @@ all: $(BUILD_DIR)/build/klee/bin/klee $(LIBS) $(KLEE_BITCODE) $(RUN_DIR)/lib/mai
 
 $(BUILD_DIR)/build/klee/bin/klee:
 	mkdir -p $(BUILD_DIR)/build/klee/lib/
-	cp $(RUN_DIR)/lib/$(LIBTASE) $(BUILD_DIR)/build/klee/lib/libtase.a
+	cp $(RUN_DIR)/lib/libtase_xmm_16.a $(BUILD_DIR)/build/klee/lib/libtase.a
 	cd $(BUILD_DIR)/build/klee/ && $(KLEE_ENV) cmake $(KLEE_OPTS) $(BUILD_DIR)/klee/
 	sed 's|/TASE|$(RUN_DIR)|g' link.txt > $(BUILD_DIR)/build/klee/tools/klee/CMakeFiles/klee.dir/link.txt
 	$(MAKE) -C $(BUILD_DIR)/build/klee/
