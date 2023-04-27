@@ -5312,8 +5312,23 @@ void printCtx(tase_greg_t * registers ) {
   printf("RCX  : 0x%lx \n", registers[GREG_RCX].u64);
   printf("RSP  : 0x%lx \n", registers[GREG_RSP].u64);
   printf("RIP  : 0x%lx \n", registers[GREG_RIP].u64);
-  printf("EFL  : 0x%lx \n", registers[GREG_EFL].u64);
+  printf("EFL  : 0x%lx [", registers[GREG_EFL].u64);
 
+  auto x = registers[GREG_EFL].u64;
+  if( x & 0x1 )
+    printf(" CF ");
+
+  if( x & 0x4 )
+    printf(" PF ");
+
+  if( x & 0x40 )
+    printf(" ZF ");
+
+  if( x & 0x80 )
+    printf(" SF ");
+  
+  printf("] \n");
+  
   return;
 }
 
