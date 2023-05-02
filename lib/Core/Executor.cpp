@@ -185,7 +185,7 @@ FILE * prev_stderr_log = NULL;
 extern "C" void cycleTASELogs(bool isReplay);
 //bool isSpecialInst(uint64_t rip);
 extern "C" bool tase_buf_has_taint (const void * ptr, const int size);
-void printCtx(tase_greg_t *);
+//void printCtx(tase_greg_t *);
 
 //Multipass
 extern int c_special_cmds; //Int used by cliver to disable special commands to s_client.  Made global for debugging
@@ -1291,7 +1291,7 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
   if (taseDebug) {
     if (!isa<ConstantExpr> (condition)) {
       printf("DEBUG:FORK ctx is \n");
-      printCtx(target_ctx_gregs);
+      printCtx();
       forkSolverCalls++;
     }
   }
@@ -1350,7 +1350,7 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
       printf("Solver checked sanity \n");
     else {
       printf("Solver found invalid path \n");
-      printCtx(target_ctx_gregs);
+      printCtx();
     }
     if (pid == 0)  {
       return StatePair(0, GlobalExecutionStatePtr);
@@ -4375,7 +4375,7 @@ void Executor::model_tase_make_symbolic() {
 
 }
 
-static int model_malloc_calls = 0;
+//static int model_malloc_calls = 0;
 
 
 
@@ -4654,14 +4654,14 @@ void Executor::printDebugInterpHeader() {
   uint64_t rip = target_ctx_gregs[GREG_RIP].u64;
   printf("RIP is %lu in decimal, 0x%lx in hex.\n", rip, rip);
   printf("Initial ctx BEFORE interpretation is \n");
-  printCtx(target_ctx_gregs);
+  printCtx();
   printf("\n");
   std::cout.flush();
   
 }
 
 void Executor::printDebugInterpFooter() {
-  printCtx(target_ctx_gregs);
+  printCtx();
   printf("Executor has %lu states \n", this->states.size() );
   printf("Finished round %lu of interpretation. \n", interpCtr);
   printf("-------------------------------------------\n");
@@ -4674,26 +4674,43 @@ extern "C" bool (*large_buf_has_taint)(const uint16_t*, const int);
 //Fast-path check for poison tag in buffer.
 //Todo -- double check the corner cases
 extern "C" bool tase_buf_has_taint (const void * ptr, const int size) {
-  const uint16_t * checkBase = ((uint64_t) ptr) % 2 == 1 ? (uint16_t *) ((uint64_t) ptr - 1 ) : (uint16_t *) ptr;
-  const int checkSize = ( ((uint8_t*) ptr + size + 1 ) - (uint8_t*) checkBase ) / 2;
+  // simpler construction: find end of original buffer
+  // adjust start, loop until we're out of the original bounds, don't bother calculating size
+  uint16_t * const end = (uint16_t*) (((uint64_t) ptr) + size);
+  uint16_t * const start = ((uint64_t) ptr) % 2 == 1 ? (uint16_t *) ((uint64_t) ptr - 1 ) : (uint16_t *) ptr;
+
+  if( target_ctx.poisonSize == 2 ) {
+    for( uint16_t *x = start; end - x > 0; x++ ) {
+      if( *x == poison_val )
+	return true;
+    }
+  } else {
+    for( uint16_t *x = start; end - x > 0; x += 2 ) {
+      if( *x == poison_val && *(x+1) == poison_val )
+	return true;
+    }
+  }
+  return false;
+  
+  //  const int checkSize = ( ((uint8_t*) ptr + size + 1 ) - (uint8_t*) checkBase ) / 2;
 
   /*  if( checkSize > 4 ) { // more than 64 bits/8 btyes -> use xmm/ymms.  
     return large_buf_has_taint(checkBase, checkSize);
     }*/
 
-  if( target_ctx.poisonSize == 2 ) {
+  /*  if( target_ctx.poisonSize == 2 ) {
     for ( int i = 0; i < checkSize; i++ ) {
       if ( *( checkBase + i ) == poison_val )
         return true;
     }
-    return false;
   } else {
     for( int i = 0; i < checkSize/2; i++ ) {
       if( *( checkBase + 2*i ) == poison_val && *( checkBase + 2*i + 1 ) == poison_val )
 	return true;
     }
-    return false;
   }
+  
+  return false;*/
 }
 
 
@@ -5064,7 +5081,7 @@ void Executor::klee_interp_internal() {
   if (taseDebug) {
     std::cout << "Returning to native execution for time " << numReturns << "\n";
     std::cout << "Prior to return to native execution, ctx is ..." << "\n";
-    printCtx(target_ctx_gregs);
+    printCtx();
     std::cout << "--------RETURNING TO TARGET --- ------------" << std::endl;
   }
   
@@ -5080,8 +5097,8 @@ void Executor::tryKillFlags() {
 	if (taseDebug) {
 	  printf("Killing flags \n");
 	}
-	uint64_t zero = 0;
-	ref<ConstantExpr> zeroExpr = ConstantExpr::create(zero, Expr::Int64);
+	uint64_t zeroFlags = 0x2; // reserved flag bit 1 is always set
+	ref<ConstantExpr> zeroExpr = ConstantExpr::create(zeroFlags, Expr::Int64);
 	tase_helper_write((uint64_t) &target_ctx_gregs[GREG_EFL], zeroExpr);
       }
     }
@@ -5293,41 +5310,66 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
   }
 }
 
-void printCtx(tase_greg_t * registers ) {
+void Executor::printCtx() {
+  printf("R8   : 0x%lx \n", target_ctx_gregs[GREG_R8].u64);
+  printf("R9   : 0x%lx \n", target_ctx_gregs[GREG_R9].u64);
+  printf("R10  : 0x%lx \n", target_ctx_gregs[GREG_R10].u64);
+  printf("R11  : 0x%lx \n", target_ctx_gregs[GREG_R11].u64);
+  printf("R12  : 0x%lx \n", target_ctx_gregs[GREG_R12].u64);
+  printf("R13  : 0x%lx \n", target_ctx_gregs[GREG_R13].u64);
+  printf("R14  : 0x%lx \n", target_ctx_gregs[GREG_R14].u64);
+  printf("R15  : 0x%lx \n", target_ctx_gregs[GREG_R15].u64);
+  printf("RDI  : 0x%lx \n", target_ctx_gregs[GREG_RDI].u64);
+  printf("RSI  : 0x%lx \n", target_ctx_gregs[GREG_RSI].u64);
+  printf("RBP  : 0x%lx \n", target_ctx_gregs[GREG_RBP].u64);
+  printf("RBX  : 0x%lx \n", target_ctx_gregs[GREG_RBX].u64);
+  printf("RDX  : 0x%lx \n", target_ctx_gregs[GREG_RDX].u64);
+  printf("RAX  : 0x%lx \n", target_ctx_gregs[GREG_RAX].u64);
+  printf("RCX  : 0x%lx \n", target_ctx_gregs[GREG_RCX].u64);
+  printf("RSP  : 0x%lx \n", target_ctx_gregs[GREG_RSP].u64);
+  printf("RIP  : 0x%lx \n", target_ctx_gregs[GREG_RIP].u64);
+  printf("EFL  : 0x%lx [", target_ctx_gregs[GREG_EFL].u64);
 
-  printf("R8   : 0x%lx \n", registers[GREG_R8].u64);
-  printf("R9   : 0x%lx \n", registers[GREG_R9].u64);
-  printf("R10  : 0x%lx \n", registers[GREG_R10].u64);
-  printf("R11  : 0x%lx \n", registers[GREG_R11].u64);
-  printf("R12  : 0x%lx \n", registers[GREG_R12].u64);
-  printf("R13  : 0x%lx \n", registers[GREG_R13].u64);
-  printf("R14  : 0x%lx \n", registers[GREG_R14].u64);
-  printf("R15  : 0x%lx \n", registers[GREG_R15].u64);
-  printf("RDI  : 0x%lx \n", registers[GREG_RDI].u64);
-  printf("RSI  : 0x%lx \n", registers[GREG_RSI].u64);
-  printf("RBP  : 0x%lx \n", registers[GREG_RBP].u64);
-  printf("RBX  : 0x%lx \n", registers[GREG_RBX].u64);
-  printf("RDX  : 0x%lx \n", registers[GREG_RDX].u64);
-  printf("RAX  : 0x%lx \n", registers[GREG_RAX].u64);
-  printf("RCX  : 0x%lx \n", registers[GREG_RCX].u64);
-  printf("RSP  : 0x%lx \n", registers[GREG_RSP].u64);
-  printf("RIP  : 0x%lx \n", registers[GREG_RIP].u64);
-  printf("EFL  : 0x%lx [", registers[GREG_EFL].u64);
-
-  auto x = registers[GREG_EFL].u64;
+  auto x = target_ctx_gregs[GREG_EFL].u64;
   if( x & 0x1 )
-    printf(" CF ");
+    printf(" CF");
 
   if( x & 0x4 )
-    printf(" PF ");
+    printf(" PF");
 
   if( x & 0x40 )
-    printf(" ZF ");
+    printf(" ZF");
 
   if( x & 0x80 )
     printf(" SF ");
   
-  printf("] \n");
+  printf(" ] \n");
+
+  if( simdType == XMM ) {
+    printf("XMM14 (acc) : [");
+    printf(" 0x%lx,", target_ctx.accumulator.qword[0]);
+    printf(" 0x%lx,", target_ctx.accumulator.qword[1]);
+    printf(" ]\n");
+    
+    printf("XMM15 (data) : [");
+    printf(" 0x%lx,", target_ctx.data.qword[0]);
+    printf(" 0x%lx,", target_ctx.data.qword[1]);
+    printf(" ]\n");
+  } else {
+    printf("YMM14 (acc)  : [");
+    printf(" 0x%lx,", target_ctx.accumulator.qword[0]);
+    printf(" 0x%lx,", target_ctx.accumulator.qword[1]);
+    printf(" 0x%lx,", target_ctx.accumulator.qword[2]);
+    printf(" 0x%lx", target_ctx.accumulator.qword[3]);
+    printf(" ]\n");
+    
+    printf("YMM15 (data)  : [");
+    printf(" 0x%lx,", target_ctx.data.qword[0]);
+    printf(" 0x%lx,", target_ctx.data.qword[1]);
+    printf(" 0x%lx,", target_ctx.data.qword[2]);
+    printf(" 0x%lx", target_ctx.data.qword[3]);
+    printf(" ]\n");
+  }
   
   return;
 }

@@ -101,7 +101,7 @@ extern ExecutionState * GlobalExecutionStatePtr;
 extern bool gprsAreConcrete();
 
 extern uint64_t interpCtr;
-extern void printCtx(tase_greg_t *);
+//extern void printCtx(tase_greg_t *);
 extern void * rodata_base_ptr;
 extern uint64_t rodata_size;
 

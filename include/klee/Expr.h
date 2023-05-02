@@ -75,6 +75,7 @@ template<class T> class ref;
       rank = o.rank;
       size = o.size;
       constraints = o.constraints;
+      return *this;
     }
 
     UFElement(UFElement &&o)

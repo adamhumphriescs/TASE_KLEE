@@ -265,7 +265,8 @@ public:
   template<typename T> bool tase_map(const T*& t, const std::string& name);
 
   bool tase_map_buf (uint64_t addr, size_t size, const std::string& name);
-
+  void printCtx();
+  
 private:
   static const char *TerminateReasonNames[];
 

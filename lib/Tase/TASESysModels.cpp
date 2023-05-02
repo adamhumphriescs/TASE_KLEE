@@ -112,7 +112,7 @@ extern bool noLog;
 
 extern bool gprsAreConcrete();
 extern void tase_exit(int);
-extern void printCtx(tase_greg_t *);
+//extern void printCtx(tase_greg_t *);
 inline bool tase_buf_has_taint(const void * addr, const int size);
 
 bool tase_buf_has_taint (const void * ptr, const int size) {
