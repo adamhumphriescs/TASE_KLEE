@@ -9,6 +9,7 @@
 klee_add_component(kleeTase
   CVAssignment.cpp
   TASEControl.cpp
+  API_Scout.cpp
   TASESysModels.cpp
   TASEFloatModels.cpp
   TASESSLVerModels.cpp
