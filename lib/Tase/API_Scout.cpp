@@ -115,7 +115,7 @@ WorkerGroup * Stopped;
 WorkerGroup * Running;
 pid_t manager_pid;
 pid_t backup = 0;
-pid_t scout = 0;
+pid_t scout = -1;
 int sfd;
 struct signalfd_siginfo signals[MAX_EVENTS];
 int num_signals;

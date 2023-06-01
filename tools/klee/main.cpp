@@ -1762,11 +1762,6 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    
    #endif
    //--------
-   if (taseManager) {
-     masterPID = getpid();
-     initManagerStructures();
-   }
-   int pid;
 
    #ifdef TASE_OPENSSL
 
@@ -1779,62 +1774,43 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    double theTime = util::getWallTime();
    target_start_time = theTime;  //Moved here to initialize for both manager and workers
    last_message_verification_time = theTime;
-   if (taseManager) 
-     pid = ::fork();
-   else
-     pid =0;
+
+   
+   int res = prctl(PR_SET_CHILD_SUBREAPER, 1);
+   if (res == -1)
+     perror("Initial prctl error ");
+
+   init_structures(&Stopped, &Running);
+
+   int pid = initial_fork(Stopped, Running);
    
    if (pid == 0){
      printf("----------------SWAPPING TO TARGET CONTEXT------------------ \n");
-     std::cout.flush();
-     if (taseManager) {
        
-       if (!noLog) {
-	 int i = getpid();
-	 worker_ID_stream << ".";
-	 worker_ID_stream << i;
-	 std::string pidString ;
-	 pidString = worker_ID_stream.str();
-	 FILE * tmpFile1 = freopen(pidString.c_str(),"w",stdout);
-	 if (tmpFile1 == NULL) {
-	   printf("FATAL ERROR redirecting stdout \n");
-	   fflush(stdout);
-	   std::exit(EXIT_FAILURE);
-	 }
-	 FILE * tmpFile2 = freopen(pidString.c_str(),"w",stderr);
-	 if (tmpFile2 == NULL) {
-	   printf("FATAL ERROR redirecting stderr \n");
-	   fflush(stdout);
-	   std::exit(EXIT_FAILURE);
-	 }
+     if (!noLog) {
+       int i = getpid();
+       worker_ID_stream << ".";
+       worker_ID_stream << i;
+       std::string pidString ;
+       pidString = worker_ID_stream.str();
+       FILE * tmpFile1 = freopen(pidString.c_str(),"w",stdout);
+       if (tmpFile1 == NULL) {
+	 printf("FATAL ERROR redirecting stdout \n");
+	 fflush(stdout);
+	 std::exit(EXIT_FAILURE);
        }
-       
-       int res = prctl(PR_SET_CHILD_SUBREAPER, 1);
-       if (res == -1)
-	 perror("Initial prctl error ");
-
-       
-       get_sem_lock();
-       *target_started_ptr = 1; //Signals that analysis has started.
-       int offset = *ms_QR_size_ptr;
-       *(ms_QR_base + offset) = getpid(); //Add self to QR
-       offset++;
-       *ms_QR_size_ptr = offset;
-
-       #ifndef TASE_OPENSSL
-       DFS_push(getpid());
-
-       BFS_enqueue(getpid());
-       #endif
-       
-       release_sem_lock();
+       FILE * tmpFile2 = freopen(pidString.c_str(),"w",stderr);
+       if (tmpFile2 == NULL) {
+	 printf("FATAL ERROR redirecting stderr \n");
+	 fflush(stdout);
+	 std::exit(EXIT_FAILURE);
+       }
      }
-
+       
      if (taseDebug) {
        std::cout << "Calling transferToTarget()" << std::endl;
      }
 
-     
      auto exe = static_cast<klee::Executor*>(interpreter);
      exe->tase_map(saved_rax, "saved_rax");
      for(int i = 0; i < pArgc; ++i){
@@ -1847,11 +1823,11 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
 
      transferToTarget(pArgc, pArgv);
      printf("RETURNING TO MAIN HANDLER \n");
+
+     worker_success(Stopped, Running);
      return 0;
 
    } else {
-     while (true) {
-       manage_workers();
-     }
+     manage_workers(Stopped, Running);
    }
  }
