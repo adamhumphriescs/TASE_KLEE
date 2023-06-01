@@ -64,6 +64,7 @@
 #include "klee/CVAssignment.h"
 #include "klee/util/ExprUtil.h"
 #include "tase/TASEControl.h"
+
 //#include "../../../test/proj_defs.h"
 #include <sys/prctl.h>
 #include <sys/time.h>
@@ -80,8 +81,11 @@ double target_start_time;
 double target_end_time;
 extern double run_start_time;
 extern double last_message_verification_time;
+
 #include "tase.h"
 #include "tase_interp.h"
+#include "API.h"
+
 extern target_ctx_t target_ctx;
 tase_greg_t * target_ctx_gregs = target_ctx.gregs;
 extern EXECUTION_STATE ex_state;
