@@ -63,7 +63,7 @@
 
 #include "klee/CVAssignment.h"
 #include "klee/util/ExprUtil.h"
-#include "tase/TASEControl.h"
+//#include "tase/TASEControl.h"
 
 //#include "../../../test/proj_defs.h"
 #include <sys/prctl.h>
@@ -1451,39 +1451,23 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    run_start_time = util::getWallTime();
    printf("Inside transferToTarget \n");
 
-   memset(&target_ctx, 0, sizeof(target_ctx));
-
-   target_ctx.rdi.i64 = argc;
-   target_ctx.rsi.u64 = (uint64_t) argv;
-
-   if (execMode == INTERP_ONLY) {
-     target_ctx.target_exit_addr = (uintptr_t)&exit_tase_shim;
-     target_ctx.sentinel[0] = CTX_STACK_SENTINEL;
-     target_ctx.sentinel[1] = CTX_STACK_SENTINEL;
-     target_ctx.r15.u64 = (uint64_t) &begin_target_inner;
-     target_ctx.rip.u64 = (uint64_t) &begin_target_inner;
-     target_ctx.rax = target_ctx.rip;
-     // We pretend like we have pushed a return address as part of call.
-     target_ctx.rsp.u64 = (uint64_t)(&target_ctx.target_exit_addr);
-     // Just to be careful.  rbp should not be necessary but debuggers like it.
-     target_ctx.rbp.u64 = target_ctx.rsp.u64 + sizeof(uintptr_t);
-    
+   init_tase_ctx(begin_target_inner, argc, argv);
+   
+   if (execMode == INTERP_ONLY) {    
      klee_interp();
-    
    } else {
-     int sbArg = 1;
-     enter_tase(&begin_target_inner, sbArg);
+     tase_inject();
      if (taseDebug) {
-       printf("TASE - returned from enter_tase... \n");
+       printf("TASE - returned from enter_tase... \n"); // now just tase_inject...
        std::cout.flush();
      }
-     while (target_ctx_gregs[GREG_RIP].u64 != (uint64_t) &tase_exit) {
+     while (true) { //(target_ctx_gregs[GREG_RIP].u64 != (uint64_t) &tase_exit) {
        klee_interp();
        if (taseDebug) {
 	 std::cout << "Returning from klee_interp at " << std::hex << target_ctx_gregs[GREG_RIP].u64 << std::dec << std::endl;
          std::cout.flush();
        }
-       tase_inject(sbArg);
+       tase_inject();
        if (taseDebug) {
          printf("Returning from tase_inject ... \n");
          std::cout.flush();
@@ -1828,7 +1812,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      transferToTarget(pArgc, pArgv);
      printf("RETURNING TO MAIN HANDLER \n");
 
-     worker_success(Stopped, Running);
+     //     worker_success(Stopped, Running);
      return 0;
 
    } else {

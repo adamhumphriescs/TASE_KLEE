@@ -240,7 +240,7 @@ pid_t call_fork() {
 // We don't use Stopped/Running here since they are only actually available in
 // the manager process and not shared mem for this implementation
 // but the API has them here
-void worker_fork(WorkerGroup * Stopped, WorkerGroup * Running) {
+pid_t worker_fork(WorkerGroup * Stopped, WorkerGroup * Running) {
   pid_t child = call_fork();
   if( child == -1 ) {
     printf("Fork failed\n");
@@ -256,6 +256,8 @@ void worker_fork(WorkerGroup * Stopped, WorkerGroup * Running) {
   }
 
   kill(getpid(), SIGSTOP);
+
+  return child;
 }
 
 

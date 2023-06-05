@@ -23,7 +23,9 @@
 #include <assert.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include "tase/TASEControl.h"
+//#include "tase/TASEControl.h"
+#include "API.h"
+
 //Changed for TASE
 //Ugly kludge to pass in these two bools derived from command line args.
 //Ideally we should just put these in include/klee/CommandLine.h but
@@ -483,7 +485,8 @@ KTestObject* KTOV_next_object(KTestObjectVector *ov, const char *name)
     printf("IMPORTANT:control debug: Worker %d exiting due to mismatch in log object \n",getpid());
     
     fflush(stdout);
-    worker_exit(2);
+    //    worker_exit(2);
+    exit(2);
   }
 
   ov->playback_index++;

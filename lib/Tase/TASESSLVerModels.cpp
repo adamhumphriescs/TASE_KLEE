@@ -73,7 +73,7 @@ using namespace klee;
 #include "klee/CVAssignment.h"
 #include "klee/util/ExprUtil.h"
 #include "klee/Constraints.h"
-#include "tase/TASEControl.h"
+//#include "tase/TASEControl.h"
 #include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/mman.h>
@@ -145,7 +145,7 @@ extern CVAssignment prevMPA ;
 extern void multipass_reset_round(bool isFirstCall);
 extern void multipass_start_round(Executor * theExecutor, bool isReplay);
 extern void multipass_replay_round(void * assignmentBufferPtr, CVAssignment * mpa);
-extern void worker_exit(int);
+//extern void worker_exit(int);
 extern void printBuf(FILE * f,void * buf, size_t count);
 extern void rewriteConstants(uint64_t base, size_t size);
 
@@ -375,7 +375,8 @@ void Executor::model_ktest_master_secret(  ) {
     if (enableMultipass) {
       printf("CRITICAL ERROR: Should have trapped on tls1_generate_master_secret since multipass is enabled but landed in ktest_master_secret instead \n");
       fflush(stdout);
-      worker_exit();
+      //      worker_exit();
+      exit(1);
 
       FILE * theFile = fopen("monday.secret", "rb");
       unsigned char tmp [48];
@@ -493,7 +494,8 @@ void Executor::model_ktest_writesocket() {
       if (o->numBytes != count) {
 	printf("IMPORTANT: VERIFICATION ERROR - write buffer size mismatch %u vs %u : Worker exiting from terminal path in round %d pass %d. \n",o->numBytes, count,  round_count, pass_count);
 	std::cout.flush();
-	worker_exit();
+	//	worker_exit();
+	exit(1);
       }
 
       bool concreteMatch = false;
@@ -595,7 +597,8 @@ void Executor::model_ktest_writesocket() {
 	    }
 	    fflush(stdout);
 	    
-	    worker_exit();
+	    //	    worker_exit();
+	    exit(1);
 	  }
 	} else {
 	  
@@ -855,7 +858,7 @@ uint64_t Executor::tls_predict_stdin_size (int fd, uint64_t maxLen) {
     
   if (fd != 0) {
     printf("tls_predict_stdin_size() called with unknown fd %d \n", fd);
-    worker_exit();
+    //    worker_exit();
     std::exit(EXIT_FAILURE);
   }
 
@@ -929,14 +932,14 @@ uint64_t Executor::tls_predict_stdin_size (int fd, uint64_t maxLen) {
 
     printf("Error in tls_predict_stdin_size \n");
     fflush(stdout);
-    worker_exit();
+    //    worker_exit();
     std::exit(EXIT_FAILURE);
     
   }
   if ( stdin_len > maxLen) {
     printf("ERROR: tls_predict_stdin_size returned value larger than maxLen \n");
     fflush(stdout);
-    worker_exit();
+    //    worker_exit();
     std::exit(EXIT_FAILURE);
 
   }else {
@@ -1090,16 +1093,16 @@ void Executor::model_shutdown() {
       std::cerr << "All playback messages retrieved \n";
       printf("All playback messages retrieved \n");
       fflush(stdout);
-      worker_exit();
+      //      worker_exit();
       
-      tase_exit();
+      //      tase_exit();
       std::exit(EXIT_SUCCESS);
       
     } else {
       std::cerr << "ERROR: playback message index wrong at shutdown \n";
       printf("ERROR: playback message index wrong at shutdown \n");
       fflush(stdout);
-      worker_exit();
+      //      worker_exit();
       std::exit(EXIT_FAILURE);
     }
     
@@ -1628,7 +1631,8 @@ ref<Expr> arg1Expr = target_ctx_gregs_OS->read(GREG_RDI * 8, Expr::Int64); // SS
     if (theFile == NULL) {
       fprintf(stdout, "FATAL ERROR attempting to open master secret file! \n");
       fflush(stdout);
-      worker_exit();
+      //      worker_exit();
+      exit(1);
     }
     unsigned char tmp [48];
     fread(tmp, 1 , 48, theFile);

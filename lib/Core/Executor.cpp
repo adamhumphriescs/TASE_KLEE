@@ -97,6 +97,7 @@
 
 #include <immintrin.h>
 
+
 using namespace llvm;
 using namespace klee;
 
@@ -111,8 +112,9 @@ using namespace klee;
 #include <sys/stat.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include "API.h"
 #include "tase_shims.h"
-#include "tase/TASEControl.h"
+//#include "tase/TASEControl.h"
 #include "../Tase/TASESoftFloatEmulation.h"
 #include <sys/times.h>
 #include <sys/time.h>
@@ -787,7 +789,8 @@ void cycleTASELogs(bool isReplay) {
     if (prev_stdout_log == NULL ) {
       std::cout << "ERROR opening new file for child process logging" << std::endl;
       std::cerr << "ERROR opening new file for child process logging for pid " << i << std::endl;
-      worker_exit(EXIT_FAILURE);
+      //      worker_exit(EXIT_FAILURE);
+      exit(1);
     }
   }
 
@@ -1329,7 +1332,8 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     //the two places we fork during path exploration in TASE.
     int parentPID = getpid();
     uint64_t rip = target_ctx_gregs[GREG_RIP].u64;
-    int pid  = tase_fork(parentPID, rip);
+    //    int pid  = tase_fork(parentPID, rip);
+    int pid = worker_fork(Stopped, Running);
 
     if (pid ==0 ) {      
       addConstraint(*GlobalExecutionStatePtr, Expr::createIsZero(condition));
@@ -3802,7 +3806,8 @@ void Executor::concretizeGPRArgs( unsigned int argNum, const char * reason) {
   
   if (argNum == 0 || argNum > 7) {
     printf("ERROR -- concretizeGPRArgs called with invalid number of args %u ", argNum);
-    worker_exit(EXIT_FAILURE);
+    //    worker_exit(EXIT_FAILURE);
+    exit(1);
   }
 
   if (argNum >= 1 ) {
@@ -3917,7 +3922,8 @@ void Executor::executeMakeSymbolic(ExecutionState &state,
     if (!bindings || bindings->size() != mo->size) {
 
       printf("Bindings mismatch in executeMakeSymbolic; terminating \n");
-      worker_exit();
+      //      worker_exit();
+      exit(1);
     } else {
       const klee::ObjectState *os = state.addressSpace.findObject(mo);
       klee::ObjectState *wos = state.addressSpace.getWriteable(mo, os);
@@ -3945,8 +3951,8 @@ extern "C" void target_exit() {
   printf("Execution State has stack size %lu \n", GlobalExecutionStatePtr->stack.size());
   printf("Found %d calls to solver in fork \n", forkSolverCalls);
   
-  tase_exit();
-
+  //  tase_exit();
+  exit(0);
 }
 
 
@@ -4024,7 +4030,8 @@ KFunction * findInterpFunction (tase_greg_t * registers, KModule * kmod) {
   if (!KInterpFunction) {
     printf("Unable to find interp function for entrypoint PC 0x%lx \n", nativePC);
     fflush(stdout);
-    worker_exit(EXIT_FAILURE);
+    //    worker_exit(EXIT_FAILURE);
+    exit(1);
   } else {
     if (taseDebug) {
       printf("Found interp function \n");
@@ -4099,15 +4106,6 @@ void Executor::model_sb_reopen() {
 }
 
 
-void Executor::model_exit_tase() {
-  print_run_timers();
-
-  fprintf(stdout,"Successfully exited from target.  Shutting down with %ld x86 blocks interpreted \n", interpCtr);
-  fprintf(stdout,"%ld total LLVM IR instructions interpreted \n", instCtr);
-  fflush(stdout);
-  fflush(stderr);
-  worker_exit();
-}
 
 //Todo: Double check the edge cases and make sure we handle
 //buffers allocated at odd addresses.
@@ -5176,7 +5174,8 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
     if (!s) {
       printf("FATAL ERROR: Solver evaluate call failed in forkOnPossibleRIPValues! \n");  
       std::cout.flush();
-      worker_exit(EXIT_FAILURE);
+      //      worker_exit(EXIT_FAILURE);
+      exit(1);
     }
 
     double t1 = util::getWallTime();
@@ -5194,7 +5193,8 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
       return;
     } else {
       printf("Prior to fork, time since start is %lf \n", util::getWallTime() - target_start_time);
-      int isTrueChild = tase_fork(getpid(), initRIP); //Returns 0 for false branch, 1 for true.  Not intuitive
+      //      int isTrueChild = tase_fork(getpid(), initRIP); //Returns 0 for false branch, 1 for true.  Not intuitive
+      int isTrueChild = worker_fork(Stopped, Running);
       if (isTrueChild == 1) {
 	addConstraint(*GlobalExecutionStatePtr,  EqExpr::create(inputExpr, ConstantExpr::create(d1, Expr::Int64)));
 	tase_helper_write( (uint64_t) &target_ctx_gregs[GREG_RIP], ConstantExpr::create(d1,Expr::Int64));
@@ -5238,7 +5238,8 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
 	if (numSolutions > maxSolutions) {
 	  printf("IMPORTANT: control debug: Found too many symbolic values for next instruction after 0x%lx \n ", initRIP);
 	  std::cout.flush();
-	  worker_exit(EXIT_FAILURE);
+	  //	  worker_exit(EXIT_FAILURE);
+	  exit(1);
 	}
       
 	solver_start_time = util::getWallTime();
@@ -5254,10 +5255,12 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
 	if (!success) {
 	  printf("ERROR: couldn't get initial value in forkOnPossibleRIPValues \n");  
 	  std::cout.flush();
-	  worker_exit(EXIT_FAILURE);
+	  //	  worker_exit(EXIT_FAILURE);
+	  exit(1);
 	}
       
-	int isTrueChild = tase_fork(getpid(), initRIP); //Returns 0 for false branch, 1 for true.  Not intuitive
+	//	int isTrueChild = tase_fork(getpid(), initRIP); //Returns 0 for false branch, 1 for true.  Not intuitive
+	int isTrueChild = worker_fork(Stopped, Running);
 
 	//ABH: Todo -- roll this back and support > 2 symbolic dests for things like indirect jumps
 	if (isTrueChild == 0) { //Rule out latest solution and see if more exist
@@ -5266,7 +5269,8 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
 	    if (CE->isFalse()) {
 	      printf("IMPORTANT: forked child %d is not exploring a feasible path \n", getpid());
 	      fflush(stdout);
-	      worker_exit();
+	      //	      worker_exit();
+	      exit(1);
 	    }
 	  }
 	
@@ -5287,7 +5291,8 @@ void Executor::forkOnPossibleRIPValues (ref <Expr> inputExpr, uint64_t initRIP) 
 	  if (!success) {
 	    printf("ERROR: couldn't get RIP value in forkOnPossibleRIPValues for false child \n");
 	    std::cout.flush();
-	    worker_exit(EXIT_FAILURE);
+	    //	    worker_exit(EXIT_FAILURE);
+	    exit(1);
 	  }
 	  if (!noLog) {
 	    printf("IMPORTANT: control debug: Found dest RIP 0x%lx on false branch in forkOnRip from RIP 0x%lx with pid %d \n", (uint64_t) solution->getZExtValue(), initRIP, getpid());
@@ -5441,7 +5446,8 @@ void Executor::initializeInterpretationStructures (Function *f) {
       if(!ss){
         std::cout << "Error reading externals file within initializeInterpretationStructures() at line " << lines << std::endl;
 	std::cout << '"' << line << '"' << std::endl;
-        worker_exit(EXIT_FAILURE);
+	//        worker_exit(EXIT_FAILURE);
+	exit(1);
       }
       if((uint64_t) addrVal != (uint64_t) &target_ctx_gregs){
         //if((sizeVal %2) == 1){
@@ -5457,7 +5463,8 @@ void Executor::initializeInterpretationStructures (Function *f) {
     }
   } else {
     std::cout << "Error reading externals file within initializeInterpretationStructures()" << std::endl;
-    worker_exit(EXIT_FAILURE);
+    //    worker_exit(EXIT_FAILURE);
+    exit(1);
   }
 
   //Todo -- De-hackify this environ variable mapping

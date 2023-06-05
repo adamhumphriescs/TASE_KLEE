@@ -12,6 +12,9 @@ add_library(kleeRuntest SHARED
   # HACK:
   ${CMAKE_SOURCE_DIR}/lib/Basic/KTest.cpp
 )
+
+target_include_directories(kleeRuntest PUBLIC ${CMAKE_INSTALL_PREFIX}/include/tase)
+
 # Increment version appropriately if ABI/API changes, more details:
 # http://tldp.org/HOWTO/Program-Library-HOWTO/shared-libraries.html#AEN135
 set(KLEE_RUNTEST_VERSION 1.0)

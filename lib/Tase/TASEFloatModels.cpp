@@ -71,7 +71,7 @@ using namespace klee;
 #include "klee/CVAssignment.h"
 #include "klee/util/ExprUtil.h"
 #include "klee/Constraints.h"
-#include "tase/TASEControl.h"
+//#include "tase/TASEControl.h"
 #include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/mman.h>

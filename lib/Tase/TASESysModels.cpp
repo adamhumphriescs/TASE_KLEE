@@ -65,11 +65,13 @@ using namespace klee;
 //AH: Our additions below. --------------------------------------
 //#include "../../../test/proj_defs.h"
 #include "tase_interp.h"
+#include "API.h"
+
 #include <iostream>
 #include "klee/CVAssignment.h"
 #include "klee/util/ExprUtil.h"
 #include "klee/Constraints.h"
-#include "tase/TASEControl.h"
+//#include "tase/TASEControl.h"
 #include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/mman.h>
@@ -90,6 +92,7 @@ using namespace klee;
 //#include "../../../musl/arch/x86_64/pthread_arch.h"
 //#include "../../../musl/src/internal/pthread_impl.h"
 
+extern uint64_t instCtr;
 extern uint64_t interpCtr;
 extern uint64_t rodata_size;
 extern uint16_t poison_val;
@@ -112,6 +115,7 @@ extern bool noLog;
 
 extern bool gprsAreConcrete();
 extern void tase_exit(int);
+extern void print_run_timers();
 //extern void printCtx(tase_greg_t *);
 inline bool tase_buf_has_taint(const void * addr, const int size);
 
@@ -244,6 +248,33 @@ void Executor::model_assert_fail(){
   do_ret();
 }
 */
+
+void Executor::model_exit_tase() {
+  if(!noLog){
+    _LOG
+  }
+
+  int count = 0;
+  uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
+  ++s_offset;
+  
+  int status;
+  get_val(count, s_offset, __func__, status);
+
+  if( status == EXIT_SUCCESS ) {
+    print_run_timers();
+
+    std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
+      instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
+
+  
+    worker_success(Stopped, Running);
+  }
+
+  exit(status);
+  //  worker_exit();
+}
+
 
 void Executor::model_putchar(){
   if(!noLog){
@@ -981,7 +1012,8 @@ void Executor::model_exit() {
   std::cout << " Found call to exit.  TASE should shutdown." << std::endl;
   //Todo: Make a flag to only print round/pass for multipass
   //printf("IMPORTANT: Worker exiting from terminal path in round %d pass %d from model_exit \n", round_count, pass_count);
-  worker_exit();
+  //  worker_exit();
+  exit(1);
 }
 
 //http://man7.org/linux/man-pages/man2/write.2.html
