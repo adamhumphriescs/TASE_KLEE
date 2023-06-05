@@ -152,7 +152,7 @@ int orig_stdout_fd;
 extern int symIndex;
 extern int numEntries;
 #endif
-extern void  exit_tase();
+//extern void  exit_tase();
 
 extern char tase_progname[];
 
@@ -1435,47 +1435,50 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      }*/
  }
 
- //Make seperate directories for each of the workers in the time series.
+
+//Make seperate directories for each of the workers in the time series.
  void makeTSPath(int trace_ID) {
    //TODO -- merge in ssl verification code
   
  }
+
 
  bool isTimeSeriesDone() {
    //TODO -- merge in ssl verification code
    return true;
  }
 
- void __attribute__ ((noreturn)) transferToTarget(int argc, char** argv)  {
 
+ void __attribute__ ((noreturn)) transferToTarget(int argc, char** argv)  {
    run_start_time = util::getWallTime();
-   printf("Inside transferToTarget \n");
+   
+   std::cout << "Inside transferToTarget" << std::endl;
 
    init_tase_ctx(begin_target_inner, argc, argv);
    
    if (execMode == INTERP_ONLY) {    
      klee_interp();
    } else {
+     
      tase_inject();
-     if (taseDebug) {
-       printf("TASE - returned from enter_tase... \n"); // now just tase_inject...
-       std::cout.flush();
-     }
+     if (taseDebug)
+       std::cout << "TASE - returned from enter_tase..." << std::endl;
+     
      while (true) { //(target_ctx_gregs[GREG_RIP].u64 != (uint64_t) &tase_exit) {
        klee_interp();
-       if (taseDebug) {
+       
+       if (taseDebug)
 	 std::cout << "Returning from klee_interp at " << std::hex << target_ctx_gregs[GREG_RIP].u64 << std::dec << std::endl;
-         std::cout.flush();
-       }
+
        tase_inject();
-       if (taseDebug) {
-         printf("Returning from tase_inject ... \n");
-         std::cout.flush();
-       }
+       
+       if (taseDebug)
+	 std::cout << "Returning from tase_inject..." << std::endl;
      }
    }
  }
- 
+
+
  //Attempt to load basic block successor information for basic blocks ending in
  //non-indirect control flow (e.g., je, jne, etc).  Information goes into
  //"knownCartridgeDests" to give solver a hint when encountering symbolic
@@ -1810,11 +1813,9 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      }
 
      transferToTarget(pArgc, pArgv);
-     printf("RETURNING TO MAIN HANDLER \n");
-
-     //     worker_success(Stopped, Running);
-     return 0;
-
+     //     printf("RETURNING TO MAIN HANDLER \n");
+     //     worker_success(Stopped, Running); not necessary here, we never come back from transferToTarget
+     //     return 0;
    } else {
      manage_workers(Stopped, Running);
    }

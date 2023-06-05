@@ -89,7 +89,7 @@ using namespace klee;
 #include <byteswap.h>
 
 
-extern void tase_exit();
+//extern void tase_exit();
 
 extern uint64_t total_interp_returns;
 extern bool taseManager;

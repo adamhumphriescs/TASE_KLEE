@@ -114,7 +114,7 @@ extern bool taseManager;
 extern bool noLog;
 
 extern bool gprsAreConcrete();
-extern void tase_exit(int);
+//extern void tase_exit(int);
 extern void print_run_timers();
 //extern void printCtx(tase_greg_t *);
 inline bool tase_buf_has_taint(const void * addr, const int size);
@@ -260,19 +260,22 @@ void Executor::model_exit_tase() {
   
   int status;
   get_val(count, s_offset, __func__, status);
-
-  if( status == EXIT_SUCCESS ) {
-    print_run_timers();
-
-    std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
-      instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
-
-  
-    worker_success(Stopped, Running);
-  }
-
   exit(status);
-  //  worker_exit();
+}
+
+
+void Executor::model_exit_tase_success() {
+  if(!noLog){
+    _LOG
+  }
+  
+  print_run_timers();
+  
+  std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
+    instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
+
+  worker_success(Stopped, Running);
+  exit(EXIT_SUCCESS);
 }
 
 
