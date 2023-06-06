@@ -116,6 +116,7 @@ WorkerGroup * Running;
 pid_t manager_pid;
 pid_t backup = 0;
 pid_t scout = -1;
+extern uint64_t scout_counter;
 int sfd;
 struct signalfd_siginfo signals[MAX_EVENTS];
 int num_signals;
@@ -136,21 +137,29 @@ void wait_killed(pid_t pid) {
     waitpid(pid, &status, WUNTRACED | __WCLONE );
     if( WIFEXITED(status) )
       break;
+    
+    if( WIFSIGNALED(status) && WTERMSIG(status) == SIGKILL )
+      break;
   }
 }
 
 void deathsig() {
   if( getpid() != manager_pid ) {
-
-    if( backup ) {
-      sigval y;
-      y.sival_int = -1;
-      sigqueue(backup, SIGSTD, y);    // scout signaling the backup on exit
-    }
     
     sigval x;    
     x.sival_int = static_cast<int>(SIGNALS::ABORT);
     sigqueue(manager_pid, SIGSTD, x); // abort signal to manager
+
+    if( backup ) {
+      sigval y;
+      if( scout_counter > 0 ) {
+	y.sival_int = scout_counter;
+	sigqueue(backup, SIGSTD, y);
+      }
+
+      y.sival_int = -1;
+      sigqueue(backup, SIGSTD, y);    // scout signaling the backup on exit. Should be after signal to manager
+    }    
   }
 }
 
@@ -201,9 +210,6 @@ void destroy_structures(WorkerGroup ** Stopped, WorkerGroup ** Running) {
   std::for_each((*Running)->begin(), (*Running)->end(), destroy);
   (*Stopped)->clear();
   (*Running)->clear();
-
-  delete *Stopped;
-  delete *Running;
 }
 
 
@@ -395,6 +401,8 @@ void manage_workers(WorkerGroup * Stopped, WorkerGroup * Running) {
 
     handle_signals(Stopped, Running);
   }
+  delete Stopped;
+  delete Running;
 }
 
 

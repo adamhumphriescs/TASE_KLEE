@@ -91,6 +91,8 @@ using namespace klee;
 
 //#include "../../../musl/arch/x86_64/pthread_arch.h"
 //#include "../../../musl/src/internal/pthread_impl.h"
+extern uint64_t scout_counter;
+extern pid_t scout;
 
 extern uint64_t instCtr;
 extern uint64_t interpCtr;
@@ -254,6 +256,18 @@ void Executor::model_exit_tase() {
     _LOG
   }
 
+  if( scout == 0 ) {  // harmless in the non-scout case
+    scout_counter++;  
+  } else {
+    print_run_timers();
+      
+    std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
+      instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
+
+    worker_success(Stopped, Running);
+    exit(EXIT_SUCCESS);
+  }
+  
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
   ++s_offset;
@@ -264,19 +278,19 @@ void Executor::model_exit_tase() {
 }
 
 
-void Executor::model_exit_tase_success() {
-  if(!noLog){
-    _LOG
-  }
-  
-  print_run_timers();
-  
-  std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
-    instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
+// void Executor::model_exit_tase_success() {
+//   if(!noLog){
+//     _LOG
+//   }
 
-  worker_success(Stopped, Running);
-  exit(EXIT_SUCCESS);
-}
+//   print_run_timers();
+  
+//   std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
+//     instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
+
+//   worker_success(Stopped, Running);
+//   exit(EXIT_SUCCESS);
+// }
 
 
 void Executor::model_putchar(){

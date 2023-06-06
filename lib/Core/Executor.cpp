@@ -4393,7 +4393,7 @@ void Executor::loadFnModelMap() {
   {(uint64_t) &__ctype_b_loc,  &Executor::model___ctype_b_loc},
   {(uint64_t) &__ctype_tolower_loc,  &Executor::model___ctype_tolower_loc},
   {(uint64_t) &__errno_location,  &Executor::model___errno_location},
-  {(uint64_t) &exit_tase_shim,  &Executor::model_exit_tase_success}, //not redundant
+  //  {(uint64_t) &exit_tase_shim,  &Executor::model_exit_tase_success}, //not redundant
   {(uint64_t) &exit_tase,  &Executor::model_exit_tase},
   {(uint64_t) &fclose,  &Executor::model_fclose},
   {(uint64_t) &fcntl,  &Executor::model_fcntl},
