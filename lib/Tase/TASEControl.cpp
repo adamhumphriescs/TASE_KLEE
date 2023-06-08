@@ -141,7 +141,7 @@ void DFS_push(int pid);
 void manage_verification_workers();
 void manage_exploration_workers();
 int tase_explorer_fork(int parentPID, uint64_t rip);
-extern "C" void update_pid(pid_t pid, pid_t newpid);
+
 
 extern int orig_stdout_fd;
 
@@ -158,7 +158,7 @@ void get_sem_lock () {
 }
 
 void release_sem_lock () {
-  int res = semop(semID, &sem_unlock,1);
+  int res = semop(semID, &sem_unlock, 1);
   if (res == 0) {
     return;
   } else {
@@ -1424,15 +1424,3 @@ void manage_exploration_workers() {
   }
 }
 
-
-void update_pid(pid_t pid, pid_t new_pid){
-  int* end = (explorationType == BFS ? BFS_Back_Ptr : DFS_Stack_Ptr);
-  int* start = (int*)  (explorationType == BFS ? explorer_pid_queue_base : explorer_pid_stack_base);
-  get_sem_lock();
-  for(int* i = start; i < end; i++) {
-    if ( *i == pid ) {
-      *i = new_pid;
-    }
-  }
-  release_sem_lock();
-}

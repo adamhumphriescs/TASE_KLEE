@@ -76,15 +76,27 @@
 
 extern uint64_t saved_rax;
 
+
+
 int trace_ID;
 double target_start_time;
 double target_end_time;
 extern double run_start_time;
-extern double last_message_verification_time;
+double last_message_verification_time;
 
 #include "tase.h"
 #include "tase_interp.h"
 #include "API.h"
+
+struct WorkerGroup *Stopped;
+struct WorkerGroup *Running;
+CVAssignment  prevMPA;
+int round_count = 0;
+int pass_count = 0;
+
+pid_t backup = 0;
+pid_t scout = -1;
+
 
 extern target_ctx_t target_ctx;
 tase_greg_t * target_ctx_gregs = target_ctx.gregs;

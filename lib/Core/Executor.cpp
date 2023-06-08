@@ -646,6 +646,7 @@ int run_interp_traps = 0; //Number of traps to the interpreter
 int run_model_count = 0; //Number of model calls
 int run_bb_count = 0; //Number of basic blocks interpreted through
 
+double run_model_time = 0;
 double run_interp_time = 0;  //Total time in interpreter
 double run_core_interp_time = 0; //Total time interpreting insts
 double run_fork_time = 0;
@@ -659,9 +660,6 @@ double mem_op_eval_time = 0;
 double mo_resolve_time = 0;
 
 
-
-
-
 void reset_run_timers() {
 
   run_start_time = util::getWallTime();
@@ -672,6 +670,7 @@ void reset_run_timers() {
   run_model_count = 0;
   run_bb_count = 0;
 
+  run_model_time = 0;
   run_interp_time = 0;
   run_core_interp_time = 0;
   run_fork_time = 0;
@@ -700,6 +699,7 @@ void print_run_timers() {
     run_interp_time += (util::getWallTime() - interp_enter_time);
     printf("Total basic blocks %d \n", run_interp_insts );
     printf("Total run time    : %lf \n",  totalRunTime);
+    printf(" - Model time     : %lf \n", run_model_time);
     printf(" - Interp time    : %lf \n", run_interp_time);
     printf("       -Core      : %lf \n", run_core_interp_time);
     printf("       -Solver    : %lf \n", run_solver_time);
@@ -1335,7 +1335,7 @@ Executor::fork(ExecutionState &current, ref<Expr> condition, bool isInternal) {
     //    int pid  = tase_fork(parentPID, rip);
     int pid = worker_fork(Stopped, Running);
 
-    if (pid ==0 ) {      
+    if (pid == 0 ) {      
       addConstraint(*GlobalExecutionStatePtr, Expr::createIsZero(condition));
     } else {
       addConstraint(*GlobalExecutionStatePtr, condition);
@@ -4967,7 +4967,8 @@ void Executor::single_step_match(uint64_t cc[2]){
   
 void Executor::klee_interp_internal() {
   run_interp_traps++;
-
+  double model_start_time;
+  
   while (true) {
     run_interp_insts++;
     interpCtr++;
@@ -5009,7 +5010,14 @@ void Executor::klee_interp_internal() {
       return;
 
     case EXECUTION_STATE::MODEL:
+      if( measureTime )
+	model_start_time = util::getWallTime();
+      
       (this->*fp)();
+
+      if( measureTime )
+	run_model_time = util::getWallTime() - model_start_time;
+      
       ex_state = ex_state.is_mixedMode() ? EXECUTION_STATE::RESUME : EXECUTION_STATE::INTERP;
       break;
 

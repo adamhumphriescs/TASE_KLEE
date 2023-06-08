@@ -111,11 +111,11 @@ struct WorkerGroup {
 
 size_t MAX_RUNNING_WORKERS = 32; // need to add options to klee
 size_t MAX_STOPPED_WORKERS = 1024;
-WorkerGroup * Stopped;
-WorkerGroup * Running;
+extern WorkerGroup * Stopped;
+extern WorkerGroup * Running;
 pid_t manager_pid;
-pid_t backup = 0;
-pid_t scout = -1;
+extern pid_t backup;
+extern pid_t scout;
 extern uint64_t scout_counter;
 int sfd;
 struct signalfd_siginfo signals[MAX_EVENTS];
