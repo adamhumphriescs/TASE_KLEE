@@ -258,7 +258,7 @@ void Executor::model_exit_tase() {
 
   if( scout == 0 ) {  // harmless in the non-scout case
     scout_counter++;  
-  } else {
+  } else if ( scout > 0 ) { // backup
     print_run_timers();
       
     std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
@@ -274,23 +274,34 @@ void Executor::model_exit_tase() {
   
   int status;
   get_val(count, s_offset, __func__, status);
-  exit(status);
+
+  std::cout << "Exit called with status: " << status << std::endl;
+  
+  if( status == EXIT_SUCCESS ) {  // successful TSX path
+    print_run_timers();
+
+    std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
+      instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
+    worker_success(Stopped, Running);
+  }
+  
+  exit(status);  // fallthrough
 }
 
 
-// void Executor::model_exit_tase_success() {
-//   if(!noLog){
-//     _LOG
-//   }
+void Executor::model_exit_tase_success() {
+  if(!noLog){
+    _LOG
+  }
 
-//   print_run_timers();
+  print_run_timers();
   
-//   std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
-//     instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
+  std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
+    instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
 
-//   worker_success(Stopped, Running);
-//   exit(EXIT_SUCCESS);
-// }
+  worker_success(Stopped, Running);
+  exit(EXIT_SUCCESS);
+}
 
 
 void Executor::model_putchar(){

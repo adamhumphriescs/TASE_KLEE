@@ -1790,25 +1790,25 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    if (pid == 0){
      printf("----------------SWAPPING TO TARGET CONTEXT------------------ \n");
        
-     if (!noLog) {
-       int i = getpid();
-       worker_ID_stream << ".";
-       worker_ID_stream << i;
-       std::string pidString ;
-       pidString = worker_ID_stream.str();
-       FILE * tmpFile1 = freopen(pidString.c_str(),"w",stdout);
-       if (tmpFile1 == NULL) {
-	 printf("FATAL ERROR redirecting stdout \n");
-	 fflush(stdout);
-	 std::exit(EXIT_FAILURE);
-       }
-       FILE * tmpFile2 = freopen(pidString.c_str(),"w",stderr);
-       if (tmpFile2 == NULL) {
-	 printf("FATAL ERROR redirecting stderr \n");
-	 fflush(stdout);
-	 std::exit(EXIT_FAILURE);
-       }
-     }
+     // if (!noLog) {
+     //   int i = getpid();
+     //   worker_ID_stream << ".";
+     //   worker_ID_stream << i;
+     //   std::string pidString ;
+     //   pidString = worker_ID_stream.str();
+     //   FILE * tmpFile1 = freopen(pidString.c_str(),"w",stdout);
+     //   if (tmpFile1 == NULL) {
+     // 	 printf("FATAL ERROR redirecting stdout \n");
+     // 	 fflush(stdout);
+     // 	 std::exit(EXIT_FAILURE);
+     //   }
+     //   FILE * tmpFile2 = freopen(pidString.c_str(),"w",stderr);
+     //   if (tmpFile2 == NULL) {
+     // 	 printf("FATAL ERROR redirecting stderr \n");
+     // 	 fflush(stdout);
+     // 	 std::exit(EXIT_FAILURE);
+     //   }
+     // }
        
      if (taseDebug) {
        std::cout << "Calling transferToTarget()" << std::endl;
