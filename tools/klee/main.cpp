@@ -147,6 +147,8 @@ extern uint64_t trap_off;
 extern int * target_started_ptr;
 extern std::map<uint64_t, KFunction *> IR_KF_Map;
 
+extern "C" void cycleTASELogs(bool isReplay);
+
 int QR_MAX_WORKERS = 8;
 int masterPID;
 bool enableMultipass = false;;
@@ -1441,7 +1443,7 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
      numLiveBlocks++;
    }
    printf("Found %d basic blocks with flags live-in \n", numLiveBlocks);
-
+   fflush(stdout);
    /*   for( uint32_t i = 0; i < tase_num_kill_flags_block_records; ++i) {
      kill_flags.insert(tase_kill_flags_block_records[i]);
      }*/
@@ -1735,15 +1737,13 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    interpModule->named_metadata_empty();
    printf("Calling initializeInterpretationStructures");
    fflush(stdout);
+   
    interpreter->initializeInterpretationStructures(entryFn);
    GlobalInterpreter = interpreter;
 
-   printf("loading cartridges");
-   fflush(stdout);
    loadCartridgeInfo();
-   loadCartridgeDests();
+   //   loadCartridgeDests();
 
-   signal(SIGCHLD, SIG_IGN);
    //--------
 #ifdef TASE_OPENSSL
 
@@ -1773,11 +1773,13 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    }
 
    #endif TASE_OPENSSL
-   signal(SIGCHLD, SIG_IGN); //Added
+
    double theTime = util::getWallTime();
    target_start_time = theTime;  //Moved here to initialize for both manager and workers
    last_message_verification_time = theTime;
+   
 
+   signal(SIGCHLD, SIG_IGN);
    
    int res = prctl(PR_SET_CHILD_SUBREAPER, 1);
    if (res == -1)
@@ -1788,32 +1790,11 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
    int pid = initial_fork(Stopped, Running);
    
    if (pid == 0){
-     printf("----------------SWAPPING TO TARGET CONTEXT------------------ \n");
-       
-     // if (!noLog) {
-     //   int i = getpid();
-     //   worker_ID_stream << ".";
-     //   worker_ID_stream << i;
-     //   std::string pidString ;
-     //   pidString = worker_ID_stream.str();
-     //   FILE * tmpFile1 = freopen(pidString.c_str(),"w",stdout);
-     //   if (tmpFile1 == NULL) {
-     // 	 printf("FATAL ERROR redirecting stdout \n");
-     // 	 fflush(stdout);
-     // 	 std::exit(EXIT_FAILURE);
-     //   }
-     //   FILE * tmpFile2 = freopen(pidString.c_str(),"w",stderr);
-     //   if (tmpFile2 == NULL) {
-     // 	 printf("FATAL ERROR redirecting stderr \n");
-     // 	 fflush(stdout);
-     // 	 std::exit(EXIT_FAILURE);
-     //   }
-     // }
-       
-     if (taseDebug) {
-       std::cout << "Calling transferToTarget()" << std::endl;
-     }
+     
+     cycleTASELogs(false);
 
+     printf("----------------SWAPPING TO TARGET CONTEXT------------------ \n");
+           
      auto exe = static_cast<klee::Executor*>(interpreter);
      exe->tase_map(saved_rax, "saved_rax");
      for(int i = 0; i < pArgc; ++i){
@@ -1824,10 +1805,13 @@ static llvm::Module *linkWithUclibc(llvm::Module *mainModule, StringRef libDir) 
        }
      }
 
+     if (taseDebug)
+       std::cout << "Calling transferToTarget()" << std::endl;
+
      transferToTarget(pArgc, pArgv);
-     //     printf("RETURNING TO MAIN HANDLER \n");
-     //     worker_success(Stopped, Running); not necessary here, we never come back from transferToTarget
-     //     return 0;
+     printf("RETURNING TO MAIN HANDLER \n");
+     fflush(stdout);
+     //     worker_success(Stopped, Running); not necessary here, we should never come back from transferToTarget
    } else {
      manage_workers(Stopped, Running);
    }

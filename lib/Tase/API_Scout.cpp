@@ -7,6 +7,8 @@
 #include "API_Scout.h"
 #include "klee/CommandLine.h"
 
+extern bool taseDebug;
+
 // worker_fork is intended to be called by workers
 // all other items from the API are just for the managing process to call
 
@@ -46,10 +48,6 @@ struct WorkerGroup {
     workers.pop_back();
     return x;
   }
-
-  // void push(WorkerInfo&& w) {
-  //   workers.push_back(std::move(w));
-  // }
 
   void push(const WorkerInfo& w) {
     workers.push_back(w);
@@ -120,6 +118,7 @@ extern uint64_t scout_counter;
 int sfd;
 struct signalfd_siginfo signals[MAX_EVENTS];
 int num_signals;
+bool success = false;
 
 // wait could be interrupted and fail, so keep in the loop
 void wait_stopped(pid_t pid) {
@@ -145,21 +144,25 @@ void wait_killed(pid_t pid) {
 
 void deathsig() {
   if( getpid() != manager_pid ) {
-    
-    sigval x;    
-    x.sival_int = static_cast<int>(SIGNALS::ABORT);
-    sigqueue(manager_pid, SIGSTD, x); // abort signal to manager
+    sigval x;
 
-    if( backup ) {
-      sigval y;
+    if( taseDebug ) {
+      printf("pid %d death signal. Scout: %d, backup: %d, counter: %d\n", getpid(), scout, backup, scout_counter);
+      fflush(stdout);
+    }
+
+    if( scout == 0 ) {
       if( scout_counter > 0 ) {
-	y.sival_int = scout_counter;
-	sigqueue(backup, SIGSTD, y);
+	x.sival_int = scout_counter;
+	sigqueue(backup, SIGSTD, x);
       }
 
-      y.sival_int = -1;
-      sigqueue(backup, SIGSTD, y);    // scout signaling the backup on exit. Should be after signal to manager
-    }    
+      x.sival_int = -1;
+      sigqueue(backup, SIGSTD, x);    // scout signaling the backup on exit
+    }
+    
+    x.sival_int = static_cast<int>(SIGNALS::ABORT);
+    sigqueue(manager_pid, SIGSTD, x); // abort signal to manager
   }
 }
 
@@ -177,9 +180,8 @@ void init_structures(WorkerGroup ** Stopped, WorkerGroup ** Running) {
   prctl(PR_SET_CHILD_SUBREAPER, 1);
   
   sigset_t mask;
+  
   sigemptyset(&mask);
-
-  //  sigaddset(&mask, SIGCHLD);  // ignore sigchld
   sigaddset(&mask, SIGSTD);   // standard signals
   sigaddset(&mask, SIGSCOUT); // scout signal
 
@@ -322,15 +324,33 @@ void handle_signals(WorkerGroup * Stopped, WorkerGroup * Running) {
       switch( SIGNALS(signals[i].ssi_int) ) {
       case SIGNALS::ABORT:  // scout abort signal also sent to backup on exit, no special case here. Handled in tase/src/tase/common_scout.c
 	Running->get(&tmp, signals[i].ssi_pid) || Stopped->get(&tmp, signals[i].ssi_pid);
+
+	if( taseDebug ) {
+	  printf("Signal: Abort, pid %d\n", signals[i].ssi_pid);
+	  fflush(stdout);
+	}
 	
 	wait_killed(signals[i].ssi_pid);
 	break;
 	
       case SIGNALS::SUCCESS: // print something here...
+	if( taseDebug ) {
+	  printf("Signal: Success, pid %d\n", signals[i].ssi_pid);
+	  fflush(stdout);
+	}
+
 	destroy_structures(&Stopped, &Running);
-	break;
+	success = true;
+	
+	return; // ignore remaining signals
 	
       default: // fork
+	if( taseDebug ) {
+	  printf("Signal: Fork, pid %d\n", signals[i].ssi_pid);
+	  fflush(stdout);
+	}
+
+	
 	if( Stopped->size() == MAX_STOPPED_WORKERS ) {
 	  printf("MAX_STOPPED_WORKERS Exceeded. Execution failed\n");
 	  fflush(stdout);
@@ -347,6 +367,11 @@ void handle_signals(WorkerGroup * Stopped, WorkerGroup * Running) {
       }
       
     } else if ( signals[i].ssi_signo == SIGSCOUT ) {
+      	if( taseDebug ) {
+	  printf("Signal: Scout Fork, pid %d\n", signals[i].ssi_pid);
+	  fflush(stdout);
+	}
+
       // scout fork. Scout goes into Running. Sent by originator == new scout.
       // corresponding code for the forking is in tase/src/tase/common_scout.c
       // should set 'pid_t scout' to be the scout process ID in the new backup process,
@@ -395,12 +420,16 @@ void handle_signals(WorkerGroup * Stopped, WorkerGroup * Running) {
 
 
 void manage_workers(WorkerGroup * Stopped, WorkerGroup * Running) {
-  while( !Stopped->empty() || !Running->empty() ) {
+  while( !success || !Stopped->empty() || !Running->empty() ) {
 
     while( !Stopped->empty() && schedule_worker(Stopped, Running) ){}
 
     handle_signals(Stopped, Running);
   }
+  
+  printf("All workers finished.\n");
+  fflush(stdout);
+  
   delete Stopped;
   delete Running;
 }

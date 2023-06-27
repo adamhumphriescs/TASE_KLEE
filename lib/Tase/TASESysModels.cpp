@@ -256,17 +256,17 @@ void Executor::model_exit_tase() {
     _LOG
   }
 
-  if( scout == 0 ) {  // harmless in the non-scout case
-    scout_counter++;  
-  } else if ( scout > 0 ) { // backup
-    print_run_timers();
+  // if( scout == 0 ) {  // harmless in the non-scout case
+  //   scout_counter++;  
+  // } else if ( scout > 0 ) { // backup
+  //   print_run_timers();
       
-    std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
-      instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
+  //   std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
+  //     instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
 
-    worker_success(Stopped, Running);
-    exit(EXIT_SUCCESS);
-  }
+  //   worker_success(Stopped, Running);
+  //   exit(EXIT_SUCCESS);
+  // }
   
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
@@ -293,7 +293,7 @@ void Executor::model_exit_tase_success() {
   if(!noLog){
     _LOG
   }
-
+  
   print_run_timers();
   
   std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
