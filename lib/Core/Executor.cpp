@@ -712,12 +712,13 @@ void print_run_timers() {
     printf("MEM OP TIME       : %lf \n", run_mem_op_time);
     printf(" mem op eval args : %lf \n", mem_op_eval_time);
     printf("   -mo_resolve_t  : %lf \n", mo_resolve_time);
-
+    
     if (taseDebug) {
       abort_info.print();
     }
     abort_info.reset_counts();
 
+    fflush(stdout);
 
     FILE * logFile = fopen(curr_unique_log_ID.c_str(), "w+");
     fprintf(logFile, "Prev log name, Round, Pass, Total Runtime, Interp Time, Solver Time, Fork Time, Core Interp Time,TMP1, TMP2, TMP3, RUN INTERP TRAPS, RUN BB COUNT, RUN MODEL COUNT \n");

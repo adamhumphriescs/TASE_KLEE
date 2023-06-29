@@ -255,18 +255,6 @@ void Executor::model_exit_tase() {
   if(!noLog){
     _LOG
   }
-
-  // if( scout == 0 ) {  // harmless in the non-scout case
-  //   scout_counter++;  
-  // } else if ( scout > 0 ) { // backup
-  //   print_run_timers();
-      
-  //   std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
-  //     instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
-
-  //   worker_success(Stopped, Running);
-  //   exit(EXIT_SUCCESS);
-  // }
   
   int count = 0;
   uint64_t * s_offset = (uint64_t*) target_ctx_gregs[GREG_RSP].u64;
@@ -277,7 +265,7 @@ void Executor::model_exit_tase() {
 
   std::cout << "Exit called with status: " << status << std::endl;
   
-  if( status == EXIT_SUCCESS ) {  // successful TSX path
+  if( status == EXIT_SUCCESS ) {
     print_run_timers();
 
     std::cout << "Successfully exited from target.  Shutting down with " << interpCtr << " x86 blocks interpreted \n" <<
@@ -285,7 +273,7 @@ void Executor::model_exit_tase() {
     worker_success(Stopped, Running);
   }
   
-  exit(status);  // fallthrough
+  exit(status);
 }
 
 
@@ -300,6 +288,7 @@ void Executor::model_exit_tase_success() {
     instCtr <<  " total LLVM IR instructions interpreted" << std::endl;
 
   worker_success(Stopped, Running);
+  
   exit(EXIT_SUCCESS);
 }
 
